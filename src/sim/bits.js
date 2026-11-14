@@ -1,8 +1,9 @@
 // Input bitmask shared by input, sim and network. Directions are absolute (screen).
 export const UP = 1, DOWN = 2, LEFT = 4, RIGHT = 8;
 export const LP = 16, HP = 32, LK = 64, HK = 128, SUP = 256;
-export const BUTTONS = [LP, HP, LK, HK, SUP];
-export const ALL = 511;
+export const EX1 = 512, EX2 = 1024; // VOADORA (flying kick) and ESTRELA (cartwheel kick)
+export const BUTTONS = [LP, HP, LK, HK, SUP, EX1, EX2];
+export const ALL = 2047;
 
 // Numpad notation relative to facing (6 = forward, 4 = back, 2 = down, 8 = up).
 export function dirOf(input, facing) {

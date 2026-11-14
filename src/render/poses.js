@@ -64,47 +64,34 @@ const ATTACKS = {
 };
 
 // Clip-driven attacks: [clip, startupFrom, activeAt, activeTo, recoveryTo], per character.
-const SEQ = 'sequencia de soco direto e cruzado'; // Hotmonster's jab + cross combo
 const AIRCLIP = { lockXZ: true, clampUp: true };
-// [clip, startupFrom, activeAt, activeTo, recoveryTo, yaw, rampYaw]. yaw turns the clip so
-// the kicking foot lands in front of the fighter (measured from the clips' foot positions).
-const KICKS = {
-  // Spinning kick: at 0.6 s the foot is out behind the body, so the clip plays turned 180°.
-  // Only the extension is used; recovery plays it backwards to pull the leg back in.
-  lk: ['front_kick_02', 0.45, 0.6, 0.66, 0.45, Math.PI],
-  // Roundhouse: the foot hits out to the side (about 100°), so the body turns into it
-  // during the wind-up and turns back during recovery.
-  hk: ['front_kick_01', 0.45, 0.98, 1.15, 1.9, -1.78, true],
-  // Air kicks from the Mixamo jumping kicks: only the airborne part, with the clip's own
-  // travel and height taken out (the game moves the fighter through the air).
-  jlk: ['Kicking', 0.95, 1.2, 1.32, 1.42, 0, false, AIRCLIP],
-  // Rising punch: comes up out of the crouch and fires a straight punch.
+// [clip, startupFrom, activeAt, activeTo, recoveryTo, yaw, rampYaw, opts]: the clip time at
+// the start of the move, at the hit, at the end of the hit and at the end of the recovery.
+// Both fighters use the Mixamo moves (converted with tools/mixamo/convert.cjs).
+const TRAVEL = { lockXZ: true };   // the game moves the fighter; the clip's own travel is removed
+const MIXAMO_ATTACKS = {
+  // Jab string from "Quad Punch": pressing LP again chains to the next of its four punches.
+  lp: ['Quad_Punch', 0.36, 0.5, 0.56, 0.66],
+  lp2: ['Quad_Punch', 0.58, 0.7, 0.75, 0.86],
+  lp3: ['Quad_Punch', 0.8, 0.92, 0.98, 1.06],
+  lp4: ['Quad_Punch', 1.04, 1.2, 1.26, 1.5],
+  hp: ['Boxing', 0.2, 0.6, 0.72, 1.6],                        // lunging straight
+  lk: ['Martelo_2', 0.22, 0.45, 0.58, 1.25],                  // capoeira "martelo"
+  hk: ['Inside_Crescent_Kick', 0.95, 1.32, 1.45, 2.3],        // hop and spinning crescent
+  fk: ['Kicking', 0.45, 1.18, 1.36, 1.75, 0, false, TRAVEL],  // VOADORA: run-up jumping kick
+  cw: ['Martelo_Do_Chau_Sem_Mao', 0.3, 1.12, 1.3, 2.1, 0, false, TRAVEL], // ESTRELA
+  // Rising punch out of the crouch.
   chp: ['box_02', 1.0, 1.75, 1.95, 2.35],
+  // Air kicks: only the airborne part, with the clip's own travel and height taken out.
+  jlk: ['Kicking', 0.95, 1.2, 1.32, 1.42, 0, false, AIRCLIP],
+  jhk: ['Inside_Crescent_Kick', 1.12, 1.32, 1.45, 1.58, 0, false, AIRCLIP],
 };
-const CLIP_ATTACKS = {
-  hotmonster: {
-    lp: [SEQ, 2.3, 2.5, 2.62, 2.88],    // straight jab
-    lp2: [SEQ, 3.55, 3.74, 3.86, 4.2],  // second jab in a row: the last punch of the sequence
-    hp: [SEQ, 2.88, 3.12, 3.22, 3.62],  // cross with the whole body turning in
-    ...KICKS,
-    hk: ['Martelo_2', 0.1, 0.45, 0.62, 1.3],                          // capoeira "martelo", high
-    jhk: ['Inside_Crescent_Kick', 1.12, 1.32, 1.45, 1.58, 0, false, AIRCLIP],
-  },
-  flash: {
-    // Jabs chain into a little combo: jab, quick punch, lunging punch.
-    lp: ['box_01', 0.4, 0.58, 0.62, 1.0],
-    lp2: ['Quad_Punch', 0.36, 0.5, 0.56, 0.7],
-    lp3: ['box_03', 0.3, 0.66, 0.8, 1.2],
-    hp: ['Boxing', 0.2, 0.6, 0.72, 1.6],                               // big lunging straight
-    ...KICKS,
-    jhk: ['Martelo_Do_Chau_Sem_Mao', 0.95, 1.15, 1.25, 1.4, 0, false, AIRCLIP], // cartwheel kick
-  },
-};
+const CLIP_ATTACKS = { hotmonster: MIXAMO_ATTACKS, flash: MIXAMO_ATTACKS };
 
 function attackPose(f, m, t) {
   const set = CLIP_ATTACKS[f.char] || CLIP_ATTACKS.flash;
   // Chained repeats of the same move cycle through its variants (lp, lp2, lp3…).
-  const variants = [set[f.mv], set[f.mv + '2'], set[f.mv + '3']].filter(Boolean);
+  const variants = [set[f.mv], set[f.mv + '2'], set[f.mv + '3'], set[f.mv + '4']].filter(Boolean);
   const ca = variants[f.chain % Math.max(1, variants.length)];
   if (ca) {
     const [clip, s0, a0, a1, r1, yaw = 0, ramp = false, opts = null] = ca;

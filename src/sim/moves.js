@@ -17,6 +17,11 @@ const normals = {
   jhp: { rank: 2, startup: 7, active: 6, recovery: 0,  dmg: 80, hitstun: 19, blockstun: 14, push: 140, height: 'high', box: [80, 550, 680, 1100], air: true },
   jlk: { rank: 1, startup: 5, active: 10, recovery: 0, dmg: 50, hitstun: 16, blockstun: 11, push: 100, height: 'high', box: [100, 150, 700, 650], air: true },
   jhk: { rank: 2, startup: 7, active: 8, recovery: 0,  dmg: 85, hitstun: 19, blockstun: 14, push: 140, height: 'high', box: [100, 150, 820, 650], air: true },
+  // Extra buttons. travel = [fromFrame, toFrame, mm per frame] moved forward during the move.
+  // VOADORA: run-up and jumping kick. Hits high, so it has to be blocked standing.
+  fk:  { rank: 2, startup: 18, active: 6, recovery: 16, dmg: 90, hitstun: 22, blockstun: 16, push: 220, height: 'high', box: [150, 900, 950, 1650], travel: [2, 24, 50] },
+  // ESTRELA: cartwheel into a kick that knocks down.
+  cw:  { rank: 2, startup: 20, active: 6, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 200, height: 'mid', box: [100, 700, 900, 1550], travel: [0, 22, 34], kd: true },
 };
 
 export const CHARACTERS = {

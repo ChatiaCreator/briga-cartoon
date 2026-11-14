@@ -1,7 +1,7 @@
 // Fighter state machine. Everything here is integer maths so both players' browsers
 // compute exactly the same result from the same inputs (needed for online lockstep).
 import { CHARACTERS, BUFF_SPEED, moveTotal } from './moves.js';
-import { dirOf, LP, HP, LK, HK, SUP, BUTTONS } from './bits.js';
+import { dirOf, LP, HP, LK, HK, SUP, EX1, EX2, BUTTONS } from './bits.js';
 import { qcf, HIST } from './motion.js';
 
 export const WALL = 4200;          // stage half-width (mm)
@@ -20,7 +20,7 @@ export function createFighter(id, char, x) {
     hp: c.hp, maxHp: c.hp, meter: 0,
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
     combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, hitKind: 'head', hitRank: 1, chain: 0,
-    hist: new Array(HIST).fill(5), prev: 0, press: [99, 99, 99, 99, 99],
+    hist: new Array(HIST).fill(5), prev: 0, press: [99, 99, 99, 99, 99, 99, 99],
   };
 }
 
@@ -81,6 +81,12 @@ function chooseMove(f, dir, air, minRank) {
     // Special: quarter circle forward + punch, or the shortcut LP+HP together.
     if ((lp || hp) && ok('special') && (qcf(f.hist) || (lp && hp))) {
       consume(f, LP); consume(f, HP); return 'special';
+    }
+  }
+  // Extra buttons: standing moves only.
+  if (!air) {
+    for (const [bit, id] of [[EX2, 'cw'], [EX1, 'fk']]) {
+      if (buffered(f, bit) && ok(id)) { consume(f, bit); return id; }
     }
   }
   const crouch = !air && (dir === 1 || dir === 2 || dir === 3);
@@ -236,6 +242,11 @@ function stepAttack(f, dir, o, g) {
     const active = f.sf >= m.startup && f.sf < m.startup + m.active;
     f.vx = active && !f.hit ? Math.trunc((m.dash * sp) / 100) * f.facing : 0;
     f.x += f.vx;
+  }
+  // Moves that carry the fighter forward (VOADORA, ESTRELA), until they connect.
+  if (m.travel) {
+    const [a, b, v] = m.travel;
+    if (f.sf >= a && f.sf < b && !f.hit) f.x += Math.trunc((v * sp) / 100) * f.facing;
   }
   if (m.projectile && f.sf === m.projectile.at) {
     const p = m.projectile;

@@ -1,16 +1,16 @@
 // Keyboard and gamepad → input bitmask (see sim/bits.js).
-import { UP, DOWN, LEFT, RIGHT, LP, HP, LK, HK, SUP } from './sim/bits.js';
+import { UP, DOWN, LEFT, RIGHT, LP, HP, LK, HK, SUP, EX1, EX2 } from './sim/bits.js';
 
 // Physical key positions (event.code), so it works on ABNT and other layouts.
 export const KEYMAPS = {
   p1: {
     KeyW: UP, KeyS: DOWN, KeyA: LEFT, KeyD: RIGHT,
-    KeyJ: LP, KeyK: HP, KeyU: LK, KeyI: HK, KeyO: SUP, KeyL: LP | HP,
+    KeyJ: LP, KeyK: HP, KeyU: LK, KeyI: HK, KeyO: SUP, KeyL: LP | HP, KeyH: EX1, KeyY: EX2,
   },
   p2: {
     ArrowUp: UP, ArrowDown: DOWN, ArrowLeft: LEFT, ArrowRight: RIGHT,
-    Numpad1: LP, Numpad2: HP, Numpad4: LK, Numpad5: HK, Numpad3: SUP, Numpad6: LP | HP,
-    Comma: LP, Period: HP, KeyM: LK, KeyN: HK, Slash: SUP,
+    Numpad1: LP, Numpad2: HP, Numpad4: LK, Numpad5: HK, Numpad3: SUP, Numpad6: LP | HP, Numpad7: EX1, Numpad8: EX2,
+    Comma: LP, Period: HP, KeyM: LK, KeyN: HK, Slash: SUP, Semicolon: EX1, Quote: EX2,
   },
 };
 
@@ -53,8 +53,10 @@ function readPad(pad) {
   if (btn(3)) b |= HP;   // Y / Triangle
   if (btn(0)) b |= LK;   // A / Cross
   if (btn(1)) b |= HK;   // B / Circle
-  if (btn(5) || btn(7)) b |= SUP; // RB / RT
-  if (btn(4) || btn(6)) b |= LP | HP; // LB / LT: special shortcut
+  if (btn(5)) b |= SUP;      // RB
+  if (btn(4)) b |= LP | HP;  // LB: special shortcut
+  if (btn(6)) b |= EX1;      // LT: VOADORA
+  if (btn(7)) b |= EX2;      // RT: ESTRELA
   return b;
 }
 

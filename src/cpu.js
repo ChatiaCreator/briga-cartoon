@@ -1,6 +1,6 @@
 // Simple computer opponent. Produces an input bitmask from the game state, like a player.
 // Runs only on the local machine (never online), so it may use its own random numbers.
-import { UP, DOWN, LEFT, RIGHT, LP, HP, LK, HK, SUP } from './sim/bits.js';
+import { UP, DOWN, LEFT, RIGHT, LP, HP, LK, HK, SUP, EX1, EX2 } from './sim/bits.js';
 import { CHARACTERS } from './sim/moves.js';
 
 export class Cpu {
@@ -61,12 +61,16 @@ export class Cpu {
     if (dist > 950) {
       if (r < 0.15) { this.plan([UP | fwd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, HK], 0, 25); return; }
       if (r < 0.25 && char.moves.special.projectile) { this.plan([DOWN, DOWN | fwd, fwd, fwd | HP, 0], 0, 20); return; }
+      // VOADORA and ESTRELA travel forward, so they reach from mid range.
+      if (dist < 1900 && r < 0.4) { this.plan([r < 0.32 ? EX1 : EX2, 0], 0, 30); return; }
       this.plan([], fwd, react);
       return;
     }
     // Close range: pick an attack or a combo.
     const combos = [
       [LP, 0, 0, 0, 0, 0, LP, 0, 0, 0, 0, HP],
+      [LP, 0, 0, 0, 0, 0, LP, 0, 0, 0, 0, 0, LP, 0, 0, 0, 0, 0, LP],  // four-punch string
+      [LP, 0, 0, 0, 0, 0, LP, 0, 0, 0, 0, EX2],
       [LK, 0, 0, 0, 0, 0, 0, HP],
       [DOWN | LK, DOWN, DOWN, DOWN, DOWN, DOWN, DOWN | HK],
       [LP, DOWN, DOWN | fwd, fwd, fwd | LP],
