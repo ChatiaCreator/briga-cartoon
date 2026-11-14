@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Briga Cartoon</title>
+  <meta name="description" content="Jogo de luta cartoon 2.5D no navegador: Hotmonster contra Flash, local ou online.">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/build/three.module.min.js",
+      "three/addons/": "./vendor/three/addons/"
+    }
+  }
+  </script>
+  <script src="vendor/peerjs/peerjs.min.js" defer></script>
+</head>
+<body>
+  <div id="stage"></div>
+
+  <!-- In-fight HUD -->
+  <div id="hud" class="hidden">
+    <div class="top">
+      <div class="side p1">
+        <div class="name"><span id="n1">HOTMONSTER</span><small id="tag1">P1</small></div>
+        <div class="bar hp"><div class="lag" id="hplag1"></div><div class="fill" id="hp1"></div></div>
+        <div class="pips" id="pips1"><i></i><i></i></div>
+      </div>
+      <div class="timer" id="timer">99</div>
+      <div class="side p2">
+        <div class="name"><small id="tag2">P2</small><span id="n2">FLASH</span></div>
+        <div class="bar hp"><div class="lag" id="hplag2"></div><div class="fill" id="hp2"></div></div>
+        <div class="pips" id="pips2"><i></i><i></i></div>
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="meter p1"><div class="bar sup"><div class="fill" id="sup1"></div></div><b id="supt1">SUPER</b><div class="buff" id="buff1"></div></div>
+      <div class="meter p2"><b id="supt2">SUPER</b><div class="bar sup"><div class="fill" id="sup2"></div></div><div class="buff" id="buff2"></div></div>
+    </div>
+    <div class="combo p1" id="combo1"></div>
+    <div class="combo p2" id="combo2"></div>
+    <div class="banner" id="banner"></div>
+    <div class="netinfo" id="netinfo"></div>
+  </div>
+
+  <!-- Screens -->
+  <div id="menu" class="screen">
+    <h1 class="logo"><span>BRIGA</span><span>CARTOON</span></h1>
+    <p class="sub">Hotmonster × Flash</p>
+    <div class="buttons">
+      <button data-go="online" class="big">🌐 Jogar online com amigo</button>
+      <button data-go="local">🎮 2 jogadores (mesmo PC)</button>
+      <button data-go="cpu">🤖 Contra o computador</button>
+      <button data-go="controls">⌨️ Controles</button>
+    </div>
+    <button class="mute" id="mute">🔊 Som ligado</button>
+    <p class="loading" id="loading">Carregando personagens…</p>
+  </div>
+
+  <div id="select" class="screen hidden">
+    <h2 id="selTitle">Escolha os lutadores</h2>
+    <div class="pickers">
+      <div class="picker" data-p="0">
+        <h3 id="selLabel0">Jogador 1</h3>
+        <div class="cards"></div>
+      </div>
+      <div class="picker" data-p="1">
+        <h3 id="selLabel1">Jogador 2</h3>
+        <div class="cards"></div>
+      </div>
+    </div>
+    <div class="row" id="cpuLevelRow">
+      <label>Dificuldade da CPU
+        <select id="cpuLevel">
+          <option value="0.25">Fácil</option>
+          <option value="0.6" selected>Médio</option>
+          <option value="0.95">Difícil</option>
+        </select>
+      </label>
+    </div>
+    <div class="buttons inline">
+      <button data-go="menu">← Voltar</button>
+      <button id="fightBtn" class="big">LUTAR!</button>
+    </div>
+  </div>
+
+  <div id="online" class="screen hidden">
+    <h2>Jogar online</h2>
+    <p class="hint">Um de vocês cria a sala e manda o código. O outro digita o código e entra.</p>
+    <div class="online-panels">
+      <div class="panel">
+        <h3>Criar sala</h3>
+        <button id="hostBtn" class="big">Criar sala</button>
+        <div class="code" id="roomCode"></div>
+        <button id="copyBtn" class="hidden">📋 Copiar link</button>
+      </div>
+      <div class="panel">
+        <h3>Entrar numa sala</h3>
+        <input id="joinCode" maxlength="6" placeholder="CÓDIGO" autocomplete="off" spellcheck="false">
+        <button id="joinBtn" class="big">Entrar</button>
+      </div>
+    </div>
+    <p class="status" id="netStatus"></p>
+    <div class="buttons inline">
+      <button id="onlineBack">← Voltar</button>
+    </div>
+  </div>
+
+  <div id="controls" class="screen hidden">
+    <h2>Controles</h2>
+    <div class="ctl-grid">
+      <div>
+        <h3>Teclado (jogador 1 / online / CPU)</h3>
+        <table>
+          <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Pular, andar, agachar</td></tr>
+          <tr><td><kbd>J</kbd> / <kbd>K</kbd></td><td>Soco fraco / forte</td></tr>
+          <tr><td><kbd>U</kbd> / <kbd>I</kbd></td><td>Chute fraco / forte</td></tr>
+          <tr><td><kbd>O</kbd></td><td>SUPER (barra cheia)</td></tr>
+          <tr><td><kbd>L</kbd></td><td>Atalho do especial</td></tr>
+        </table>
+        <p class="hint">Online e contra a CPU, as setas também funcionam para andar.</p>
+      </div>
+      <div>
+        <h3>Teclado (jogador 2, mesmo PC)</h3>
+        <table>
+          <tr><td><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></td><td>Pular, andar, agachar</td></tr>
+          <tr><td><kbd>,</kbd> / <kbd>.</kbd></td><td>Soco fraco / forte</td></tr>
+          <tr><td><kbd>M</kbd> / <kbd>N</kbd></td><td>Chute fraco / forte</td></tr>
+          <tr><td><kbd>/</kbd></td><td>SUPER</td></tr>
+          <tr><td>Teclado numérico</td><td>1 2 4 5 = golpes, 3 = super, 6 = especial</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3>Controle (gamepad)</h3>
+        <table>
+          <tr><td>Analógico / direcional</td><td>Mover</td></tr>
+          <tr><td>X / Y</td><td>Soco fraco / forte</td></tr>
+          <tr><td>A / B</td><td>Chute fraco / forte</td></tr>
+          <tr><td>RB / RT</td><td>SUPER</td></tr>
+          <tr><td>LB / LT</td><td>Atalho do especial</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3>Golpes</h3>
+        <table>
+          <tr><td>Especial</td><td><b>↓ ↘ → + soco</b> (ou o atalho)</td></tr>
+          <tr><td>Hotmonster</td><td>Especial: arremessa um saco de <b>ração</b>. Super: <b>chuva de ração</b>.</td></tr>
+          <tr><td>Flash</td><td>Especial: <b>investida</b>. Super: bebe <b>GARRA Energy</b> (+50% dano, +20% velocidade por 8 s).</td></tr>
+          <tr><td>Defender</td><td>Segure <b>para trás</b> (agachado defende golpes baixos)</td></tr>
+          <tr><td>Combos</td><td>Soco fraco → chute/soco forte → especial</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="buttons inline"><button data-go="menu">← Voltar</button></div>
+  </div>
+
+  <div id="pause" class="screen overlay hidden">
+    <h2 id="pauseTitle">Pausa</h2>
+    <p class="status" id="pauseMsg"></p>
+    <div class="buttons">
+      <button id="resumeBtn" class="big">Continuar</button>
+      <button id="rematchBtn" class="big hidden">Revanche</button>
+      <button id="quitBtn">Sair para o menu</button>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
