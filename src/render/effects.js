@@ -106,7 +106,7 @@ export class Effects {
     // Spare bags on the floor get removed by syncProjectiles.
   }
 
-  syncProjectiles(proj, dt) {
+  syncProjectiles(proj, dt, prev = null, k = 1) {
     const seen = new Set();
     for (const p of proj) {
       seen.add(p.id);
@@ -116,7 +116,8 @@ export class Effects {
         this.scene.add(m);
         this.projMeshes.set(p.id, m);
       }
-      m.position.set(p.x / 1000, p.y / 1000, 0);
+      const [px, py] = prev?.get(p.id) || [p.x, p.y];
+      m.position.set((px + (p.x - px) * k) / 1000, (py + (p.y - py) * k) / 1000, 0);
       m.rotation.z -= dt * 8 * Math.sign(p.vx || 1);
       m.rotation.y = 0.5;
     }

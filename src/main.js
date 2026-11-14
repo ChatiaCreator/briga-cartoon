@@ -405,15 +405,18 @@ function frame(now) {
       m.acc += dt * (isFinalKO(m.game) ? 0.3 : 1);
       let steps = 0;
       while (m.acc >= STEP && steps < 6 && match === m) {
+        m.view.snapshot(m.game);
         if (!tick()) { m.acc = Math.min(m.acc, STEP); break; }
         m.acc -= STEP;
         steps++;
       }
       // Online: if the other side is ahead, run an extra frame to catch up.
-      if (match === m && m.lock && m.lock.lead(m.frame) > 3) tick();
+      if (match === m && m.lock && m.lock.lead(m.frame) > 3) { m.view.snapshot(m.game); tick(); }
     }
     if (match === m) {
-      m.view.render(renderer, m.game, m.paused ? 0 : dt);
+      // frac: how far we are between the last sim frame and the next one (smooth motion
+      // on 120/144 Hz screens and in slow motion).
+      m.view.render(renderer, m.game, m.paused ? 0 : dt, Math.min(1, m.acc / STEP));
       updateCutin(m.game);
       hud.update(m.game);
     }

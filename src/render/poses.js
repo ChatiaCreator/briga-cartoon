@@ -8,7 +8,7 @@ const lerpArr = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
 const clamp01 = (k) => Math.max(0, Math.min(1, k));
 const ease = (k) => k * k * (3 - 2 * k);
 
-const KEYS = ['hip', 'hipRot', 'spine', 'head', 'lh', 'rh', 'lf', 'rf', 'body'];
+const KEYS = ['hip', 'hipRot', 'spine', 'head', 'lh', 'rh', 'lf', 'rf', 'body', 'toe'];
 
 export function basePose() {
   return {
@@ -16,7 +16,7 @@ export function basePose() {
     hip: [0, -0.06, -0.01], hipRot: [0, 0, 0], spine: [0.08, -0.15, 0], head: [0, 0.15, 0],
     lh: [-0.07, 0.07, 0.15], rh: [0.07, 0.05, 0.12],
     lf: [0.03, 0, 0.13], rf: [-0.03, 0, -0.11],
-    body: [0, 0, 0, 0, 0],
+    body: [0, 0, 0, 0, 0], toe: [0, 0],
     alpha: 0.45, hand: null,
   };
 }
@@ -39,10 +39,26 @@ function withP(base, patch) {
 const STANCE = basePose();
 // Base for clip-driven poses: no extra hip/spine/head offsets on top of the clip.
 const CLIP = { ...STANCE, hip: [0, 0, 0], spine: [0, 0, 0], head: [0, 0, 0] };
+// Locomotion: upper body from the boxing stance clip (same guard as idle, so moving and
+// standing blend seamlessly), feet planted where the clip has them and moved by IK.
+const LOCO = { ...CLIP, clip: 'box_01', legsIK: true, lf: [0, 0, 0], rf: [0, 0, 0], toe: [0, 0] };
 const CROUCH = withP(STANCE, { hip: [0, -0.17, -0.03], spine: [0.22, 0, 0], lh: [0, -0.12, 0.02], rh: [0, -0.12, 0.02], lf: [0.02, 0, 0.03], rf: [-0.02, 0, -0.04] });
-const GUARD = withP(STANCE, { lh: [0.01, 0.07, -0.02], rh: [-0.03, 0.08, 0.02], spine: [-0.04, 0.1, 0], head: [0.15, 0, 0] });
-const CROUCH_GUARD = withP(CROUCH, { lh: [0.01, 0.1, -0.02], rh: [-0.03, 0.1, 0.02] });
+const LOCO_CROUCH = withP(LOCO, { hip: [0, -0.17, -0.02], spine: [0.25, 0, 0], head: [-0.15, 0, 0] });
+const GUARD_ARMS = { armsIK: true, lh: [-0.06, 0.14, 0.13], rh: [0.04, 0.13, 0.14] };
+const GUARD = { ...withP(LOCO, { spine: [-0.06, 0.12, 0], head: [0.2, 0, 0], hip: [0, -0.03, -0.02] }), ...GUARD_ARMS };
+const CROUCH_GUARD = { ...withP(LOCO_CROUCH, { spine: [0.05, 0.1, 0], head: [0.1, 0, 0] }), ...GUARD_ARMS,
+  lh: [-0.06, 0.0, 0.14], rh: [0.04, -0.01, 0.15] };
 const AIR = withP(STANCE, { hip: [0, 0.06, 0], lf: [0, 0.16, 0.08], rf: [0, 0.24, 0.02], spine: [0.1, 0, 0] });
+
+// Walk cycle tied to the distance actually walked, so feet don't slide on the floor.
+const STRIDE = 1.0;               // metres per full cycle (two steps)
+const STEP_A = STRIDE / 4 / 1.8;  // foot travel each side of the stance spot, model units
+function footCycle(u) {
+  u -= Math.floor(u);
+  if (u < 0.5) return [0, STEP_A - (u / 0.5) * 2 * STEP_A, 0];   // planted: slides back under the body
+  const s = (u - 0.5) / 0.5;                                     // swing: lifts and comes forward
+  return [Math.sin(Math.PI * s) * 0.075, -STEP_A + ease(s) * 2 * STEP_A, Math.sin(Math.PI * s) * 0.35];
+}
 
 // Procedural attack poses: W = wind-up, S = strike. Deltas on top of the base pose.
 const ATTACKS = {
@@ -132,44 +148,68 @@ function specialPose(f, m) {
 }
 
 function idleTime(T) {
-  // Ping-pong through the boxing stance part of box_01 (no punches between 1.0 and 2.2 s).
-  const span = 1.2;
-  const x = (T % (2 * span));
-  return 1.0 + (x < span ? x : 2 * span - x);
+  // Sway through the boxing stance part of box_01 (no punches between 1.0 and 2.2 s),
+  // easing at both ends instead of bouncing.
+  return 1.6 + 0.6 * Math.sin(T * Math.PI / 1.3);
 }
 
+// How long (seconds) the previous pose takes to blend into each state.
+const BLEND = {
+  idle: 0.16, walk: 0.12, crouch: 0.09, jumpsquat: 0.05, air: 0.09, land: 0.06, attack: 0.05,
+  block: 0.05, hit: 0.035, fall: 0.07, down: 0.15, rise: 0.1, ko: 0.06, win: 0.3, lose: 0.3,
+};
+
 export function poseFor(f, g, T) {
+  const p = rawPose(f, g, T);
+  let key = f.st;
+  if (f.st === 'attack') key += ':' + f.mv;
+  else if (f.st === 'hit') key += ':' + f.hitKind;
+  else if (f.st === 'walk' || f.st === 'crouch') key += f.guard ? ':g' : '';
+  else if (f.st === 'idle' && g && g.phase === 'intro') key = 'intro';
+  return { ...p, key, blend: p.blend ?? BLEND[f.st] ?? 0.1, t: f.sf };
+}
+
+function rawPose(f, g, T) {
   const t = f.sf;
   switch (f.st) {
     case 'idle': case 'jumpsquat': case 'land': {
-      if (f.st !== 'idle') return { ...withP(STANCE, { hip: [0, -0.08, 0] }), alpha: 0.6 };
+      if (f.st !== 'idle') {
+        // Knees bend before take-off and on landing (a quick squash).
+        const k = f.st === 'land' ? 1 - clamp01(t / 6) : 1;
+        return withP({ ...LOCO, clipTime: idleTime(T) }, { hip: [0, -0.1 * k, -0.01], spine: [0.12 * k, 0, 0] });
+      }
       // Before the fight starts each character shows off.
       if (g && g.phase === 'intro') {
         const secs = g.phaseF / 60;
-        if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7), alpha: 0.3 };
-        return { ...CLIP, clip: 'fold_arms', clipTime: 1.2 + secs, alpha: 0.3 };
+        if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7) };
+        return { ...CLIP, clip: 'fold_arms', clipTime: 1.2 + secs };
       }
-      return { ...CLIP, clip: 'box_01', clipTime: idleTime(T), alpha: 0.25 };
+      return { ...CLIP, clip: 'box_01', clipTime: idleTime(T) };
     }
     case 'walk': {
-      if (f.guard) return GUARD;
-      const fwd = f.hist[f.hist.length - 1] === 6 ? 1 : -1;
-      const ph = T * 9 * fwd;
-      return withP(STANCE, {
-        lf: [0, Math.max(0, Math.cos(ph)) * 0.06, Math.sin(ph) * 0.07],
-        rf: [0, Math.max(0, -Math.cos(ph)) * 0.06, -Math.sin(ph) * 0.07],
-        hip: [0, Math.abs(Math.sin(ph)) * 0.015, 0],
-        spine: [0, Math.sin(ph) * 0.05, 0],
-        alpha: 0.4,
+      if (f.guard) return { ...GUARD, clipTime: idleTime(T) };
+      // u: position in the walk cycle from the distance walked along the facing direction.
+      const u = (f.x / 1000) * f.facing / STRIDE;
+      const [tl, zl, yl] = footCycle(u), [tr, zr, yr] = footCycle(u + 0.5);
+      const both = Math.cos(u * Math.PI * 4); // 1 when both feet are down
+      return withP({ ...LOCO, clipTime: idleTime(T), toe: [tl, tr] }, {
+        lf: [0, yl * 0.18, zl], rf: [0, yr * 0.18, zr],
+        hip: [0, -0.012 + both * 0.008, 0],
+        spine: [0.03, Math.sin(u * Math.PI * 2) * 0.07, 0],
       });
     }
     case 'crouch':
-      return f.guard ? CROUCH_GUARD : { ...CROUCH, alpha: 0.4 };
+      return f.guard ? { ...CROUCH_GUARD, clipTime: idleTime(T) } : { ...LOCO_CROUCH, clipTime: idleTime(T) };
     case 'air': {
       // Forward jumps do a cartoon somersault around the waist.
       const flip = f.vx !== 0 && Math.sign(f.vx) === f.facing && !f.airAtk;
       const k = ease(clamp01(t / 32));
-      return { ...AIR, body: [flip ? k * Math.PI * 2 : 0, 0, 0, 0, 0.9], alpha: 0.5 };
+      // Legs tuck tighter near the top of the jump.
+      const tuck = 0.5 + 0.5 * clamp01(1 - Math.abs(f.vy) / 200);
+      return withP({ ...LOCO, clipTime: idleTime(T), body: [flip ? k * Math.PI * 2 : 0, 0, 0, 0, 0.9] }, {
+        lf: [0, 0.2 * tuck, 0.1 * tuck], rf: [0, 0.3 * tuck, 0.04], hip: [0, 0.03, 0], spine: [0.12 * tuck, 0, 0],
+        toe: [0.3, 0.2],
+      });
     }
     case 'attack': {
       const m = CHARACTERS[f.char].moves[f.mv];
@@ -177,7 +217,7 @@ export function poseFor(f, g, T) {
       return attackPose(f, m, T);
     }
     case 'block':
-      return f.guardLow ? CROUCH_GUARD : GUARD;
+      return { ...(f.guardLow ? CROUCH_GUARD : GUARD), clipTime: idleTime(T) };
     case 'hit': {
       // Reaction clip stretched over the hit-stun: head snaps back, or doubles over.
       const k = clamp01(t / Math.max(1, t + f.stun));

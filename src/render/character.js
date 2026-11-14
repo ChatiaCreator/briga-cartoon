@@ -219,22 +219,46 @@ export class Character {
   }
 
   // Apply a pose (see poses.js). Call after setting root position/rotation.
-  // The result is blended with the previous frame so state changes don't pop.
+  // Inside one action the pose is shown exactly (crisp punches). When the action changes
+  // (P.key) the old pose crossfades into the new one over P.blend seconds, so nothing pops.
   applyPose(P, dt = 1 / 60) {
     this.solvePose(P);
-    const a = 1 - Math.pow(1 - Math.min(1, P.alpha ?? 0.5), dt * 60);
-    if (!this.prev) {
-      this.prev = this.bones.map((o) => [o.quaternion.clone(), o.position.clone()]);
+    const objs = this.blendObjs || (this.blendObjs = [this.tilt, this.model, ...this.bones]);
+    if (!this.shown) {
+      this.shown = objs.map((o) => [o.quaternion.clone(), o.position.clone()]);
+      this.key = P.key;
       return;
     }
-    for (let i = 0; i < this.bones.length; i++) {
-      const o = this.bones[i], [pq, pp] = this.prev[i];
-      pq.slerp(o.quaternion, a);
-      pp.lerp(o.position, a);
-      o.quaternion.copy(pq);
-      o.position.copy(pp);
+    // A new action, or the same one restarting (a second hit while already reeling).
+    const restarted = P.key === this.key && P.t != null && this.lastT != null && P.t + 0.5 < this.lastT;
+    if (P.key !== this.key || restarted) {
+      this.key = P.key;
+      this.from = this.shown.map(([q, p]) => [q.clone(), p.clone()]);
+      this.fadeT = 0;
+      this.fadeDur = P.blend ?? 0.1;
     }
-    this.model.updateMatrixWorld(true);
+    this.lastT = P.t;
+    let w = 1;
+    if (this.from) {
+      this.fadeT += dt;
+      const k = this.fadeT / this.fadeDur;
+      if (k >= 1) this.from = null;
+      else w = k * k * (3 - 2 * k);
+    }
+    for (let i = 0; i < objs.length; i++) {
+      const o = objs[i], [sq, sp] = this.shown[i];
+      if (this.from) {
+        const [fq, fp] = this.from[i];
+        sq.copy(fq).slerp(o.quaternion, w);
+        sp.copy(fp).lerp(o.position, w);
+        o.quaternion.copy(sq);
+        o.position.copy(sp);
+      } else {
+        sq.copy(o.quaternion);
+        sp.copy(o.position);
+      }
+    }
+    this.root.updateMatrixWorld(true);
   }
 
   solvePose(P) {
@@ -246,6 +270,19 @@ export class Character {
     this.model.position.set(0, -pivot, 0);
     if (P.clip) this.playClipAt(P.clip, P.clipTime);
     this.root.updateMatrixWorld(true);
+
+    // Feet planted where the clip puts them (legs then bend with IK when the hips move).
+    let clipFeet = null;
+    if (P.clip && P.legsIK) {
+      const mq = this.model.getWorldQuaternion(new THREE.Quaternion()).invert();
+      clipFeet = {};
+      for (const n of ['LeftFoot', 'RightFoot']) {
+        clipFeet[n] = {
+          p: this.model.worldToLocal(this.b[n].getWorldPosition(new THREE.Vector3())),
+          q: mq.clone().multiply(this.b[n].getWorldQuaternion(new THREE.Quaternion())),
+        };
+      }
+    }
 
     const rp = this.restPos;
     const hip = P.hip;
@@ -278,15 +315,21 @@ export class Character {
 
     if (!P.clip || P.legsIK) {
       const lf = P.lf, rf = P.rf;
+      const baseL = clipFeet ? clipFeet.LeftFoot.p : rp.LeftFoot, baseR = clipFeet ? clipFeet.RightFoot.p : rp.RightFoot;
       twoBoneIK(this.b.LeftUpLeg, this.b.LeftLeg, this.b.LeftFoot,
-        this.mw(rp.LeftFoot.x + lf[0], rp.LeftFoot.y + lf[1], rp.LeftFoot.z + lf[2]),
+        this.mw(baseL.x + lf[0], baseL.y + lf[1], baseL.z + lf[2]),
         this.mdir(0.15, 0, 1));
       twoBoneIK(this.b.RightUpLeg, this.b.RightLeg, this.b.RightFoot,
-        this.mw(rp.RightFoot.x + rf[0], rp.RightFoot.y + rf[1], rp.RightFoot.z + rf[2]),
+        this.mw(baseR.x + rf[0], baseR.y + rf[1], baseR.z + rf[2]),
         this.mdir(-0.15, 0, 1));
       const mq = this.model.getWorldQuaternion(new THREE.Quaternion());
       for (const n of ['LeftFoot', 'RightFoot']) {
-        setWorldQuaternion(this.b[n], mq.clone().multiply(this.restFootQ[n]));
+        const fq = clipFeet ? clipFeet[n].q : this.restFootQ[n];
+        // Toes tip up a little while the foot is in the air (P.toe = [left, right]).
+        const toe = P.toe ? P.toe[n === 'LeftFoot' ? 0 : 1] : 0;
+        const tq = mq.clone();
+        if (toe) tq.multiply(_q1.setFromAxisAngle(_v1.set(1, 0, 0), -toe));
+        setWorldQuaternion(this.b[n], tq.multiply(fq));
       }
     }
   }
