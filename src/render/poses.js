@@ -76,13 +76,22 @@ const ATTACKS = {
 
 // Clip-driven attacks: [clip, startupFrom, activeAt, activeTo, recoveryTo], per character.
 const SEQ = 'sequencia de soco direto e cruzado'; // Hotmonster's jab + cross combo
+// [clip, startupFrom, activeAt, activeTo, recoveryTo, yaw, rampYaw]. yaw turns the clip so
+// the kicking foot lands in front of the fighter (measured from the clips' foot positions).
 const KICKS = {
-  lk: ['front_kick_02', 0.62, 0.88, 0.98, 1.3],
-  hk: ['front_kick_01', 0.45, 0.98, 1.15, 1.75],
+  // Spinning kick: at 0.6 s the foot is out behind the body, so the clip plays turned 180°.
+  // Only the extension is used; recovery plays it backwards to pull the leg back in.
+  lk: ['front_kick_02', 0.45, 0.6, 0.66, 0.45, Math.PI],
+  // Roundhouse: the foot hits out to the side (about 100°), so the body turns into it
+  // during the wind-up and turns back during recovery.
+  hk: ['front_kick_01', 0.45, 0.98, 1.15, 1.9, -1.78, true],
+  // Rising punch: comes up out of the crouch and fires a straight punch.
+  chp: ['box_02', 1.0, 1.75, 1.95, 2.35],
 };
 const CLIP_ATTACKS = {
   hotmonster: {
     lp: [SEQ, 2.3, 2.5, 2.62, 2.88],    // straight jab
+    lp2: [SEQ, 3.55, 3.74, 3.86, 4.2],  // second jab in a row: the last punch of the sequence
     hp: [SEQ, 2.88, 3.12, 3.22, 3.62],  // cross with the whole body turning in
     ...KICKS,
   },
@@ -94,21 +103,18 @@ const CLIP_ATTACKS = {
 };
 
 function attackPose(f, m, t) {
-  const ca = (CLIP_ATTACKS[f.char] || CLIP_ATTACKS.flash)[f.mv];
+  const set = CLIP_ATTACKS[f.char] || CLIP_ATTACKS.flash;
+  const ca = (f.chain % 2 === 1 && set[f.mv + '2']) || set[f.mv];
   if (ca) {
-    const [clip, s0, a0, a1, r1] = ca;
-    let time;
-    if (f.sf < m.startup) time = lerp(s0, a0, f.sf / m.startup);
+    const [clip, s0, a0, a1, r1, yaw = 0, ramp = false] = ca;
+    let time, k = 1;
+    if (f.sf < m.startup) { time = lerp(s0, a0, f.sf / m.startup); k = ease(f.sf / m.startup); }
     else if (f.sf < m.startup + m.active) time = lerp(a0, a1, (f.sf - m.startup) / Math.max(1, m.active));
-    else time = lerp(a1, r1, (f.sf - m.startup - m.active) / Math.max(1, m.recovery));
-    const p = { ...CLIP, clip, clipTime: time, alpha: 0.8 };
-    // front_kick_02 kicks behind the character, so it becomes a spinning back kick:
-    // half a turn during start-up, the other half during recovery (ends facing forward).
-    if (clip === 'front_kick_02') {
-      const spin = f.sf < m.startup ? ease(f.sf / m.startup)
-        : f.sf < m.startup + m.active ? 1 : 1 + ease(clamp01((f.sf - m.startup - m.active) / Math.max(1, m.recovery)));
-      p.body = [0, Math.PI * spin, 0, 0, 0];
+    else {
+      const r = clamp01((f.sf - m.startup - m.active) / Math.max(1, m.recovery));
+      time = lerp(a1, r1, r); k = 1 - ease(r);
     }
+    const p = { ...CLIP, clip, clipTime: time, clipYaw: ramp ? yaw * k : yaw };
     return p;
   }
   const def = ATTACKS[f.mv];
@@ -237,10 +243,11 @@ function rawPose(f, g, T) {
       // A different reaction for each kind of hit: head or body, light or heavy.
       const k = clamp01(t / Math.max(1, t + f.stun));
       const heavy = f.hitRank >= 2;
-      if (f.hitKind === 'body') {
+      if (f.hitKind === 'body' && f.hitRank < 3) {
         if (heavy) return { ...CLIP, clip: 'hit_to_stomach', clipTime: 0.1 + k * 1.2 };   // doubles over
         return { ...CLIP, clip: 'hit_to_body_01', clipTime: 0.1 + k * 1.0 };
       }
+      if (f.hitRank >= 3) return { ...CLIP, clip: 'hit_to_body_02', clipTime: 0.15 + k * 1.3 }; // specials
       if (heavy) return { ...CLIP, clip: 'hit_to_head', clipTime: 0.05 + k * 1.0 };      // head snaps back
       return { ...CLIP, clip: 'hit_to_side', clipTime: 0.1 + k * 0.95 };
     }
@@ -257,8 +264,9 @@ function rawPose(f, g, T) {
       if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
       return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };
     case 'lose':
-      // Lost on time: staggers, drops to the knees and collapses.
-      return { ...CLIP, clip: 'defeat_03', clipTime: Math.min(5.5, t / 60) };
+      // Lost on time. Hotmonster staggers and collapses; Flash hangs his head.
+      if (f.char === 'hotmonster') return { ...CLIP, clip: 'defeat_03', clipTime: Math.min(5.5, t / 60) };
+      return { ...CLIP, clip: 'defeat_02', clipTime: (t / 60) % 8.4 };
     default:
       return STANCE;
   }

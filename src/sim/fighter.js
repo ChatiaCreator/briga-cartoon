@@ -19,7 +19,7 @@ export function createFighter(id, char, x) {
     id, char, x, y: 0, vx: 0, vy: 0, pv: 0, facing: id === 0 ? 1 : -1,
     hp: c.hp, maxHp: c.hp, meter: 0,
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
-    combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, hitKind: 'head', hitRank: 1,
+    combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, hitKind: 'head', hitRank: 1, chain: 0,
     hist: new Array(HIST).fill(5), prev: 0, press: [99, 99, 99, 99, 99],
   };
 }
@@ -97,6 +97,8 @@ function chooseMove(f, dir, air, minRank) {
 
 function startMove(f, id, g) {
   const m = CHARACTERS[f.char].moves[id];
+  // How many times in a row this same move was chained (the animation alternates).
+  f.chain = f.st === 'attack' && f.mv === id ? f.chain + 1 : 0;
   f.st = 'attack'; f.mv = id; f.sf = 0; f.hit = false; f.guard = false;
   if (m.invuln) f.inv = m.invuln;
   if (m.rank === 4) { f.meter = 0; g.hitstop = SUPER_FREEZE; }

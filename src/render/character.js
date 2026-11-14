@@ -270,6 +270,16 @@ export class Character {
     this.model.position.set(0, -pivot, 0);
     if (P.clip) this.playClipAt(P.clip, P.clipTime);
     this.root.updateMatrixWorld(true);
+    // Play the clip turned around (P.clipYaw): the hips turn and their sway is mirrored.
+    // Done on the hips bone (not the whole model) so blending in and out stays smooth.
+    if (P.clip && P.clipYaw) {
+      const hb = this.b.Hips, rh = this.restPos.Hips;
+      const lp = this.model.worldToLocal(hb.getWorldPosition(new THREE.Vector3()));
+      lp.x = 2 * rh.x - lp.x; lp.z = 2 * rh.z - lp.z;
+      hb.position.copy(hb.parent.worldToLocal(this.model.localToWorld(lp)));
+      hb.updateMatrixWorld(true);
+      this.rotateModelSpace(hb, 0, P.clipYaw, 0);
+    }
 
     // Feet planted where the clip puts them (legs then bend with IK when the hips move).
     let clipFeet = null;

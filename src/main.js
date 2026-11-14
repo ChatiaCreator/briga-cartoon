@@ -416,7 +416,7 @@ function frame(now) {
     if (match === m) {
       // frac: how far we are between the last sim frame and the next one (smooth motion
       // on 120/144 Hz screens and in slow motion).
-      m.view.render(renderer, m.game, m.paused ? 0 : dt, Math.min(1, m.acc / STEP));
+      m.view.render(renderer, m.game, m.paused && !window.__settle ? 0 : dt, Math.min(1, m.acc / STEP)); // __settle: tests
       updateCutin(m.game);
       hud.update(m.game);
     }
