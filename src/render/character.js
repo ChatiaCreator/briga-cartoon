@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export const HEIGHT = 1.8; // metres on screen
-const IN_PLACE = new Set(['run']);
+const IN_PLACE = new Set(['run', 'Short_Step_Forward']);
 
 const loader = new GLTFLoader();
 const bufferCache = new Map();
@@ -94,6 +94,29 @@ function makeOutline(mesh, thickness) {
   return outline;
 }
 
+// The models carry a "neutral_bone" outside the body hierarchy. Vertices weighted to it stay
+// behind when the body travels (lying down, lunging) and show up as long thin spikes, so
+// their weight goes to the strongest other bone of that vertex (or the hips).
+function fixStrayWeights(mesh) {
+  const bones = mesh.skeleton.bones;
+  const stray = bones.findIndex((b) => /neutral_bone/i.test(b.name));
+  if (stray < 0) return;
+  const hips = bones.findIndex((b) => /Hips$/.test(b.name));
+  const si = mesh.geometry.attributes.skinIndex, sw = mesh.geometry.attributes.skinWeight;
+  for (let v = 0; v < si.count; v++) {
+    let lost = 0, best = -1, bestW = 0;
+    for (let k = 0; k < 4; k++) {
+      const i = si.getComponent(v, k), w = sw.getComponent(v, k);
+      if (i === stray && w > 0) { lost += w; sw.setComponent(v, k, 0); }
+      else if (w > bestW) { bestW = w; best = k; }
+    }
+    if (!lost) continue;
+    if (best >= 0) sw.setComponent(v, best, sw.getComponent(v, best) + lost);
+    else { si.setComponent(v, 0, hips); sw.setComponent(v, 0, 1); }
+  }
+  si.needsUpdate = true; sw.needsUpdate = true;
+}
+
 export class Character {
   constructor(gltf, { tint = null, extraClips = [] } = {}) {
     this.root = new THREE.Group();
@@ -115,6 +138,7 @@ export class Character {
       }
     });
     if (this.mesh) {
+      fixStrayWeights(this.mesh);
       // The outline is a sibling of the mesh so it shares the skeleton.
       this.mesh.parent.add(makeOutline(this.mesh, 0.006));
     }
@@ -183,7 +207,9 @@ export class Character {
     }
   }
 
-  playClipAt(name, time) {
+  // opts.lockXZ: keep the hips over the feet spot (no travel); opts.clampUp: never let the
+  // hips rise above standing height (airborne clips, where the game already lifts the fighter).
+  playClipAt(name, time, opts = null) {
     const clip = this.clips[name];
     if (!clip) return false;
     const t = Math.min(Math.max(time, 0), clip.duration);
@@ -195,6 +221,8 @@ export class Character {
       const rest = this.rest[this.bones.indexOf(this.b.Hips)][0];
       // Keep the clip's sway around the rest spot, minus its overall drift.
       this.b.Hips.position.set(rest.x + (v[0] - h.x0 - h.dx * k), v[1], rest.z + (v[2] - h.z0 - h.dz * k));
+      if (opts?.lockXZ) { this.b.Hips.position.x = rest.x; this.b.Hips.position.z = rest.z; }
+      if (opts?.clampUp) this.b.Hips.position.y = Math.min(v[1], rest.y);
     }
     return true;
   }
@@ -268,7 +296,7 @@ export class Character {
     this.tilt.rotation.set(P.body[0], P.body[1], P.body[2]);
     this.tilt.position.set(0, pivot + (P.body[3] || 0), 0);
     this.model.position.set(0, -pivot, 0);
-    if (P.clip) this.playClipAt(P.clip, P.clipTime);
+    if (P.clip) this.playClipAt(P.clip, P.clipTime, P);
     this.root.updateMatrixWorld(true);
     // Play the clip turned around (P.clipYaw): the hips turn and their sway is mirrored.
     // Done on the hips bone (not the whole model) so blending in and out stays smooth.

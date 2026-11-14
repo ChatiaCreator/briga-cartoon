@@ -30,11 +30,12 @@ export function sharedClips() {
   if (!sharedPromise) sharedPromise = loadShared();
   return sharedPromise;
 }
-// Older clips that the current models no longer carry (Flash's dash, Hotmonster's intro).
-const EXTRA_ANIMS = 'assets/models/extra_anims.glb';
+// Older clips the current models no longer carry (Flash's dash, Hotmonster's intro), and the
+// Mixamo animations converted with tools/mixamo/convert.cjs.
+const EXTRA_ANIMS = ['assets/models/extra_anims.glb', 'assets/models/mixamo_anims.glb'];
 async function loadShared() {
   const all = new Map();
-  for (const url of [...Object.values(CHARACTERS).map((c) => c.model), EXTRA_ANIMS]) {
+  for (const url of [...Object.values(CHARACTERS).map((c) => c.model), ...EXTRA_ANIMS]) {
     for (const a of (await loadGLTF(url)).animations) if (!all.has(a.name)) all.set(a.name, a);
   }
   return [...all.values()];

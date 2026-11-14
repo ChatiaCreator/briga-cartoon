@@ -45,20 +45,9 @@ const LOCO = { ...CLIP, clip: 'box_01', legsIK: true, lf: [0, 0, 0], rf: [0, 0, 
 const CROUCH = withP(STANCE, { hip: [0, -0.17, -0.03], spine: [0.22, 0, 0], lh: [0, -0.12, 0.02], rh: [0, -0.12, 0.02], lf: [0.02, 0, 0.03], rf: [-0.02, 0, -0.04] });
 const LOCO_CROUCH = withP(LOCO, { hip: [0, -0.17, -0.02], spine: [0.25, 0, 0], head: [-0.15, 0, 0] });
 const GUARD_ARMS = { armsIK: true, lh: [-0.06, 0.14, 0.13], rh: [0.04, 0.13, 0.14] };
-const GUARD = { ...withP(LOCO, { spine: [-0.06, 0.12, 0], head: [0.2, 0, 0], hip: [0, -0.03, -0.02] }), ...GUARD_ARMS };
 const CROUCH_GUARD = { ...withP(LOCO_CROUCH, { spine: [0.05, 0.1, 0], head: [0.1, 0, 0] }), ...GUARD_ARMS,
   lh: [-0.06, 0.0, 0.14], rh: [0.04, -0.01, 0.15] };
 const AIR = withP(STANCE, { hip: [0, 0.06, 0], lf: [0, 0.16, 0.08], rf: [0, 0.24, 0.02], spine: [0.1, 0, 0] });
-
-// Walk cycle tied to the distance actually walked, so feet don't slide on the floor.
-const STRIDE = 1.0;               // metres per full cycle (two steps)
-const STEP_A = STRIDE / 4 / 1.8;  // foot travel each side of the stance spot, model units
-function footCycle(u) {
-  u -= Math.floor(u);
-  if (u < 0.5) return [0, STEP_A - (u / 0.5) * 2 * STEP_A, 0];   // planted: slides back under the body
-  const s = (u - 0.5) / 0.5;                                     // swing: lifts and comes forward
-  return [Math.sin(Math.PI * s) * 0.075, -STEP_A + ease(s) * 2 * STEP_A, Math.sin(Math.PI * s) * 0.35];
-}
 
 // Procedural attack poses: W = wind-up, S = strike. Deltas on top of the base pose.
 const ATTACKS = {
@@ -76,6 +65,7 @@ const ATTACKS = {
 
 // Clip-driven attacks: [clip, startupFrom, activeAt, activeTo, recoveryTo], per character.
 const SEQ = 'sequencia de soco direto e cruzado'; // Hotmonster's jab + cross combo
+const AIRCLIP = { lockXZ: true, clampUp: true };
 // [clip, startupFrom, activeAt, activeTo, recoveryTo, yaw, rampYaw]. yaw turns the clip so
 // the kicking foot lands in front of the fighter (measured from the clips' foot positions).
 const KICKS = {
@@ -85,6 +75,9 @@ const KICKS = {
   // Roundhouse: the foot hits out to the side (about 100°), so the body turns into it
   // during the wind-up and turns back during recovery.
   hk: ['front_kick_01', 0.45, 0.98, 1.15, 1.9, -1.78, true],
+  // Air kicks from the Mixamo jumping kicks: only the airborne part, with the clip's own
+  // travel and height taken out (the game moves the fighter through the air).
+  jlk: ['Kicking', 0.95, 1.2, 1.32, 1.42, 0, false, AIRCLIP],
   // Rising punch: comes up out of the crouch and fires a straight punch.
   chp: ['box_02', 1.0, 1.75, 1.95, 2.35],
 };
@@ -94,19 +87,27 @@ const CLIP_ATTACKS = {
     lp2: [SEQ, 3.55, 3.74, 3.86, 4.2],  // second jab in a row: the last punch of the sequence
     hp: [SEQ, 2.88, 3.12, 3.22, 3.62],  // cross with the whole body turning in
     ...KICKS,
+    hk: ['Martelo_2', 0.1, 0.45, 0.62, 1.3],                          // capoeira "martelo", high
+    jhk: ['Inside_Crescent_Kick', 1.12, 1.32, 1.45, 1.58, 0, false, AIRCLIP],
   },
   flash: {
+    // Jabs chain into a little combo: jab, quick punch, lunging punch.
     lp: ['box_01', 0.4, 0.58, 0.62, 1.0],
-    hp: ['box_03', 0.3, 0.66, 0.8, 1.45], // lunging punch with a step in
+    lp2: ['Quad_Punch', 0.36, 0.5, 0.56, 0.7],
+    lp3: ['box_03', 0.3, 0.66, 0.8, 1.2],
+    hp: ['Boxing', 0.2, 0.6, 0.72, 1.6],                               // big lunging straight
     ...KICKS,
+    jhk: ['Martelo_Do_Chau_Sem_Mao', 0.95, 1.15, 1.25, 1.4, 0, false, AIRCLIP], // cartwheel kick
   },
 };
 
 function attackPose(f, m, t) {
   const set = CLIP_ATTACKS[f.char] || CLIP_ATTACKS.flash;
-  const ca = (f.chain % 2 === 1 && set[f.mv + '2']) || set[f.mv];
+  // Chained repeats of the same move cycle through its variants (lp, lp2, lp3…).
+  const variants = [set[f.mv], set[f.mv + '2'], set[f.mv + '3']].filter(Boolean);
+  const ca = variants[f.chain % Math.max(1, variants.length)];
   if (ca) {
-    const [clip, s0, a0, a1, r1, yaw = 0, ramp = false] = ca;
+    const [clip, s0, a0, a1, r1, yaw = 0, ramp = false, opts = null] = ca;
     let time, k = 1;
     if (f.sf < m.startup) { time = lerp(s0, a0, f.sf / m.startup); k = ease(f.sf / m.startup); }
     else if (f.sf < m.startup + m.active) time = lerp(a0, a1, (f.sf - m.startup) / Math.max(1, m.active));
@@ -114,8 +115,7 @@ function attackPose(f, m, t) {
       const r = clamp01((f.sf - m.startup - m.active) / Math.max(1, m.recovery));
       time = lerp(a1, r1, r); k = 1 - ease(r);
     }
-    const p = { ...CLIP, clip, clipTime: time, clipYaw: ramp ? yaw * k : yaw };
-    return p;
+    return { ...CLIP, clip, clipTime: time, clipYaw: ramp ? yaw * k : yaw, ...opts };
   }
   const def = ATTACKS[f.mv];
   if (!def) return STANCE;
@@ -179,7 +179,7 @@ const BLEND = {
 export function poseFor(f, g, T) {
   const p = rawPose(f, g, T);
   let key = f.st;
-  if (f.st === 'attack') key += ':' + f.mv;
+  if (f.st === 'attack') key += ':' + f.mv + f.chain;
   else if (f.st === 'hit') key += ':' + f.hitKind + f.hitRank;
   else if (f.st === 'walk' || f.st === 'crouch') key += f.guard ? ':g' : '';
   else if (f.st === 'idle' && g && g.phase === 'intro') key = 'intro';
@@ -192,11 +192,9 @@ function rawPose(f, g, T) {
   const t = f.sf;
   switch (f.st) {
     case 'idle': case 'jumpsquat': case 'land': {
-      if (f.st !== 'idle') {
-        // Knees bend before take-off and on landing (a quick squash).
-        const k = f.st === 'land' ? 1 - clamp01(t / 6) : 1;
-        return withP({ ...LOCO, clipTime: idleTime(T) }, { hip: [0, -0.1 * k, -0.01], spine: [0.12 * k, 0, 0] });
-      }
+      // Mixamo "Jumping": knees bend before take-off (0.25-0.5 s) and on landing (1.1-1.5 s).
+      if (f.st === 'jumpsquat') return { ...CLIP, clip: 'Jumping', clipTime: 0.25 + clamp01(t / 3) * 0.25 };
+      if (f.st === 'land') return { ...CLIP, clip: 'Jumping', clipTime: 1.1 + clamp01(t / 8) * 0.45 };
       // Before the fight starts each character shows off.
       if (g && g.phase === 'intro') {
         const secs = g.phaseF / 60;
@@ -207,37 +205,34 @@ function rawPose(f, g, T) {
       return { ...CLIP, clip: 'box_01', clipTime: idleTime(T) };
     }
     case 'walk': {
-      if (f.guard) return { ...GUARD, clipTime: idleTime(T) };
-      // u: position in the walk cycle from the distance walked along the facing direction.
-      const u = (f.x / 1000) * f.facing / STRIDE;
-      const [tl, zl, yl] = footCycle(u), [tr, zr, yr] = footCycle(u + 0.5);
-      const both = Math.cos(u * Math.PI * 4); // 1 when both feet are down
-      return withP({ ...LOCO, clipTime: idleTime(T), toe: [tl, tr] }, {
-        lf: [0, yl * 0.18, zl], rf: [0, yr * 0.18, zr],
-        hip: [0, -0.012 + both * 0.008, 0],
-        spine: [0.03, Math.sin(u * Math.PI * 2) * 0.07, 0],
-      });
+      // Mixamo "Short Step Forward", looped in place and driven by the distance walked
+      // (one cycle = 0.56 m), so the feet stay planted; walking back plays it in reverse.
+      const u = ((f.x / 1000) * f.facing) / 0.56;
+      return { ...CLIP, clip: 'Short_Step_Forward', clipTime: (u - Math.floor(u)) * 0.99 };
     }
     case 'crouch':
       return f.guard ? { ...CROUCH_GUARD, clipTime: idleTime(T) } : { ...LOCO_CROUCH, clipTime: idleTime(T) };
     case 'air': {
-      // Forward jumps do a cartoon somersault around the waist.
+      // Mixamo "Jumping" airborne part (0.55-1.05 s) following the real jump arc, with the
+      // clip's own height taken out. Forward jumps add a cartoon somersault.
+      const c = CHARACTERS[f.char];
+      const prog = clamp01((c.jumpVy - f.vy) / (2 * c.jumpVy));
       const flip = f.vx !== 0 && Math.sign(f.vx) === f.facing && !f.airAtk;
       const k = ease(clamp01(t / 32));
-      // Legs tuck tighter near the top of the jump.
-      const tuck = 0.5 + 0.5 * clamp01(1 - Math.abs(f.vy) / 200);
-      return withP({ ...LOCO, clipTime: idleTime(T), body: [flip ? k * Math.PI * 2 : 0, 0, 0, 0, 0.9] }, {
-        lf: [0, 0.2 * tuck, 0.1 * tuck], rf: [0, 0.3 * tuck, 0.04], hip: [0, 0.03, 0], spine: [0.12 * tuck, 0, 0],
-        toe: [0.3, 0.2],
-      });
+      return { ...CLIP, clip: 'Jumping', clipTime: 0.55 + prog * 0.5, ...AIRCLIP,
+        body: [flip ? k * Math.PI * 2 : 0, 0, 0, 0, 0.9] };
     }
     case 'attack': {
       const m = CHARACTERS[f.char].moves[f.mv];
       if (f.mv === 'special' || f.mv === 'super') return specialPose(f, m);
       return attackPose(f, m, T);
     }
-    case 'block':
-      return { ...(f.guardLow ? CROUCH_GUARD : GUARD), clipTime: idleTime(T) };
+    case 'block': {
+      if (f.guardLow) return { ...CROUCH_GUARD, clipTime: idleTime(T) };
+      // Mixamo "Center Block": arms snap up and the body rocks back under the impact.
+      const k = clamp01(t / Math.max(1, t + f.stun));
+      return { ...CLIP, clip: 'Center_Block', clipTime: 0.2 + k * 0.6 };
+    }
     case 'hit': {
       // Reaction clip stretched over the hit-stun: head snaps back, or doubles over.
       // A different reaction for each kind of hit: head or body, light or heavy.
@@ -254,12 +249,12 @@ function rawPose(f, g, T) {
     case 'fall':
       return { ...CLIP, clip: 'fall', clipTime: 1.05 + clamp01(t / 26) * 0.65, alpha: 0.5 };
     case 'down':
-      return { ...CLIP, clip: 'fall', clipTime: 1.7 + clamp01(t / 40) * 1.3, alpha: 0.5 };
+      return { ...CLIP, clip: 'fall', clipTime: 1.7 + clamp01(t / 40) * 1.3 };
     case 'ko':
       return { ...CLIP, clip: 'fall', clipTime: Math.min(3, 1.7 + t / 40), alpha: 0.4 };
     case 'rise':
-      // The fall played backwards: a quick cartoon pop back up.
-      return { ...CLIP, clip: 'fall', clipTime: 1.6 - ease(clamp01(t / 16)) * 0.6, alpha: 0.6 };
+      // Mixamo "Getting Up", sped up: rolls onto the hands and springs back to the stance.
+      return { ...CLIP, clip: 'Getting_Up', clipTime: 4.2 + clamp01(t / 18) * 1.7 };
     case 'win':
       if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
       return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };

@@ -1,0 +1,103 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Mixamo → Briga</title>
+<script type="importmap">{"imports":{"three":"../../vendor/three/build/three.module.min.js","three/addons/":"../../vendor/three/addons/"}}</script>
+</head><body>
+<p>Converte animações do Mixamo (.fbx, "Without Skin") para o esqueleto dos lutadores. Usado por tools/mixamo/convert.cjs.</p>
+<script type="module">
+import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const clean = (n) => n.replace(/^mixamorig[:_]?/, '');
+const bonesOf = (root) => { const m = new Map(); root.traverse((o) => { if (o.isBone || /mixamorig/.test(o.name)) m.set(clean(o.name), o); }); return m; };
+
+// Rest pose of the target (the fighters share the same skeleton).
+const target = await new GLTFLoader().loadAsync('../../assets/models/hotmonster.glb');
+const tBones = bonesOf(target.scene);
+
+window.inspect = async (url) => {
+  const fbx = await new FBXLoader().loadAsync(url);
+  const sBones = bonesOf(fbx);
+  const out = [];
+  for (const n of ['Hips', 'Spine', 'LeftArm', 'LeftForeArm', 'LeftUpLeg', 'LeftLeg', 'RightArm']) {
+    const s = sBones.get(n), t = tBones.get(n);
+    out.push(`${n}: src q ${s.quaternion.toArray().map((v) => v.toFixed(2))} p ${s.position.toArray().map((v) => v.toFixed(1))} | tgt q ${t.quaternion.toArray().map((v) => v.toFixed(2))} p ${t.position.toArray().map((v) => v.toFixed(3))}`);
+  }
+  const clip = fbx.animations[0];
+  out.push(`clip ${clip.name} ${clip.duration.toFixed(2)}s tracks ${clip.tracks.length}: ${clip.tracks.slice(0, 4).map((t) => t.name).join(' ')}`);
+  out.push(`missing in target: ${[...sBones.keys()].filter((k) => !tBones.has(k)).join(',')}`);
+  return out.join('\n');
+};
+// Retarget a Mixamo clip onto the fighters' skeleton. The two rigs share bone names but not
+// bone axes, so each bone copies the source's change of WORLD rotation from its rest pose,
+// plus a fixed correction that lines up the rest-pose bone directions (T-pose vs A-pose).
+window.convert = async (url, fps = 30) => {
+  const fbx = await new FBXLoader().loadAsync(url);
+  const clip = fbx.animations[0];
+  const sBones = bonesOf(fbx);
+  const names = [...tBones.keys()].filter((n) => sBones.has(n));
+  const restQ = (map) => { const r = new Map(); for (const [n, b] of map) r.set(n, b.getWorldQuaternion(new THREE.Quaternion())); return r; };
+  const restP = (b) => b.getWorldPosition(new THREE.Vector3());
+  fbx.updateMatrixWorld(true); target.scene.updateMatrixWorld(true);
+  const tRestLocal = new Map([...tBones].map(([n, b]) => [n, [b.quaternion.clone(), b.position.clone()]]));
+  const sRestLocal = new Map([...sBones].map(([n, b]) => [n, [b.quaternion.clone(), b.position.clone()]]));
+  const sRest = restQ(sBones), tRest = restQ(tBones);
+  // Correction per bone: rotate the target's rest bone direction onto the source's.
+  const corr = new Map();
+  for (const n of names) {
+    const tb = tBones.get(n), sb = sBones.get(n);
+    const tc = tb.children.find((c) => sBones.has(clean(c.name)) && tBones.has(clean(c.name)));
+    if (!tc) { corr.set(n, new THREE.Quaternion()); continue; }
+    const sc = sBones.get(clean(tc.name));
+    const dT = restP(tc).sub(restP(tb)).normalize(), dS = restP(sc).sub(restP(sb)).normalize();
+    corr.set(n, new THREE.Quaternion().setFromUnitVectors(dT, dS));
+  }
+  // Hips height ratio for the root motion.
+  const hipsT = tBones.get('Hips'), hipsS = sBones.get('Hips');
+  const scale = restP(hipsT).y / restP(hipsS).y;
+  const hipsRestS = restP(hipsS), hipsRestT = restP(hipsT);
+
+  const interps = clip.tracks.map((tr) => {
+    const { nodeName, propertyName } = THREE.PropertyBinding.parseTrackName(tr.name);
+    return { bone: sBones.get(clean(nodeName)), prop: propertyName, it: tr.createInterpolant() };
+  }).filter((x) => x.bone && (x.prop === 'quaternion' || x.prop === 'position'));
+
+  // Visit target bones parents-first.
+  const order = [];
+  target.scene.traverse((o) => { const n = clean(o.name); if (names.includes(n)) order.push(n); });
+
+  const n = Math.max(2, Math.round(clip.duration * fps) + 1);
+  const times = [], rot = new Map(names.map((k) => [k, []])), hipsPos = [];
+  const q = new THREE.Quaternion(), pq = new THREE.Quaternion();
+  for (let i = 0; i < n; i++) {
+    const t = Math.min(clip.duration, i / fps);
+    times.push(t);
+    for (const [k, [rq, rp]] of sRestLocal) { const b = sBones.get(k); b.quaternion.copy(rq); b.position.copy(rp); }
+    for (const x of interps) {
+      const v = x.it.evaluate(t);
+      if (x.prop === 'quaternion') x.bone.quaternion.fromArray(v);
+      else if (x.bone === hipsS) x.bone.position.fromArray(v);
+    }
+    fbx.updateMatrixWorld(true);
+    for (const [k, [rq, rp]] of tRestLocal) { const b = tBones.get(k); b.quaternion.copy(rq); b.position.copy(rp); }
+    // Hips position: the source's displacement from rest, scaled, in the target's parent space.
+    const dp = restP(hipsS).sub(hipsRestS).multiplyScalar(scale);
+    const wp = hipsRestT.clone().add(dp);
+    hipsT.position.copy(hipsT.parent.worldToLocal(wp));
+    target.scene.updateMatrixWorld(true);
+    for (const k of order) {
+      const tb = tBones.get(k);
+      const Gs = sBones.get(k).getWorldQuaternion(new THREE.Quaternion());
+      // Gt = Gs * inv(GsRest) * C * GtRest
+      q.copy(Gs).multiply(sRest.get(k).clone().invert()).multiply(corr.get(k)).multiply(tRest.get(k));
+      tb.parent.getWorldQuaternion(pq);
+      tb.quaternion.copy(pq.invert().multiply(q));
+      tb.updateMatrixWorld(true);
+      rot.get(k).push(...tb.quaternion.toArray());
+    }
+    hipsPos.push(...hipsT.position.toArray());
+  }
+  for (const [k, [rq, rp]] of tRestLocal) { const b = tBones.get(k); b.quaternion.copy(rq); b.position.copy(rp); }
+  return { duration: clip.duration, times, rot: Object.fromEntries(rot), hipsPos };
+};
+window.ready = true;
+</script></body></html>

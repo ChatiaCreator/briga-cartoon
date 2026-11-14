@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Clip preview</title>
+<script type="importmap">{"imports":{"three":"../../vendor/three/build/three.module.min.js","three/addons/":"../../vendor/three/addons/"}}</script>
+<style>body{margin:0;background:#ddd}</style></head><body>
+<script type="module">
+// Draws one clip as a strip of poses (used to check converted animations).
+import * as THREE from 'three';
+import { Character, loadGLTF } from '../../src/render/character.js';
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+r.setSize(1560, 460); document.body.appendChild(r.domElement);
+const anims = (await loadGLTF('../../assets/models/mixamo_anims.glb')).animations;
+window.strip = async (model, clip, n = 12, side = false, t0 = 0, t1 = null) => {
+  const sc = new THREE.Scene(); sc.background = new THREE.Color(0xdddddd);
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x666666, 2.5));
+  const cam = new THREE.OrthographicCamera(-n * 0.65, n * 0.65, 1.9, -1.9, 0.1, 100); cam.position.set(0, 0.2, 20);
+  let dur = 0;
+  for (let i = 0; i < n; i++) {
+    const c = new Character(await loadGLTF('../../assets/models/' + model), { extraClips: anims });
+    dur = c.clips[clip].duration; const tt = t1 ?? dur;
+    c.root.position.set((i - (n - 1) / 2) * 1.3, -1.6, 0);
+    c.root.rotation.y = side ? Math.PI / 2 : 0;
+    sc.add(c.root); c.root.updateMatrixWorld(true);
+    c.solvePose({ clip, clipTime: t0 + (tt - t0) * i / (n - 1), hip: [0,0,0], spine: [0,0,0], head: [0,0,0], body: [0,0,0,0,0], lh:[0,0,0], rh:[0,0,0], lf:[0,0,0], rf:[0,0,0] });
+  }
+  r.render(sc, cam);
+  return dur;
+};
+window.ready = true;
+</script></body></html>
+<script type="module">
+import * as THREE from 'three';
+import { Character, loadGLTF } from '../../src/render/character.js';
+// Numbers per time step: hips height/forward, the furthest-forward hand and foot, hips facing.
+window.probe = async (clip, step = 0.1) => {
+  const anims = (await loadGLTF('../../assets/models/mixamo_anims.glb')).animations;
+  const c = new Character(await loadGLTF('../../assets/models/hotmonster.glb'), { extraClips: anims });
+  const d = c.clips[clip].duration, out = [];
+  const P = (n) => c.model.worldToLocal(c.b[n].getWorldPosition(new THREE.Vector3()));
+  for (let t = 0; t <= d + 1e-6; t += step) {
+    c.root.updateMatrixWorld(true);
+    c.solvePose({ clip, clipTime: t, hip: [0,0,0], spine: [0,0,0], head: [0,0,0], body: [0,0,0,0,0], lh:[0,0,0], rh:[0,0,0], lf:[0,0,0], rf:[0,0,0] });
+    c.root.updateMatrixWorld(true);
+    const h = P('Hips'), lh = P('LeftHand'), rh = P('RightHand'), lf = P('LeftFoot'), rf = P('RightFoot');
+    const L = P('LeftUpLeg'), R = P('RightUpLeg'); const fw = L.clone().sub(R).cross(new THREE.Vector3(0, 1, 0));
+    const f = (v) => v.toFixed(2);
+    out.push(`${t.toFixed(2)} hips y${f(h.y)} z${f(h.z)} | hand L z${f(lh.z)} R z${f(rh.z)} | foot L y${f(lf.y)} z${f(lf.z)} R y${f(rf.y)} z${f(rf.z)} | face ${(Math.atan2(fw.x, fw.z) * 57.3).toFixed(0)}`);
+  }
+  return out.join('\n');
+};
+window.probeReady = true;
+</script>
