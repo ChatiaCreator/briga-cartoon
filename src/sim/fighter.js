@@ -9,6 +9,7 @@ export const MAX_DIST = 5600;      // farthest the two fighters may be apart
 export const BODY_W = 520;         // push-box width
 export const BUFFER = 5;           // frames a button press stays buffered
 export const METER_MAX = 1000;
+export const SUPER_FREEZE = 45; // frames everything stops while a super starts
 
 const NEUTRAL = new Set(['idle', 'walk', 'crouch', 'land']);
 
@@ -98,7 +99,7 @@ function startMove(f, id, g) {
   const m = CHARACTERS[f.char].moves[id];
   f.st = 'attack'; f.mv = id; f.sf = 0; f.hit = false; f.guard = false;
   if (m.invuln) f.inv = m.invuln;
-  if (m.rank === 4) f.meter = 0;
+  if (m.rank === 4) { f.meter = 0; g.hitstop = SUPER_FREEZE; }
   if (m.air) f.airAtk = true;
   if (!m.air) f.vx = 0;
   g.events.push({ t: 'move', f: f.id, mv: id });

@@ -3,11 +3,19 @@ import * as THREE from 'three';
 import { Character, loadGLTF } from './character.js';
 import { poseFor } from './poses.js';
 import { Arena } from './scene.js';
-import { Effects, Aura } from './effects.js';
+import { Effects, Aura, Trail } from './effects.js';
 import { shadowTexture, loadImage } from './textures.js';
 import { CHARACTERS } from '../sim/moves.js';
 
 const FACE_ANGLE = 1.15; // radians: side-on, turned a little towards the camera
+const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a };
+const LIMBS = ['LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'];
+
+// The K.O. that ends the match: played in slow motion with the camera zoomed in.
+export function isFinalKO(g) {
+  const w = g.roundWinner;
+  return g.phase === 'ko' && g.timer > 0 && (w === 0 || w === 1) && g.wins[w] + 1 >= 2 && g.phaseF < 80;
+}
 
 let canImgPromise = null;
 export function canImage() {
@@ -63,6 +71,8 @@ export class GameView {
       return s;
     });
     this.auras = fighters.map(() => new Aura(this.scene, this.fx.glowGreen));
+    this.trails = fighters.map(() => new Trail(this.scene, 0xffffff));
+    this.flash = [0, 0];
     this.T = 0;
   }
 
@@ -70,6 +80,7 @@ export class GameView {
     for (const ev of events) {
       if (ev.t === 'hit') {
         this.fx.hit(ev);
+        this.flash[ev.f] = ev.heavy ? 0.14 : 0.08;
         this.arena.shake = Math.max(this.arena.shake, ev.ko ? 0.35 : ev.heavy ? 0.14 : 0.05);
       } else if (ev.t === 'block') this.fx.block(ev);
       else if (ev.t === 'splash') this.fx.splash(ev.x, ev.air ? 1200 : 0);
@@ -97,12 +108,47 @@ export class GameView {
       const k = Math.max(0.3, 1 - y / 2.5);
       sh.scale.set(k, k, k);
       this.auras[i].update(f.buff > 0, x, y, this.T, f.buff < 90 ? (f.buff % 20 < 10 ? 0.4 : 1) : 1);
+      this.updateTrail(i, f, c);
+      this.flash[i] = Math.max(0, this.flash[i] - dt);
+      c.setFlash(this.flash[i] > 0 ? 1 : 0);
     }
     this.fx.holdItems(this.chars, poses);
     this.fx.syncProjectiles(g.proj, dt);
     this.fx.update(dt);
-    this.arena.updateCamera(g.f[0].x / 1000, g.f[1].x / 1000, dt);
+    this.arena.updateCamera(g.f[0].x / 1000, g.f[1].x / 1000, dt, this.focusFor(g));
     renderer.render(this.scene, this.arena.camera);
+  }
+
+  // Strong attacks leave a ribbon behind the limb that is reaching out the most.
+  updateTrail(i, f, c) {
+    const m = f.st === 'attack' ? CHARACTERS[f.char].moves[f.mv] : null;
+    const strong = m && m.rank >= 2 && !m.buff && !m.rain
+      && f.sf >= m.startup - 3 && f.sf <= m.startup + Math.max(m.active, 4) + 2;
+    let p = null;
+    if (strong) {
+      const hips = c.b.Hips.getWorldPosition(new THREE.Vector3());
+      let best = -1;
+      for (const name of LIMBS) {
+        const q = c.b[name].getWorldPosition(new THREE.Vector3());
+        const d = q.distanceTo(hips);
+        if (d > best) { best = d; p = q; }
+      }
+    }
+    this.trails[i].setColor(f.buff > 0 ? 0x7dff1a : TRAIL_COLORS[f.char] || 0xffffff);
+    this.trails[i].update(p);
+  }
+
+  focusFor(g) {
+    if (isFinalKO(g)) {
+      const loser = g.f[1 - g.roundWinner];
+      return { x: loser.x / 1000, z: 6.2 };
+    }
+    // Super freeze: zoom on whoever started it.
+    if (g.hitstop > 0) {
+      const f = g.f.find((x) => x.st === 'attack' && x.mv === 'super' && x.sf <= 1);
+      if (f) return { x: f.x / 1000, z: 5.6 };
+    }
+    return null;
   }
 
   dispose() {

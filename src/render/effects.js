@@ -212,3 +212,63 @@ export class Aura {
     });
   }
 }
+
+// Fading ribbon that follows a fist or foot during strong attacks.
+export class Trail {
+  constructor(scene, color) {
+    this.n = 14;
+    this.points = [];
+    const geo = new THREE.BufferGeometry();
+    this.pos = new Float32Array(this.n * 2 * 3);
+    this.col = new Float32Array(this.n * 2 * 4);
+    geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(this.col, 4));
+    const idx = [];
+    for (let i = 0; i < this.n - 1; i++) {
+      const a = i * 2;
+      idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+    geo.setIndex(idx);
+    this.mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    }));
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 5;
+    this.color = new THREE.Color(color);
+    scene.add(this.mesh);
+  }
+
+  setColor(c) { this.color.set(c); }
+
+  // p: world position of the limb, or null when no strong attack is active.
+  update(p, width = 0.13) {
+    if (p) this.points.unshift(p.clone());
+    else if (this.points.length) this.points.pop();
+    if (this.points.length > this.n) this.points.length = this.n;
+    const pts = this.points;
+    for (let i = 0; i < this.n; i++) {
+      const q = pts[Math.min(i, pts.length - 1)];
+      const o = i * 6, c = i * 8;
+      if (!q || pts.length < 2) {
+        this.col.fill(0, c, c + 8);
+        continue;
+      }
+      const last = pts.length - 1;
+      const prev = pts[Math.min(last, Math.max(0, i - 1))], next = pts[Math.min(last, i + 1)];
+      // Ribbon width goes across the direction of motion, in the screen plane.
+      let dx = next.x - prev.x, dy = next.y - prev.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const k = 1 - i / this.n;
+      const w = width * k;
+      const nx = (-dy / len) * w, ny = (dx / len) * w;
+      this.pos[o] = q.x + nx; this.pos[o + 1] = q.y + ny; this.pos[o + 2] = q.z + 0.05;
+      this.pos[o + 3] = q.x - nx; this.pos[o + 4] = q.y - ny; this.pos[o + 5] = q.z + 0.05;
+      const a = i < pts.length ? k * 0.9 : 0;
+      for (const off of [0, 4]) {
+        this.col[c + off] = this.color.r; this.col[c + off + 1] = this.color.g; this.col[c + off + 2] = this.color.b; this.col[c + off + 3] = a;
+      }
+    }
+    this.mesh.geometry.attributes.position.needsUpdate = true;
+    this.mesh.geometry.attributes.color.needsUpdate = true;
+  }
+}

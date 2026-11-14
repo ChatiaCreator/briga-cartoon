@@ -98,7 +98,7 @@ test('Flash super needs full meter and gives the GARRA buff', () => {
   step(g, [SUP, 0]);
   assert.equal(g.f[0].mv, 'super');
   assert.equal(g.f[0].meter, 0);
-  run(g, 60);
+  run(g, 110);
   assert.ok(g.f[0].buff > 0);
   // Buffed jab does 50% more.
   approach(g);

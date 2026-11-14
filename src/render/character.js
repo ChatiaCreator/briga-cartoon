@@ -291,6 +291,15 @@ export class Character {
     }
   }
 
+  // White flash when hit (k = 0..1).
+  setFlash(k) {
+    const mat = this.mesh?.material;
+    if (!mat || !mat.emissive || this.flashK === k) return;
+    this.flashK = k;
+    mat.emissive.setRGB(k, k, k);
+    mat.emissiveIntensity = k ? 0.8 : 1;
+  }
+
   handWorld(side = 'Right', out = new THREE.Vector3()) {
     return this.b[side + 'Hand'].getWorldPosition(out);
   }

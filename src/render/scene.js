@@ -46,6 +46,12 @@ export class Arena {
     ground.position.set(0, 0, 0.5);
     ground.receiveShadow = true;
     s.add(ground);
+    // Street in front of the fight lane, so tall (phone) views never show an empty floor.
+    const apron = new THREE.Mesh(new THREE.PlaneGeometry(120, 14), new THREE.MeshToonMaterial({ color: 0x3f3a4c }));
+    apron.rotation.x = -Math.PI / 2; apron.position.set(0, -0.005, 11);
+    apron.receiveShadow = true;
+    s.add(apron);
+    this.scene.background = new THREE.Color(0x2b1055);
     // Sidewalk and far street.
     const far = new THREE.Mesh(new THREE.PlaneGeometry(120, 30), new THREE.MeshToonMaterial({ color: 0x3a3347 }));
     far.rotation.x = -Math.PI / 2; far.position.set(0, -0.01, -14);
@@ -104,13 +110,14 @@ export class Arena {
   }
 
   // Follow the midpoint of the fighters; zoom out as they move apart.
-  updateCamera(xa, xb, dt) {
+  // focus = { x, z } zooms on one point (super start, final K.O.).
+  updateCamera(xa, xb, dt, focus = null) {
     const mid = (xa + xb) / 2;
     const dist = Math.abs(xa - xb);
     const limit = WALL / 1000 - 2.6;
-    const targetX = Math.max(-limit, Math.min(limit, mid));
-    const targetZ = Math.max(9.4, Math.min(13, 7.4 + dist * 0.85));
-    const k = 1 - Math.pow(0.001, dt);
+    const targetX = Math.max(-limit, Math.min(limit, focus ? focus.x : mid));
+    const targetZ = focus ? focus.z : Math.max(9.4, Math.min(13, 7.4 + dist * 0.85));
+    const k = 1 - Math.pow(focus ? 0.0001 : 0.001, dt);
     this.camX += (targetX - this.camX) * k;
     this.camZ += (targetZ - this.camZ) * k;
     this.shake *= Math.pow(0.002, dt);

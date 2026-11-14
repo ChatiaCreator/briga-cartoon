@@ -1,7 +1,8 @@
 // Menus, match lifecycle and the main loop (fixed 60 Hz simulation, render every frame).
 import * as THREE from 'three';
 import { createRenderer } from './render/scene.js';
-import { GameView, canImage, sharedClips } from './render/view.js';
+import { GameView, canImage, sharedClips, isFinalKO } from './render/view.js';
+import { initTouch, buzz, goFullscreen, isTouchDevice } from './touch.js';
 import { Character, loadGLTF } from './render/character.js';
 import { poseFor } from './render/poses.js';
 import { createGame, step, checksum } from './sim/game.js';
@@ -19,6 +20,12 @@ const $ = (id) => document.getElementById(id);
 const renderer = createRenderer($('stage'));
 const hud = new Hud();
 attachKeyboard();
+const touch = initTouch({ onPause: () => openPause() });
+const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!' };
+if (isTouchDevice() && document.documentElement.requestFullscreen) {
+  $('fullBtn').classList.remove('hidden');
+  $('fullBtn').onclick = goFullscreen;
+}
 
 let attract = null;      // background scene behind the menus
 let match = null;        // the running fight
@@ -172,7 +179,7 @@ async function startMatch(mode, chars, opts = {}) {
   match = {
     mode, chars, opts, game, view, me, paused: false, ended: false, acc: 0,
     cpu: mode === 'cpu' ? new Cpu(1, opts.cpuLevel ?? 0.6) : null,
-    lock: null, frame: 0, stall: 0,
+    lock: null, frame: 0, stall: 0, hold: true,
   };
   hud.setup(game, tags);
   if (mode === 'online') {
@@ -180,7 +187,50 @@ async function startMatch(mode, chars, opts = {}) {
     hud.net(`online • atraso ${opts.delay} quadros${session?.rtt ? ` • ping ${Math.round(session.rtt)} ms` : ''}`);
   }
   hud.show(true);
-  handleEvents(game.events);
+  touch.show(true);
+  showVersus(match);
+}
+
+// "HOTMONSTER VS FLASH" splash; the fight starts when it closes.
+function showVersus(m) {
+  const g = m.game;
+  for (let i = 0; i < 2; i++) {
+    $(`vsImg${i + 1}`).src = portraits[g.f[i].char] || '';
+    $(`vsName${i + 1}`).textContent = CHARACTERS[g.f[i].char].name.toUpperCase();
+  }
+  const vs = $('vs');
+  vs.classList.remove('hidden');
+  // Restart the CSS animations.
+  for (const el of vs.querySelectorAll('.vs-side, .vs-mid')) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
+  sfx('heavy');
+  announce(`${CHARACTERS[g.f[0].char].name} contra ${CHARACTERS[g.f[1].char].name}!`);
+  setTimeout(() => {
+    if (window.__keepVs) return; // automated screenshots
+    vs.classList.add('hidden');
+    if (match !== m) return;
+    m.hold = false;
+    handleEvents(g.events);
+  }, 2400);
+}
+
+function showCutin(f) {
+  const el = $('cutin');
+  $('cutImg').src = portraits[f.char] || '';
+  $('cutWho').textContent = CHARACTERS[f.char].name.toUpperCase();
+  $('cutName').textContent = SUPER_NAMES[f.char] || 'SUPER!';
+  el.className = `${f.id === 1 ? 'p2' : ''} ${f.char === 'flash' ? 'green' : ''}`;
+  for (const n of el.querySelectorAll('*')) { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
+  el.dataset.until = String(performance.now() + 400); // shown at least this long
+  clearTimeout(showCutin.t);
+  showCutin.t = setTimeout(() => el.classList.add('hidden'), 2500); // safety net
+}
+
+// The cut-in lasts as long as the super's freeze in the simulation.
+function updateCutin(g) {
+  const el = $('cutin');
+  if (el.classList.contains('hidden') || performance.now() < Number(el.dataset.until || 0)) return;
+  const freezing = g.hitstop > 0 && g.f.some((f) => f.st === 'attack' && f.mv === 'super' && f.sf <= 1);
+  if (!freezing) el.classList.add('hidden');
 }
 
 function disposeMatch() {
@@ -192,6 +242,9 @@ function disposeMatch() {
 function endMatch() {
   disposeMatch();
   hud.show(false);
+  touch.show(false);
+  $('vs').classList.add('hidden');
+  $('cutin').classList.add('hidden');
   $('pause').classList.add('hidden');
 }
 
@@ -246,11 +299,13 @@ function handleEvents(events) {
       case 'fight': hud.flash('LUTA!', 800); announce('Luta!'); break;
       case 'hit':
         sfx(ev.heavy ? 'heavy' : 'hit');
+        if (touch.enabled && ev.f === (m.mode === 'online' ? m.me : 0)) buzz(ev.heavy ? 60 : 25);
         hud.combo(ev.by, ev.combo);
         break;
       case 'block': sfx('block'); break;
       case 'move': {
         const f = g.f[ev.f];
+        if (ev.mv === 'super') showCutin(f);
         if (f.char === 'flash' && ev.mv === 'super') sfx('glug');
         else if (ev.mv === 'super') { sfx('power'); announce('Chuva de ração!'); }
         else if (f.char === 'hotmonster' && ev.mv === 'special') setTimeout(() => sfx('throw'), 200);
@@ -345,8 +400,9 @@ function frame(now) {
   last = now;
   if (match) {
     const m = match;
-    if (!m.paused) {
-      m.acc += dt;
+    if (!m.paused && !m.hold) {
+      // The match-ending K.O. plays in slow motion.
+      m.acc += dt * (isFinalKO(m.game) ? 0.3 : 1);
       let steps = 0;
       while (m.acc >= STEP && steps < 6 && match === m) {
         if (!tick()) { m.acc = Math.min(m.acc, STEP); break; }
@@ -358,6 +414,7 @@ function frame(now) {
     }
     if (match === m) {
       m.view.render(renderer, m.game, m.paused ? 0 : dt);
+      updateCutin(m.game);
       hud.update(m.game);
     }
   } else if (attract) {

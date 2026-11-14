@@ -44,6 +44,33 @@
     <div class="netinfo" id="netinfo"></div>
   </div>
 
+  <!-- "HOTMONSTER VS FLASH" before each match -->
+  <div id="vs" class="hidden">
+    <div class="vs-side left"><img id="vsImg1" alt=""><span id="vsName1"></span></div>
+    <div class="vs-mid">VS</div>
+    <div class="vs-side right"><img id="vsImg2" alt=""><span id="vsName2"></span></div>
+  </div>
+
+  <!-- Super move cut-in -->
+  <div id="cutin" class="hidden">
+    <div class="band"><img id="cutImg" alt=""><div class="cut-text"><small id="cutWho"></small><b id="cutName"></b></div></div>
+  </div>
+
+  <!-- Touch controls (phones and tablets) -->
+  <div id="touch" class="hidden">
+    <div id="stick"><div id="knob"></div></div>
+    <div id="tbuttons">
+      <button data-code="KeyL" class="sp">ESPECIAL</button>
+      <button data-code="KeyO" class="su">SUPER</button>
+      <button data-code="KeyJ">SOCO</button>
+      <button data-code="KeyK" class="hv">SOCO+</button>
+      <button data-code="KeyU">CHUTE</button>
+      <button data-code="KeyI" class="hv">CHUTE+</button>
+    </div>
+    <button id="tpause" aria-label="Pausa">❚❚</button>
+  </div>
+  <div id="rotate" class="hidden">📱↻ Gire o celular para jogar deitado</div>
+
   <!-- Screens -->
   <div id="menu" class="screen">
     <h1 class="logo"><span>BRIGA</span><span>CARTOON</span></h1>
@@ -54,7 +81,10 @@
       <button data-go="cpu">🤖 Contra o computador</button>
       <button data-go="controls">⌨️ Controles</button>
     </div>
-    <button class="mute" id="mute">🔊 Som ligado</button>
+    <div class="buttons inline small">
+      <button class="mute" id="mute">🔊 Som ligado</button>
+      <button class="mute hidden" id="fullBtn">⛶ Tela cheia</button>
+    </div>
     <p class="loading" id="loading">Carregando personagens…</p>
   </div>
 
