@@ -398,6 +398,12 @@ async function makePortraits() {
 
 async function boot() {
   resize();
+  // Hosts without WebRTC (e.g. a claude.ai preview) can't play online.
+  if (document.querySelector('meta[name="briga-no-online"]')) {
+    const b = document.querySelector('[data-go="online"]');
+    b.disabled = true;
+    b.textContent = '🌐 Online: só na versão publicada';
+  }
   requestAnimationFrame(frame);
   try {
     await canImage();
