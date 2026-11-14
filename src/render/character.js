@@ -12,9 +12,15 @@ const bufferCache = new Map();
 
 export async function loadGLTF(url) {
   if (!bufferCache.has(url)) {
-    bufferCache.set(url, fetch(url).then((r) => {
+    // Hosts that can't serve .glb get a base64 copy (see the "briga-b64" meta tag).
+    const b64 = !!document.querySelector('meta[name="briga-b64"]');
+    bufferCache.set(url, fetch(b64 ? `${url}.b64.txt` : url).then(async (r) => {
       if (!r.ok) throw new Error(`Não foi possível carregar ${url} (${r.status})`);
-      return r.arrayBuffer();
+      if (!b64) return r.arrayBuffer();
+      const bin = atob((await r.text()).trim());
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return bytes.buffer;
     }));
   }
   const buf = await bufferCache.get(url);
