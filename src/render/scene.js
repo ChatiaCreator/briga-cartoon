@@ -22,9 +22,7 @@ const SHOPS = [
   ['FARMÁCIA', '#5d8c7a', '#2f9e5f'], ['SORVETERIA', '#c47aa0', '#e84393'], ['OFICINA', '#7a7a8c', '#444466'],
   ['PASTELARIA', '#c9a24a', '#e8402e'],
 ];
-const SKIN = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0x5c3a1e, 0xffdbac];
-const SHIRTS = [0x2e86de, 0xe8402e, 0x3b8c6b, 0xffd23f, 0x8c3b5b, 0x5b3b8c, 0xff8a00, 0x1b1b1b, 0xeeeeee, 0x16a085];
-const SHOP_Z = -7.5, CROWD_ROWS = [-4.5, -5.5];
+const SHOP_Z = -7.5;
 
 export class Arena {
   constructor(canImg) {
@@ -153,7 +151,7 @@ export class Arena {
       new THREE.MeshBasicMaterial({ color: 0x1b1b1b }));
     s.add(wire);
 
-    // ---- Crowd behind a striped barrier ----
+    // ---- Striped barrier along the sidewalk ----
     const stripe = stripeTexture(); stripe.repeat.set(30, 1);
     const railMat = new THREE.MeshToonMaterial({ map: stripe });
     for (const y of [0.55, 1.0]) {
@@ -167,27 +165,6 @@ export class Arena {
       post.position.set(x, 0.6, -3.6);
       s.add(post);
     }
-    this.crowd = [];
-    for (const [r, z] of CROWD_ROWS.entries()) {
-      for (let x = -15 + r * 0.6; x <= 15; x += 1.05 + rnd() * 0.35) {
-        this.crowd.push({ x: x + (rnd() - 0.5) * 0.2, z: z + (rnd() - 0.5) * 0.3, s: 0.85 + rnd() * 0.25,
-          ph: rnd() * 10, sp: 3 + rnd() * 3, arms: rnd() < 0.5 ? 2 : 1 });
-      }
-    }
-    const N = this.crowd.length;
-    const toon = () => new THREE.MeshToonMaterial({ color: 0xffffff });
-    this.crowdBody = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.21, 0.5, 4, 10), toon(), N);
-    this.crowdHead = new THREE.InstancedMesh(new THREE.SphereGeometry(0.16, 12, 10), toon(), N);
-    this.crowdArm = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.055, 0.42, 3, 6), toon(), N * 2);
-    this.crowd.forEach((p, i) => {
-      this.crowdBody.setColorAt(i, col.setHex(SHIRTS[Math.floor(rnd() * SHIRTS.length)]).multiplyScalar(0.8));
-      const skin = SKIN[Math.floor(rnd() * SKIN.length)];
-      this.crowdHead.setColorAt(i, col.setHex(skin));
-      this.crowdArm.setColorAt(i * 2, col.setHex(skin));
-      this.crowdArm.setColorAt(i * 2 + 1, col.setHex(skin));
-    });
-    for (const m of [this.crowdBody, this.crowdHead, this.crowdArm]) { m.frustumCulled = false; s.add(m); }
-
     // ---- Stage edges: crates and burning oil drums ----
     const crateMat = new THREE.MeshToonMaterial({ color: 0x6e4524 });
     const drumMat = new THREE.MeshToonMaterial({ color: 0x5a3a2a });
@@ -228,45 +205,15 @@ export class Arena {
       halo.position.copy(lamp.position); halo.scale.setScalar(2.2);
       s.add(pole, lamp, halo);
     }
-    this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._p = new THREE.Vector3(); this._s = new THREE.Vector3();
   }
 
-  // The crowd gets excited on big hits.
+  // Big hits make the string lights blink faster.
   cheer(k) { this.hype = Math.min(1.5, this.hype + k); }
 
-  // Ambient animation: crowd, fire, neon flicker, clouds, twinkling bulbs.
+  // Ambient animation: fire, neon flicker, clouds, twinkling bulbs.
   update(dt, T) {
     this.hype = Math.max(0, this.hype - dt * 0.5);
     const hype = Math.min(1, this.hype);
-    const { _m: m, _q: q, _p: p, _s: sc } = this;
-    const zAxis = new THREE.Vector3(0, 0, 1);
-    this.crowd.forEach((c, i) => {
-      // Idle sway, jumping and raised arms when hyped.
-      const bounce = Math.max(0, Math.sin(T * c.sp * (1 + hype) + c.ph)) * (0.03 + hype * 0.22);
-      const sway = Math.sin(T * 1.3 + c.ph) * 0.06;
-      const base = 0.2 + bounce;
-      sc.setScalar(c.s);
-      q.setFromAxisAngle(zAxis, sway * 0.5);
-      p.set(c.x, base + 0.46 * c.s, c.z);
-      this.crowdBody.setMatrixAt(i, m.compose(p, q, sc));
-      p.set(c.x - sway * 0.6, base + 1.07 * c.s, c.z);
-      this.crowdHead.setMatrixAt(i, m.compose(p, q, sc));
-      for (let a = 0; a < 2; a++) {
-        const sgn = a ? 1 : -1;
-        const up = a < c.arms ? hype : 0;
-        const wave = Math.sin(T * 8 + c.ph + a) * 0.35 * up;
-        const ang = sgn * (0.25 + up * 2.5 + wave);
-        q.setFromAxisAngle(zAxis, ang);
-        const sx = c.x + sgn * 0.24 * c.s, sy = base + 0.78 * c.s;
-        // Capsule hangs from the shoulder: rotate its centre around the shoulder.
-        p.set(0, -0.26 * c.s, 0).applyQuaternion(q).add(this._v || (this._v = new THREE.Vector3()).set(sx, sy, c.z));
-        this.crowdArm.setMatrixAt(i * 2 + a, m.compose(p, q, sc));
-      }
-    });
-    this.crowdBody.instanceMatrix.needsUpdate = true;
-    this.crowdHead.instanceMatrix.needsUpdate = true;
-    this.crowdArm.instanceMatrix.needsUpdate = true;
-
     for (const f of this.fires) {
       f.light.intensity = 3 + Math.sin(T * 17) * 0.7 + Math.sin(T * 29) * 0.5;
       f.flames.forEach((s, k) => {
@@ -288,7 +235,7 @@ export class Arena {
       c.position.x += c.userData.speed * dt;
       if (c.position.x > 55) c.position.x = -55;
     }
-    // Twinkle: a few bulbs dim at a time, more blinking when the crowd is hyped.
+    // Twinkle: a few bulbs dim at a time, faster after big hits.
     const col = this._c || (this._c = new THREE.Color());
     const step = Math.floor(T * (4 + hype * 10));
     if (step !== this._bulbStep) {
