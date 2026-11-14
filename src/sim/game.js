@@ -198,6 +198,8 @@ function applyHit(g, { att, def, move, proj, x, y }) {
     def.meter = Math.min(METER_MAX, def.meter + Math.trunc((move.dmg * 3) / 10));
   }
   def.mv = ''; def.guard = false; def.sf = 0;
+  // Which reaction animation to show: hits above the waist snap the head back.
+  def.hitKind = move.box && move.box[1] < 900 ? 'body' : 'head';
   if (def.hp === 0) def.ko = true;
   if (def.ko || move.kd || def.y > 0 || def.st === 'fall') {
     def.st = 'fall'; def.vy = def.ko ? 130 : 110; def.vx = 35 * away; def.y = Math.max(1, def.y);

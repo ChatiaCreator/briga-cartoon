@@ -1,7 +1,7 @@
 // Menus, match lifecycle and the main loop (fixed 60 Hz simulation, render every frame).
 import * as THREE from 'three';
 import { createRenderer } from './render/scene.js';
-import { GameView, canImage } from './render/view.js';
+import { GameView, canImage, sharedClips } from './render/view.js';
 import { Character, loadGLTF } from './render/character.js';
 import { poseFor } from './render/poses.js';
 import { createGame, step, checksum } from './sim/game.js';
@@ -374,7 +374,7 @@ async function makePortraits() {
   const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   r.setSize(size, size, false);
   r.outputColorSpace = THREE.SRGBColorSpace;
-  const shared = (await loadGLTF(CHARACTERS.hotmonster.model)).animations;
+  const shared = await sharedClips();
   for (const id of Object.keys(CHARACTERS)) {
     const scene = new THREE.Scene();
     scene.add(new THREE.HemisphereLight(0xffffff, 0x664466, 2.2));

@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export const HEIGHT = 1.8; // metres on screen
+const IN_PLACE = new Set(['run']);
 
 const loader = new GLTFLoader();
 const bufferCache = new Map();
@@ -152,13 +153,25 @@ export class Character {
 
   addClip(clip) {
     const samplers = [];
+    let hips = null;
     for (const track of clip.tracks) {
-      if (!track.name.endsWith('.quaternion')) continue;
-      const { nodeName } = THREE.PropertyBinding.parseTrackName(track.name);
+      const { nodeName, propertyName } = THREE.PropertyBinding.parseTrackName(track.name);
       const bone = this.model.getObjectByName(nodeName);
-      if (bone) samplers.push({ bone, interp: track.createInterpolant() });
+      if (!bone) continue;
+      if (propertyName === 'quaternion') samplers.push({ bone, interp: track.createInterpolant() });
+      // Hips height comes from the clip too (crouching, falling). Other bones keep their own
+      // lengths so clips work across characters.
+      else if (propertyName === 'position' && bone === this.b.Hips) {
+        const v = track.values, n = v.length / 3;
+        // Clips in IN_PLACE travel forward; take that travel out (the game moves the fighter).
+        const inPlace = IN_PLACE.has(clip.name);
+        hips = {
+          interp: track.createInterpolant(), x0: v[0], z0: v[2],
+          dx: inPlace ? v[(n - 1) * 3] - v[0] : 0, dz: inPlace ? v[(n - 1) * 3 + 2] - v[2] : 0,
+        };
+      }
     }
-    this.clips[clip.name] = { duration: clip.duration, samplers };
+    this.clips[clip.name] = { duration: clip.duration, samplers, hips };
   }
 
   resetPose() {
@@ -175,8 +188,18 @@ export class Character {
     if (!clip) return false;
     const t = Math.min(Math.max(time, 0), clip.duration);
     for (const { bone, interp } of clip.samplers) bone.quaternion.fromArray(interp.evaluate(t));
+    const h = clip.hips;
+    if (h) {
+      const v = h.interp.evaluate(t);
+      const k = clip.duration > 0 ? t / clip.duration : 0;
+      const rest = this.rest[this.bones.indexOf(this.b.Hips)][0];
+      // Keep the clip's sway around the rest spot, minus its overall drift.
+      this.b.Hips.position.set(rest.x + (v[0] - h.x0 - h.dx * k), v[1], rest.z + (v[2] - h.z0 - h.dz * k));
+    }
     return true;
   }
+
+  hasClip(name) { return !!this.clips[name]; }
 
   // Model space → world.
   mw(x, y, z, out = new THREE.Vector3()) {
@@ -228,7 +251,10 @@ export class Character {
     const hip = P.hip;
     // Hips offset.
     const hb = this.b.Hips;
-    const target = this.mw(rp.Hips.x + hip[0], rp.Hips.y + hip[1], rp.Hips.z + hip[2]);
+    // Offset from the clip's hips position (or the rest position without a clip).
+    hb.updateMatrixWorld(true);
+    const base = P.clip ? this.model.worldToLocal(hb.getWorldPosition(new THREE.Vector3())) : rp.Hips;
+    const target = this.mw(base.x + hip[0], base.y + hip[1], base.z + hip[2]);
     hb.position.copy(hb.parent.worldToLocal(target));
     hb.updateMatrixWorld(true);
     if (P.hipRot) this.rotateModelSpace(hb, P.hipRot[0], P.hipRot[1], P.hipRot[2]);

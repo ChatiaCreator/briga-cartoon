@@ -69,7 +69,8 @@ export class Effects {
   hit(ev) {
     const pos = new THREE.Vector3(ev.x / 1000, ev.y / 1000, 0.6);
     if (ev.ko) {
-      this.sprite(this.bursts.ko, pos.clone().add(new THREE.Vector3(0, 0.2, 0)), 1.8, 0.9, { grow: 1.2 });
+      // The HUD already shows "K.O.!", so the impact itself is a plain big burst.
+      this.sprite(this.bursts.light, pos, 1.6, 0.5, { grow: 1.4 });
     } else if (ev.heavy) {
       const tex = this.bursts.words[Math.floor(Math.random() * this.bursts.words.length)];
       this.sprite(tex, pos, 1.1, 0.45, { grow: 1.3, rot: (Math.random() - 0.5) * 0.6 });

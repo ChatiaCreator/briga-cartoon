@@ -37,6 +37,8 @@ function withP(base, patch) {
 }
 
 const STANCE = basePose();
+// Base for clip-driven poses: no extra hip/spine/head offsets on top of the clip.
+const CLIP = { ...STANCE, hip: [0, 0, 0], spine: [0, 0, 0], head: [0, 0, 0] };
 const CROUCH = withP(STANCE, { hip: [0, -0.17, -0.03], spine: [0.22, 0, 0], lh: [0, -0.12, 0.02], rh: [0, -0.12, 0.02], lf: [0.02, 0, 0.03], rf: [-0.02, 0, -0.04] });
 const GUARD = withP(STANCE, { lh: [0.01, 0.07, -0.02], rh: [-0.03, 0.08, 0.02], spine: [-0.04, 0.1, 0], head: [0.15, 0, 0] });
 const CROUCH_GUARD = withP(CROUCH, { lh: [0.01, 0.1, -0.02], rh: [-0.03, 0.1, 0.02] });
@@ -60,6 +62,8 @@ const ATTACKS = {
 const CLIP_ATTACKS = {
   lp: ['box_01', 0.4, 0.58, 0.62, 1.0],
   hp: ['box_02', 1.95, 2.25, 2.4, 2.79],
+  lk: ['front_kick_02', 0.62, 0.88, 0.98, 1.3],
+  hk: ['front_kick_01', 0.45, 0.98, 1.15, 1.75],
 };
 
 function attackPose(f, m, t) {
@@ -70,7 +74,15 @@ function attackPose(f, m, t) {
     if (f.sf < m.startup) time = lerp(s0, a0, f.sf / m.startup);
     else if (f.sf < m.startup + m.active) time = lerp(a0, a1, (f.sf - m.startup) / Math.max(1, m.active));
     else time = lerp(a1, r1, (f.sf - m.startup - m.active) / Math.max(1, m.recovery));
-    return { ...STANCE, clip, clipTime: time, alpha: 0.8 };
+    const p = { ...CLIP, clip, clipTime: time, alpha: 0.8 };
+    // front_kick_02 kicks behind the character, so it becomes a spinning back kick:
+    // half a turn during start-up, the other half during recovery (ends facing forward).
+    if (clip === 'front_kick_02') {
+      const spin = f.sf < m.startup ? ease(f.sf / m.startup)
+        : f.sf < m.startup + m.active ? 1 : 1 + ease(clamp01((f.sf - m.startup - m.active) / Math.max(1, m.recovery)));
+      p.body = [0, Math.PI * spin, 0, 0, 0];
+    }
+    return p;
   }
   const def = ATTACKS[f.mv];
   if (!def) return STANCE;
@@ -104,15 +116,8 @@ function specialPose(f, m) {
     return { ...mixPose(UP, POINT, ease(clamp01((t - 40) / 15))), alpha: 0.5 };
   }
   if (f.char === 'flash' && f.mv === 'special') {
-    // Shoulder dash: lean in, lead shoulder forward, running legs.
-    const ph = t * 0.6;
-    return withP(STANCE, {
-      spine: [0.45, -0.6, 0], head: [-0.3, 0.3, 0], hip: [0, -0.06, 0.04],
-      lh: [-0.02, -0.05, 0.12], rh: [0.04, -0.02, 0.02],
-      lf: [0, Math.max(0, Math.sin(ph)) * 0.12, 0.1 + Math.sin(ph) * 0.12],
-      rf: [0, Math.max(0, -Math.sin(ph)) * 0.12, -0.05 - Math.sin(ph) * 0.12],
-      alpha: 0.6,
-    });
+    // Shoulder dash: the run clip at double speed, leaning in.
+    return { ...CLIP, clip: 'run', clipTime: ((t / 60) * 2) % 1.25, spine: [0.3, -0.3, 0], alpha: 0.6 };
   }
   if (f.char === 'flash' && f.mv === 'super') {
     // Drink the GARRA can: lift to mouth, head back, gulp, then crush and flex.
@@ -138,7 +143,13 @@ export function poseFor(f, g, T) {
   switch (f.st) {
     case 'idle': case 'jumpsquat': case 'land': {
       if (f.st !== 'idle') return { ...withP(STANCE, { hip: [0, -0.08, 0] }), alpha: 0.6 };
-      return { ...STANCE, clip: 'box_01', clipTime: idleTime(T), alpha: 0.25 };
+      // Before the fight starts each character shows off.
+      if (g && g.phase === 'intro') {
+        const secs = g.phaseF / 60;
+        if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7), alpha: 0.3 };
+        return { ...CLIP, clip: 'fold_arms', clipTime: 1.2 + secs, alpha: 0.3 };
+      }
+      return { ...CLIP, clip: 'box_01', clipTime: idleTime(T), alpha: 0.25 };
     }
     case 'walk': {
       if (f.guard) return GUARD;
@@ -168,45 +179,25 @@ export function poseFor(f, g, T) {
     case 'block':
       return f.guardLow ? CROUCH_GUARD : GUARD;
     case 'hit': {
-      const k = 1 - clamp01(t / 14);
-      return withP(STANCE, {
-        spine: [-0.45 * k, 0.2 * k, 0], head: [-0.4 * k, 0, 0], hip: [0, -0.02, -0.06 * k],
-        lh: [0.06 * k, -0.1 * k, -0.08 * k], rh: [-0.06 * k, -0.12 * k, -0.08 * k],
-        alpha: 0.7,
-      });
+      // Reaction clip stretched over the hit-stun: head snaps back, or doubles over.
+      const k = clamp01(t / Math.max(1, t + f.stun));
+      if (f.hitKind === 'body') return { ...CLIP, clip: 'hit_to_body_02', clipTime: 0.25 + k * 1.1, alpha: 0.7 };
+      return { ...CLIP, clip: 'hit_to_head', clipTime: 0.05 + k * 1.0, alpha: 0.7 };
     }
-    case 'fall': {
-      const k = clamp01(t / 26);
-      return withP(STANCE, {
-        body: [-1.35 * k, 0, 0, 0.25 * k, 0],
-        lf: [0, 0.12, 0.18], rf: [0, 0.2, 0.1],
-        lh: [0.18, 0.12, -0.05], rh: [-0.18, 0.15, -0.05], head: [-0.3, 0, 0],
-        alpha: 0.5,
-      });
-    }
-    case 'down': case 'ko':
-      return withP(STANCE, {
-        body: [-Math.PI / 2, 0, 0, 0.18, 0],
-        hip: [0, 0.06, 0], spine: [-0.08, 0.15, 0], head: [0.1, 0.4, 0],
-        lf: [0.03, 0.02, 0.15], rf: [-0.03, 0.06, 0.13],
-        lh: [0.2, -0.15, -0.06], rh: [-0.2, -0.1, -0.06],
-        alpha: 0.35,
-      });
-    case 'rise': {
-      const k = ease(clamp01(t / 16));
-      return { ...mixPose(withP(CROUCH, { body: [-Math.PI / 2, 0, 0, 0.18, 0] }), CROUCH, k), alpha: 0.5 };
-    }
-    case 'win': {
-      const b = Math.abs(Math.sin(T * 5));
-      return withP(STANCE, {
-        lh: [0.08, 0.38, 0.05], rh: [-0.08, 0.38, 0.05], head: [-0.35, 0, 0], spine: [-0.15, 0, 0],
-        hip: [0, -0.06 + b * 0.04, 0], body: [0, 0, 0, b * 0.15, 0], alpha: 0.4,
-      });
-    }
+    case 'fall':
+      return { ...CLIP, clip: 'fall', clipTime: 1.05 + clamp01(t / 26) * 0.65, alpha: 0.5 };
+    case 'down':
+      return { ...CLIP, clip: 'fall', clipTime: 1.7 + clamp01(t / 40) * 1.3, alpha: 0.5 };
+    case 'ko':
+      return { ...CLIP, clip: 'fall', clipTime: Math.min(3, 1.7 + t / 40), alpha: 0.4 };
+    case 'rise':
+      // The fall played backwards: a quick cartoon pop back up.
+      return { ...CLIP, clip: 'fall', clipTime: 1.6 - ease(clamp01(t / 16)) * 0.6, alpha: 0.6 };
+    case 'win':
+      if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
+      return { ...CLIP, clip: 'fold_arms', clipTime: 1.2 + ((t / 60) % 15), alpha: 0.3 };
     case 'lose':
-      return withP(STANCE, {
-        head: [0.5, 0, 0], spine: [0.35, 0, 0], lh: [0.05, -0.25, -0.05], rh: [-0.05, -0.25, -0.05], hip: [0, -0.04, 0], alpha: 0.3,
-      });
+      return { ...CLIP, clip: 'defeat_02', clipTime: (t / 60) % 8.4, alpha: 0.3 };
     default:
       return STANCE;
   }

@@ -15,6 +15,21 @@ export function canImage() {
   return canImgPromise;
 }
 
+// Every animation from every model. Both characters use the Mixamo skeleton, so a clip
+// made on one plays on the other.
+let sharedPromise = null;
+export function sharedClips() {
+  if (!sharedPromise) sharedPromise = loadShared();
+  return sharedPromise;
+}
+async function loadShared() {
+  const all = new Map();
+  for (const c of Object.values(CHARACTERS)) {
+    for (const a of (await loadGLTF(c.model)).animations) if (!all.has(a.name)) all.set(a.name, a);
+  }
+  return [...all.values()];
+}
+
 export async function preloadModels() {
   await Promise.all(Object.values(CHARACTERS).map((c) => loadGLTF(c.model)));
 }
@@ -22,8 +37,7 @@ export async function preloadModels() {
 export class GameView {
   static async create(chars) {
     const canImg = await canImage();
-    // Boxing clips from Hotmonster's file are shared with every fighter (same skeleton).
-    const shared = (await loadGLTF(CHARACTERS.hotmonster.model)).animations;
+    const shared = await sharedClips();
     const fighters = [];
     for (let i = 0; i < 2; i++) {
       const gltf = await loadGLTF(CHARACTERS[chars[i]].model);
