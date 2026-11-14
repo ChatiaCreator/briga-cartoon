@@ -2,6 +2,8 @@
 
 Jogo de luta cartoon 2.5D que roda no navegador: **Hotmonster × Flash**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador.
 
+**Jogar:** https://chatiacreator.github.io/briga-cartoon/
+
 Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://peerjs.com/) (online direto entre os dois navegadores). Não tem etapa de build: são só arquivos estáticos.
 
 ## Como jogar
@@ -11,8 +13,9 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
 | Mover / pular / agachar | `W A S D` (online e CPU: setas também) | Setas | Analógico ou direcional |
 | Soco fraco / forte | `J` / `K` | `,` / `.` | X / Y |
 | Chute fraco / forte | `U` / `I` | `M` / `N` | A / B |
-| SUPER (barra cheia) | `O` | `/` | RB / RT |
-| Atalho do especial | `L` | Num 6 | LB / LT |
+| SUPER (barra cheia) | `O` | `/` | RB |
+| Atalho do especial | `L` | Num 6 | LB |
+| VOADORA / ESTRELA | `H` / `Y` | `Ç` / `~` (Num 7 / 8) | LT / RT |
 | Pausa / menu | `Esc` | | |
 
 - **Especial:** `↓ ↘ →` + soco, ou o atalho.
@@ -21,6 +24,9 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
 - **Super:** precisa da barra cheia, que enche quando você bate e quando apanha.
   - **Hotmonster:** chuva de sacos de ração do céu.
   - **Flash:** bebe **GARRA Energy** e ganha +50% de dano e +20% de velocidade por 8 segundos.
+- **VOADORA:** corre e chuta voando. Acerta no alto, então só é defendida em pé.
+- **ESTRELA:** estrela com chute que derruba.
+- **Sequência de socos:** apertando soco fraco seguido saem até 4 socos.
 - **Defesa:** segure para trás. Agachado, você também defende os golpes baixos (rasteira e chute baixo). Golpes no ar só são defendidos em pé.
 - **Combos:** um golpe que acerta pode ser cancelado num mais forte. Exemplo: soco fraco → soco forte → especial → super.
 - **Partida:** melhor de 3 rounds, com 99 segundos por round.
@@ -54,7 +60,7 @@ npm test
 
 ## Publicar no GitHub Pages
 
-1. Envie esta pasta para um repositório no GitHub.
+1. Envie esta pasta para um repositório no GitHub (sem `tools/mixamo/in/`, se quiser economizar espaço).
 2. No repositório, vá em **Settings → Pages → Build and deployment**.
 3. Em Source, escolha **Deploy from a branch**, depois a branch `main` e a pasta `/ (root)`.
 4. O jogo fica em `https://SEU-USUARIO.github.io/NOME-DO-REPO/`.
@@ -70,30 +76,26 @@ src/sim/                  simulação determinística (só números inteiros, se
   game.js                 rounds, timer, acertos, defesa, empurrões
 src/render/
   character.js            carrega o GLB, contorno cartoon, IK de braços e pernas
-  poses.js                pose de cada estado/golpe (clipes box_* + poses procedurais)
+  poses.js                qual animação cada estado/golpe usa, e em que trecho
   scene.js, effects.js    arena, câmera, explosões "POW!", ração, lata, aura
 src/net/                  lockstep (online) e salas PeerJS
 src/cpu.js                inteligência do computador
-assets/models/            hotmonster.glb, flash.glb
+assets/models/            hotmonster.glb, flash.glb, mixamo_anims.glb (animações do Mixamo convertidas)
+tools/mixamo/             conversor de animações do Mixamo (.fbx) para os lutadores
 assets/can/garra.svg      rótulo da lata GARRA Energy
 vendor/                   three.js 0.170.0 e PeerJS 1.5.4 (cópias locais)
 ```
 
 ## Animações
 
-Os modelos vieram com animações de boxe (`box_01` a `box_03`). Elas são usadas para:
+Os golpes, o andar, o pulo, a defesa e o levantar vêm de animações do [Mixamo](https://www.mixamo.com/). As reações a golpes, as quedas, as entradas e as comemorações vêm dos próprios modelos. O que não tem animação (agachar e golpes agachados) é feito no código, com IK.
 
-- a guarda parada;
-- o soco fraco;
-- o soco forte.
+Os ossos do Mixamo têm os mesmos nomes dos ossos dos modelos, mas ficam virados de outro jeito. Por isso as animações passam por um conversor. Para adicionar uma animação nova:
 
-Os outros movimentos são poses feitas no código, com IK: andar, agachar, chutes, pulo com cambalhota, levar golpe, queda, beber a lata e comemorar.
-
-Os dois personagens usam o esqueleto do Mixamo. Por isso, qualquer animação baixada do [Mixamo](https://www.mixamo.com/) serve nos dois. Para trocar uma animação procedural por uma do Mixamo:
-
-1. Baixe como FBX "Without Skin".
-2. Converta para GLB, por exemplo no Blender.
-3. Ligue a animação ao estado correspondente em `src/render/poses.js`.
+1. Baixe no Mixamo como **FBX Binary**, **Without Skin**, 30 fps.
+2. Coloque o arquivo em `tools/mixamo/in/`.
+3. Com o servidor local rodando (`python3 -m http.server 8765`), rode `node tools/mixamo/convert.cjs`. Ele precisa do Playwright.
+4. Ligue a animação (o nome do arquivo, sem `.fbx`) ao golpe ou estado em `src/render/poses.js`.
 
 ## Créditos
 
