@@ -74,16 +74,27 @@ const ATTACKS = {
   jhk: { base: AIR, W: { rf: [0, 0.1, 0] }, S: { rf: [0.04, 0.02, 0.62], lf: [0, 0.05, -0.05], spine: [-0.2, 0.5, 0], body: [0.2, 0, 0, 0, 0] } },
 };
 
-// Clip-driven attacks: [clip, startupFrom, activeAt, activeTo, recoveryTo].
-const CLIP_ATTACKS = {
-  lp: ['box_01', 0.4, 0.58, 0.62, 1.0],
-  hp: ['box_02', 1.95, 2.25, 2.4, 2.79],
+// Clip-driven attacks: [clip, startupFrom, activeAt, activeTo, recoveryTo], per character.
+const SEQ = 'sequencia de soco direto e cruzado'; // Hotmonster's jab + cross combo
+const KICKS = {
   lk: ['front_kick_02', 0.62, 0.88, 0.98, 1.3],
   hk: ['front_kick_01', 0.45, 0.98, 1.15, 1.75],
 };
+const CLIP_ATTACKS = {
+  hotmonster: {
+    lp: [SEQ, 2.3, 2.5, 2.62, 2.88],    // straight jab
+    hp: [SEQ, 2.88, 3.12, 3.22, 3.62],  // cross with the whole body turning in
+    ...KICKS,
+  },
+  flash: {
+    lp: ['box_01', 0.4, 0.58, 0.62, 1.0],
+    hp: ['box_03', 0.3, 0.66, 0.8, 1.45], // lunging punch with a step in
+    ...KICKS,
+  },
+};
 
 function attackPose(f, m, t) {
-  const ca = CLIP_ATTACKS[f.mv];
+  const ca = (CLIP_ATTACKS[f.char] || CLIP_ATTACKS.flash)[f.mv];
   if (ca) {
     const [clip, s0, a0, a1, r1] = ca;
     let time;
@@ -163,10 +174,12 @@ export function poseFor(f, g, T) {
   const p = rawPose(f, g, T);
   let key = f.st;
   if (f.st === 'attack') key += ':' + f.mv;
-  else if (f.st === 'hit') key += ':' + f.hitKind;
+  else if (f.st === 'hit') key += ':' + f.hitKind + f.hitRank;
   else if (f.st === 'walk' || f.st === 'crouch') key += f.guard ? ':g' : '';
   else if (f.st === 'idle' && g && g.phase === 'intro') key = 'intro';
-  return { ...p, key, blend: p.blend ?? BLEND[f.st] ?? 0.1, t: f.sf };
+  // Getting up from the intro push-ups takes a moment longer.
+  const blend = f.st === 'idle' && g && g.phase === 'fight' && g.phaseF < 30 ? 0.35 : BLEND[f.st];
+  return { ...p, key, blend: p.blend ?? blend ?? 0.1, t: f.sf };
 }
 
 function rawPose(f, g, T) {
@@ -182,7 +195,8 @@ function rawPose(f, g, T) {
       if (g && g.phase === 'intro') {
         const secs = g.phaseF / 60;
         if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7) };
-        return { ...CLIP, clip: 'fold_arms', clipTime: 1.2 + secs };
+        // Flash shows off with push-ups, then springs up into his stance.
+        return { ...CLIP, clip: 'press-up', clipTime: Math.min(1.9, secs * 1.15) };
       }
       return { ...CLIP, clip: 'box_01', clipTime: idleTime(T) };
     }
@@ -220,9 +234,15 @@ function rawPose(f, g, T) {
       return { ...(f.guardLow ? CROUCH_GUARD : GUARD), clipTime: idleTime(T) };
     case 'hit': {
       // Reaction clip stretched over the hit-stun: head snaps back, or doubles over.
+      // A different reaction for each kind of hit: head or body, light or heavy.
       const k = clamp01(t / Math.max(1, t + f.stun));
-      if (f.hitKind === 'body') return { ...CLIP, clip: 'hit_to_body_02', clipTime: 0.25 + k * 1.1, alpha: 0.7 };
-      return { ...CLIP, clip: 'hit_to_head', clipTime: 0.05 + k * 1.0, alpha: 0.7 };
+      const heavy = f.hitRank >= 2;
+      if (f.hitKind === 'body') {
+        if (heavy) return { ...CLIP, clip: 'hit_to_stomach', clipTime: 0.1 + k * 1.2 };   // doubles over
+        return { ...CLIP, clip: 'hit_to_body_01', clipTime: 0.1 + k * 1.0 };
+      }
+      if (heavy) return { ...CLIP, clip: 'hit_to_head', clipTime: 0.05 + k * 1.0 };      // head snaps back
+      return { ...CLIP, clip: 'hit_to_side', clipTime: 0.1 + k * 0.95 };
     }
     case 'fall':
       return { ...CLIP, clip: 'fall', clipTime: 1.05 + clamp01(t / 26) * 0.65, alpha: 0.5 };
@@ -235,9 +255,10 @@ function rawPose(f, g, T) {
       return { ...CLIP, clip: 'fall', clipTime: 1.6 - ease(clamp01(t / 16)) * 0.6, alpha: 0.6 };
     case 'win':
       if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
-      return { ...CLIP, clip: 'fold_arms', clipTime: 1.2 + ((t / 60) % 15), alpha: 0.3 };
+      return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };
     case 'lose':
-      return { ...CLIP, clip: 'defeat_02', clipTime: (t / 60) % 8.4, alpha: 0.3 };
+      // Lost on time: staggers, drops to the knees and collapses.
+      return { ...CLIP, clip: 'defeat_03', clipTime: Math.min(5.5, t / 60) };
     default:
       return STANCE;
   }

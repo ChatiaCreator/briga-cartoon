@@ -200,6 +200,7 @@ function applyHit(g, { att, def, move, proj, x, y }) {
   def.mv = ''; def.guard = false; def.sf = 0;
   // Which reaction animation to show: hits above the waist snap the head back.
   def.hitKind = move.box && move.box[1] < 900 ? 'body' : 'head';
+  def.hitRank = move.rank || 1;
   if (def.hp === 0) def.ko = true;
   if (def.ko || move.kd || def.y > 0 || def.st === 'fall') {
     def.st = 'fall'; def.vy = def.ko ? 130 : 110; def.vx = 35 * away; def.y = Math.max(1, def.y);

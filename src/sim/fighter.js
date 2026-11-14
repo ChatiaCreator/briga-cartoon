@@ -19,7 +19,7 @@ export function createFighter(id, char, x) {
     id, char, x, y: 0, vx: 0, vy: 0, pv: 0, facing: id === 0 ? 1 : -1,
     hp: c.hp, maxHp: c.hp, meter: 0,
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
-    combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, hitKind: 'head',
+    combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, hitKind: 'head', hitRank: 1,
     hist: new Array(HIST).fill(5), prev: 0, press: [99, 99, 99, 99, 99],
   };
 }
