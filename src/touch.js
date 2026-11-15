@@ -72,7 +72,11 @@ export function initTouch({ onPause }) {
   };
 }
 
+let vibration = true;
+export function setVibration(on) { vibration = on; }
+export function isVibration() { return vibration; }
 export function buzz(ms) {
+  if (!vibration) return;
   try { navigator.vibrate?.(ms); } catch { /* not supported */ }
 }
 

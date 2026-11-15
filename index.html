@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Fight Friends</title>
   <meta name="description" content="Fight Friends: jogo de luta cartoon 2.5D no navegador, local ou online.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap">
   <link rel="stylesheet" href="style.css">
   <script type="importmap">
   {
@@ -74,19 +77,31 @@
   <div id="rotate" class="hidden">📱↻ Gire o celular para jogar deitado</div>
 
   <!-- Screens -->
-  <div id="menu" class="screen">
-    <h1 class="logo"><span>FIGHT</span><span>FRIENDS</span></h1>
-    <div class="buttons">
-      <button data-go="online" class="big">🌐 Jogar online com amigo</button>
-      <button data-go="local">🎮 2 jogadores (mesmo PC)</button>
-      <button data-go="cpu">🤖 Contra o computador</button>
-      <button data-go="controls">⌨️ Controles</button>
+  <div id="menu" class="screen artmenu">
+    <div class="corner-tr">
+      <button class="iconbtn" id="mute" aria-label="Som ligado" title="Som"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 19h8l11-9v28l-11-9H8z" class="solid"/><path class="on" d="M32 17c3 4 3 10 0 14M37 12c6 7 6 17 0 24"/><path class="off" d="M33 18l10 12M43 18L33 30"/></svg></button>
+      <button class="iconbtn hidden" id="fullBtn" aria-label="Tela cheia" title="Tela cheia"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 18V8h10M30 8h10v10M40 30v10H30M18 40H8V30"/></svg></button>
     </div>
-    <div class="buttons inline small">
-      <button class="mute" id="mute">🔊 Som ligado</button>
-      <button class="mute hidden" id="fullBtn">⛶ Tela cheia</button>
-    </div>
+    <h1 class="artlogo"><img src="assets/ui/logo.webp" alt="Fight Friends" width="862" height="327"></h1>
+    <nav class="mbtns">
+      <button data-go="online" class="mbtn m-yellow"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17"/><ellipse cx="24" cy="24" rx="7.5" ry="17"/><path d="M8 18h32M8 30h32M24 7v34"/></svg></span><span class="mt"><b>JOGAR ONLINE</b><small>COM UM AMIGO</small></span></button>
+      <button data-go="local" class="mbtn m-blue"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 15h20c6 0 9 5 10 12 1 6-1 9-4 9-3 0-5-3-8-6H16c-3 3-5 6-8 6-3 0-5-3-4-9 1-7 4-12 10-12z"/><path d="M15 21v8M11 25h8"/><circle cx="32" cy="22" r="1.6" class="dot"/><circle cx="36" cy="26" r="1.6" class="dot"/></svg></span><span class="mt"><b>2 JOGADORES</b><small>MESMO PC</small></span></button>
+      <button data-go="cpu" class="mbtn m-red"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="15" width="30" height="22" rx="6"/><circle cx="18" cy="25" r="3" class="dot"/><circle cx="30" cy="25" r="3" class="dot"/><path d="M19 32h10M24 15V9"/><circle cx="24" cy="7" r="2.4"/><path d="M9 24H5M39 24h4"/></svg></span><span class="mt"><b>CONTRA O COMPUTADOR</b></span></button>
+      <button data-go="controls" class="mbtn m-purple"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="13" width="40" height="23" rx="4"/><path d="M10 20h2M16 20h2M22 20h2M28 20h2M34 20h4M10 26h2M16 26h2M22 26h2M28 26h2M34 26h4M15 31h18"/></svg></span><span class="mt"><b>CONTROLES</b></span></button>
+    </nav>
+    <button class="pillbtn corner-bl" data-go="options"><span><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="6"/><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M10.6 37.4l4.2-4.2M33.2 14.8l4.2-4.2"/><circle cx="24" cy="24" r="12"/></svg><b>OPÇÕES</b></span></button>
     <p class="loading" id="loading">Carregando personagens…</p>
+  </div>
+
+  <div id="options" class="screen overlay hidden">
+    <h2>Opções</h2>
+    <div class="opts">
+      <button class="opt" id="optSound">🔊 Som <b>ligado</b></button>
+      <button class="opt" id="optVoice">🗣️ Locutor <b>ligado</b></button>
+      <button class="opt" id="optVibe">📳 Vibração no celular <b>ligada</b></button>
+      <button class="opt hidden" id="optFull">⛶ Tela cheia</button>
+    </div>
+    <div class="buttons inline"><button data-go="menu">← Voltar</button></div>
   </div>
 
   <div id="select" class="screen hidden">

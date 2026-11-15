@@ -15,6 +15,9 @@ function ac() {
 export function unlockAudio() { ac(); }
 export function setMuted(m) { muted = m; }
 export function isMuted() { return muted; }
+let voice = true; // announcer lines ("Round 1", "Luta!")
+export function setVoice(v) { voice = v; }
+export function isVoice() { return voice; }
 
 function noise(c, dur) {
   const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
@@ -73,7 +76,7 @@ export function sfx(name, k = 0) {
 
 // Short announcer lines with the browser's speech engine, if available.
 export function announce(text) {
-  if (muted || !window.speechSynthesis) return;
+  if (muted || !voice || !window.speechSynthesis) return;
   try {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'pt-BR'; u.rate = 1.05; u.pitch = 0.8; u.volume = 0.9;

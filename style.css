@@ -234,3 +234,102 @@ body.touching .combo { top: 34%; }
 }
 @media (orientation: landscape) { #rotate { display: none !important; } }
 .buttons.inline.small { gap: 8px; }
+
+/* ---------- Main menu (comic art) ---------- */
+.artmenu {
+  --ink2: #170c2b;
+  justify-content: center; gap: clamp(6px, 1.4vh, 14px);
+  padding: max(10px, env(safe-area-inset-top)) 16px max(64px, calc(env(safe-area-inset-bottom) + 56px));
+  background: #24104a url(assets/ui/menu_bg.webp) center / cover no-repeat;
+  font-family: 'Luckiest Guy', var(--font);
+}
+.artmenu::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, rgba(20, 8, 40, 0) 45%, rgba(20, 8, 40, 0.5));
+}
+.artlogo { margin: 0; position: relative; line-height: 0; }
+.artlogo img {
+  width: min(840px, 88vw); height: auto; max-height: 35vh; object-fit: contain;
+  filter: drop-shadow(0 6px 0 rgba(10, 4, 25, 0.45));
+  animation: logoIn 0.55s cubic-bezier(.2, 1.6, .4, 1) both;
+}
+@keyframes logoIn { from { transform: scale(0.6) rotate(-6deg); opacity: 0; } }
+.mbtns { position: relative; display: flex; flex-direction: column; gap: clamp(8px, 1.5vh, 14px); width: min(720px, 88vw); }
+button.mbtn {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  height: clamp(52px, 11vh, 100px); padding: 0 30px 0 20px;
+  border: 4px solid var(--ink2); border-radius: 6px;
+  transform: skewX(-14deg); box-shadow: 6px 6px 0 var(--ink2);
+  color: #fff; font-family: inherit; font-size: 16px; text-align: center; overflow: hidden;
+  animation: btnIn 0.45s cubic-bezier(.2, 1.4, .4, 1) both;
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.08s;
+}
+.mbtn:nth-child(2) { animation-delay: 0.06s; }
+.mbtn:nth-child(3) { animation-delay: 0.12s; }
+.mbtn:nth-child(4) { animation-delay: 0.18s; }
+@keyframes btnIn { from { transform: skewX(-14deg) translateX(-60px); opacity: 0; } }
+.mbtn > * { position: relative; z-index: 1; transform: skewX(14deg); }
+/* Shine on top and a halftone dot texture, like the comic art. */
+.mbtn::before { content: ''; position: absolute; inset: 0 0 52% 0; background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0)); }
+.mbtn::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.35;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.9) 1.1px, transparent 1.7px); background-size: 7px 7px;
+}
+.mbtn:hover { transform: skewX(-14deg) translate(-2px, -2px); box-shadow: 8px 8px 0 var(--ink2); filter: brightness(1.08); }
+.mbtn:active { transform: skewX(-14deg) translate(4px, 4px); box-shadow: 2px 2px 0 var(--ink2); }
+.mbtn:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
+.m-yellow { background: linear-gradient(90deg, #ffb800, #ffe14a 55%, #ffc400); box-shadow: 6px 6px 0 var(--ink2), 0 0 26px rgba(255, 190, 40, 0.55); }
+.m-blue { background: linear-gradient(90deg, #1453d8, #3b9bff 55%, #1d63e6); }
+.m-red { background: linear-gradient(90deg, #c40d18, #ff3a3a 55%, #d8141f); }
+.m-purple { background: linear-gradient(90deg, #5413c0, #9d4dff 55%, #6a1fe0); }
+.mi { flex: none; display: grid; place-items: center; }
+.mi svg, .iconbtn svg, .pillbtn svg { fill: none; stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.mi svg { width: clamp(30px, min(7.5vh, 9vw), 72px); height: clamp(30px, min(7.5vh, 9vw), 72px); filter: drop-shadow(2px 2px 0 var(--ink2)) drop-shadow(-1px -1px 0 var(--ink2)); }
+.mi svg .dot, .iconbtn svg .solid { fill: #fff; }
+.m-yellow .mi svg { stroke: var(--ink2); filter: drop-shadow(2px 2px 0 rgba(255, 255, 255, 0.7)); }
+.m-yellow .mi svg .dot { fill: var(--ink2); }
+.mt { flex: 1; display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.mt b {
+  font-weight: normal; font-size: clamp(16px, min(5vh, 5.6vw), 50px); letter-spacing: 0.5px; white-space: nowrap;
+  -webkit-text-stroke: 2px var(--ink2); paint-order: stroke fill; text-shadow: 3px 3px 0 var(--ink2);
+}
+.mt small { font-size: clamp(10px, min(2.3vh, 3vw), 22px); margin-top: 2px; -webkit-text-stroke: 1px var(--ink2); paint-order: stroke fill; }
+.m-yellow .mt b, .m-yellow .mt small { color: var(--ink2); -webkit-text-stroke: 0; text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.75); }
+/* Corner buttons */
+.corner-tr { position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); display: flex; gap: 10px; z-index: 2; }
+button.iconbtn {
+  width: clamp(46px, 6.4vw, 108px); height: clamp(40px, 4.6vw, 78px); padding: 0; display: grid; place-items: center;
+  background: #120a24; border: 3px solid #ffc21a; border-radius: 12px; box-shadow: 0 0 0 2px var(--ink2), 3px 3px 0 2px var(--ink2);
+}
+.iconbtn svg { width: 60%; height: 70%; }
+.iconbtn svg .off, .iconbtn.off svg .on { display: none; }
+.iconbtn.off svg .off { display: inline; stroke: #ff5f5f; }
+button.pillbtn {
+  position: absolute; z-index: 2; padding: 8px 20px; background: #120a24; color: #fff;
+  border: 3px solid #c8cbe0; border-radius: 10px; transform: skewX(-12deg);
+  box-shadow: 0 0 0 2px var(--ink2), 4px 4px 0 2px var(--ink2); font-family: inherit; font-size: clamp(16px, 3vh, 24px);
+}
+.pillbtn > span { display: flex; align-items: center; gap: 8px; transform: skewX(12deg); }
+.pillbtn b { font-weight: normal; }
+.pillbtn svg { width: 1.3em; height: 1.3em; }
+.corner-bl { left: max(16px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom)); }
+.artmenu .loading { position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); font-family: system-ui, sans-serif; text-shadow: 1px 1px 2px #000; }
+/* Options */
+.opts { display: flex; flex-direction: column; gap: 10px; width: min(420px, 100%); }
+.opt { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 18px; }
+.opt b { color: #7dff1a; }
+.opt.off b { color: #ff6b6b; }
+/* Phones held upright: show the painted wall and crown on the left of the art. */
+@media (orientation: portrait) {
+  .artmenu { background-position: 16% 50%; }
+}
+/* Phones held sideways: everything a bit smaller so it fits the short screen. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .artmenu { padding-top: 6px; padding-bottom: 8px; gap: 6px; }
+  .artlogo img { max-height: 30vh; }
+  .mbtns { width: min(520px, 58vw); gap: 7px; }
+  button.mbtn { height: 13vh; }
+  .mt b { font-size: 5.6vh; }
+  .mt small { font-size: 2.8vh; }
+  .artmenu .loading { bottom: 4px; }
+}

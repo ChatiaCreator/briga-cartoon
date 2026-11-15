@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { createRenderer } from './render/scene.js';
 import { GameView, canImage, sharedClips, isFinalKO } from './render/view.js';
-import { initTouch, buzz, goFullscreen, isTouchDevice } from './touch.js';
+import { initTouch, buzz, goFullscreen, isTouchDevice, setVibration, isVibration } from './touch.js';
 import { Character, loadGLTF } from './render/character.js';
 import { poseFor } from './render/poses.js';
 import { createGame, step, checksum } from './sim/game.js';
@@ -13,7 +13,7 @@ import { Cpu } from './cpu.js';
 import { Lockstep } from './net/lockstep.js';
 import { OnlineSession, normalizeCode } from './net/online.js';
 import { Hud } from './ui.js';
-import { sfx, announce, unlockAudio, setMuted, isMuted } from './audio.js';
+import { sfx, announce, unlockAudio, setMuted, isMuted, setVoice, isVoice } from './audio.js';
 
 const STEP = 1 / 60;
 const $ = (id) => document.getElementById(id);
@@ -22,9 +22,11 @@ const hud = new Hud();
 attachKeyboard();
 const touch = initTouch({ onPause: () => openPause() });
 const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!' };
-if (isTouchDevice() && document.documentElement.requestFullscreen) {
+if (document.documentElement.requestFullscreen) {
   $('fullBtn').classList.remove('hidden');
   $('fullBtn').onclick = goFullscreen;
+  $('optFull').classList.remove('hidden');
+  $('optFull').onclick = goFullscreen;
 }
 
 let attract = null;      // background scene behind the menus
@@ -94,13 +96,38 @@ document.addEventListener('click', (e) => {
   if (!go) return;
   if (go === 'menu') show('menu');
   else if (go === 'controls') show('controls');
+  else if (go === 'options') { renderOptions(); show('options'); }
   else openSelect(go);
 });
 
-$('mute').onclick = () => {
-  setMuted(!isMuted());
-  $('mute').textContent = isMuted() ? '🔇 Som desligado' : '🔊 Som ligado';
-};
+// ---------- Options (sound, announcer, vibration), remembered in this browser ----------
+const PREFS_KEY = 'fightfriends-prefs';
+function savePrefs() {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ muted: isMuted(), voice: isVoice(), vibe: isVibration() })); } catch { /* storage blocked */ }
+}
+try {
+  const p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+  if (typeof p.muted === 'boolean') setMuted(p.muted);
+  if (typeof p.voice === 'boolean') setVoice(p.voice);
+  if (typeof p.vibe === 'boolean') setVibration(p.vibe);
+} catch { /* storage blocked */ }
+function renderOptions() {
+  const set = (id, on, yes, no) => {
+    $(id).classList.toggle('off', !on);
+    $(id).querySelector('b').textContent = on ? yes : no;
+  };
+  set('optSound', !isMuted(), 'ligado', 'desligado');
+  set('optVoice', isVoice(), 'ligado', 'desligado');
+  set('optVibe', isVibration(), 'ligada', 'desligada');
+  $('mute').classList.toggle('off', isMuted());
+  $('mute').setAttribute('aria-label', isMuted() ? 'Som desligado' : 'Som ligado');
+}
+const toggleSound = () => { setMuted(!isMuted()); savePrefs(); renderOptions(); if (!isMuted()) sfx('block'); };
+$('mute').onclick = toggleSound;
+$('optSound').onclick = toggleSound;
+$('optVoice').onclick = () => { setVoice(!isVoice()); savePrefs(); renderOptions(); if (isVoice()) announce('Luta!'); };
+$('optVibe').onclick = () => { setVibration(!isVibration()); savePrefs(); renderOptions(); buzz(40); };
+renderOptions();
 
 $('fightBtn').onclick = () => {
   if (sel.mode === 'online') { openOnline(); return; }
@@ -439,7 +466,8 @@ function frame(now) {
       updateCutin(m.game);
       hud.update(m.game);
     }
-  } else if (attract) {
+  } else if (attract && $('menu').classList.contains('hidden')) {
+    // The main menu has its own painted background; the 3D street shows behind the others.
     attract.view.render(renderer, attract.game, dt);
   }
   requestAnimationFrame(frame);
