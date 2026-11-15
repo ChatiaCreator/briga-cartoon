@@ -57,11 +57,12 @@ function openSelect(mode) {
   sel.mode = mode;
   const solo = mode === 'online';
   document.querySelector('.picker[data-p="1"]').classList.toggle('hidden', solo);
+  document.querySelector('#select .vs-badge').classList.toggle('hidden', solo);
   $('cpuLevelRow').classList.toggle('hidden', mode !== 'cpu');
-  $('selLabel0').textContent = mode === 'local' ? 'Jogador 1 (WASD)' : 'Você';
-  $('selLabel1').textContent = mode === 'cpu' ? 'Computador' : 'Jogador 2 (setas)';
+  $('selLabel0').textContent = mode === 'local' ? 'Jogador 1' : 'Você';
+  $('selLabel1').textContent = mode === 'cpu' ? 'Computador' : 'Jogador 2';
   $('selTitle').textContent = solo ? 'Escolha seu lutador' : 'Escolha os lutadores';
-  $('fightBtn').textContent = solo ? 'Continuar →' : 'LUTAR!';
+  $('fightTxt').textContent = solo ? 'CONTINUAR ▶' : 'LUTAR!';
   $('stageHint').classList.toggle('hidden', !solo);
   renderCards();
   renderStages();
@@ -76,10 +77,14 @@ function renderCards() {
     for (const [id, c] of Object.entries(CHARACTERS)) {
       const b = document.createElement('button');
       b.className = 'card' + (sel.chars[p] === id ? ' on' : '');
-      b.innerHTML = `<img alt="" src="${portraits[id] || ''}"><span class="cn">${c.name}</span><span class="cd">${DESCR[id]}</span>`;
+      b.setAttribute('aria-label', c.name);
+      b.innerHTML = `<img alt="" src="${portraits[id] || ''}"><span class="cn">${c.name}</span>`;
       b.onclick = () => { sel.chars[p] = id; sfx('block'); renderCards(); };
       box.appendChild(b);
     }
+    // The chosen fighter's name and moves under the cards.
+    picker.querySelector('.pname').textContent = CHARACTERS[sel.chars[p]].name;
+    picker.querySelector('.pdesc').textContent = DESCR[sel.chars[p]];
   }
 }
 

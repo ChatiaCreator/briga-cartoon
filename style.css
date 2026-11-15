@@ -333,3 +333,156 @@ button.pillbtn {
   .mt small { font-size: 2.8vh; }
   .artmenu .loading { bottom: 4px; }
 }
+
+/* ---------- Fighter select (cage arena art) ---------- */
+.selart {
+  --ink2: #170c2b;
+  justify-content: center; gap: clamp(6px, 1.4vh, 14px);
+  padding: max(8px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  background: #2a0f4f url(assets/ui/select_bg.webp) center / cover no-repeat;
+  font-family: 'Luckiest Guy', var(--font);
+}
+.selart::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(20, 6, 40, 0) 55%, rgba(20, 6, 40, 0.55)); }
+.selart > * { position: relative; }
+.sel-logo { width: min(360px, 40vw); height: auto; max-height: 15vh; object-fit: contain; margin-bottom: -1.2vh; filter: drop-shadow(0 4px 0 rgba(10, 4, 25, 0.5)); }
+.sel-title {
+  margin: 0; padding: 0.18em 1.1em; transform: skewX(-12deg);
+  background: linear-gradient(#2c1556, #120824); border: 3px solid #ffb300; border-radius: 4px;
+  box-shadow: 0 0 0 3px var(--ink2), 0 0 22px rgba(255, 170, 0, 0.55);
+  font-weight: normal; font-size: clamp(20px, 4.6vh, 48px); letter-spacing: 1px; color: #fff3d6;
+  text-shadow: 2px 2px 0 var(--ink2), 0 0 12px rgba(255, 157, 0, 0.8);
+}
+.sel-title > span { display: inline-block; transform: skewX(12deg); }
+/* Lightning bolts on both sides of the title */
+.sel-title::before, .sel-title::after {
+  content: ''; position: absolute; top: 50%; width: 2.6em; height: 0.75em; margin-top: -0.37em;
+  background: linear-gradient(90deg, rgba(255, 200, 0, 0), #ffd000);
+  clip-path: polygon(0 45%, 55% 30%, 50% 0, 100% 50%, 45% 70%, 50% 100%);
+}
+.sel-title::before { right: 100%; }
+.sel-title::after { left: 100%; transform: scaleX(-1); }
+.selart .pickers { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: clamp(6px, 1.5vw, 24px); width: min(1560px, 97vw); flex-wrap: nowrap; }
+.selart .picker {
+  position: relative; width: auto; padding: clamp(26px, 5vh, 46px) clamp(8px, 1.4vw, 22px) clamp(8px, 1.4vh, 14px);
+  border-radius: 10px; border: 3px solid #ff3b3b; background: rgba(28, 8, 40, 0.78);
+  box-shadow: 0 0 0 3px var(--ink2), 0 0 26px rgba(255, 40, 60, 0.55), inset 0 0 30px rgba(255, 40, 60, 0.25);
+}
+.selart .picker.p2 { border-color: #2f8cff; box-shadow: 0 0 0 3px var(--ink2), 0 0 26px rgba(40, 120, 255, 0.55), inset 0 0 30px rgba(40, 120, 255, 0.25); }
+.selart .pickers:has(.p2.hidden) .p1 { grid-column: 1 / -1; width: min(760px, 100%); justify-self: center; }
+.ptab {
+  position: absolute; top: 0; left: 7%; margin: 0; transform: translateY(-55%) skewX(-14deg);
+  padding: 0.12em 1.1em; border: 3px solid var(--ink2); border-radius: 4px;
+  background: linear-gradient(#ff5a4a, #c4101a); box-shadow: 0 0 14px rgba(255, 50, 50, 0.6);
+  font-weight: normal; font-size: clamp(16px, 3.6vh, 36px); color: #fff; text-shadow: 2px 2px 0 var(--ink2); white-space: nowrap;
+}
+.p2 .ptab { left: auto; right: 7%; background: linear-gradient(#4aa0ff, #1a4fd6); box-shadow: 0 0 14px rgba(50, 130, 255, 0.6); }
+.ptab > span { display: inline-block; transform: skewX(14deg); }
+.selart .cards { display: flex; flex-direction: row; gap: clamp(6px, 1vw, 14px); justify-content: center; }
+.selart .card {
+  position: relative; flex: 1 1 0; max-width: 190px; aspect-ratio: 0.84; padding: 0; gap: 0; overflow: visible;
+  border: 3px solid #c3b2ef; border-radius: 10px; box-shadow: 0 0 0 2px var(--ink2);
+  background: linear-gradient(#8a5ad8, #43207e); transition: transform 0.12s, box-shadow 0.12s;
+}
+.selart .card img {
+  position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; max-height: none;
+  object-fit: cover; object-position: 50% 8%; border: 0; border-radius: 7px; background: none;
+  filter: saturate(0.55) brightness(0.72); transition: filter 0.12s;
+}
+.selart .card .cn {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 4px 5px; border-radius: 0 0 7px 7px;
+  background: linear-gradient(rgba(23, 12, 43, 0), rgba(23, 12, 43, 0.9)); color: #fff;
+  font-family: 'Luckiest Guy', var(--font); font-size: clamp(11px, 1.9vh, 18px); text-align: center; text-shadow: 1px 1px 0 var(--ink2);
+}
+.selart .card:hover img { filter: saturate(0.85) brightness(0.92); }
+.selart .card.on {
+  outline: none; border-color: #ffd000; background: linear-gradient(#ffe14a, #ff8a00); transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 0 0 2px var(--ink2), 0 0 22px rgba(255, 200, 0, 0.85);
+}
+.selart .card.on img { filter: none; }
+.selart .card.on::after {
+  content: ''; position: absolute; left: 50%; bottom: -16px; width: 22px; height: 13px; margin-left: -11px;
+  background: #ffd000; clip-path: polygon(50% 0, 100% 100%, 0 100%); filter: drop-shadow(0 0 4px #ffb300);
+}
+.pinfo { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: clamp(14px, 2.4vh, 22px); text-align: center; }
+.pname { font-weight: normal; font-size: clamp(15px, 2.8vh, 26px); color: #ffd98a; text-shadow: 2px 2px 0 var(--ink2); }
+.pdesc { font-family: system-ui, sans-serif; font-weight: 600; font-size: clamp(11px, 1.6vh, 14px); line-height: 1.3; max-width: 560px; opacity: 0.92; }
+/* VS badge on a pink starburst */
+.vs-badge { position: relative; display: grid; place-items: center; width: clamp(70px, 10vw, 170px); aspect-ratio: 1; }
+.vs-badge::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle, #ff4fb8, #c2186b 60%, rgba(194, 24, 107, 0) 72%);
+  clip-path: polygon(50% 0, 58% 32%, 88% 12%, 70% 42%, 100% 50%, 70% 58%, 88% 88%, 58% 68%, 50% 100%, 42% 68%, 12% 88%, 30% 58%, 0 50%, 30% 42%, 12% 12%, 42% 32%);
+  filter: drop-shadow(0 0 12px #ff3fa4); animation: vsPulse 1.2s ease-in-out infinite;
+}
+@keyframes vsPulse { 50% { transform: scale(1.08) rotate(6deg); } }
+.vs-badge span {
+  position: relative; font-size: clamp(40px, 6.4vw, 110px); line-height: 1; transform: skewX(-10deg);
+  background: linear-gradient(#fff6a0, #ffd000 45%, #ff7a00); -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-stroke: 3px var(--ink2); filter: drop-shadow(4px 4px 0 var(--ink2));
+}
+/* Option rows */
+.selrow { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: clamp(6px, 1vw, 14px); margin: 0; }
+.selrow .lbl, .selart .stages button, .selart #cpuLevel { font-family: inherit; font-size: clamp(14px, 2.6vh, 24px); }
+.selrow .lbl {
+  padding: 0.3em 1.2em 0.3em 1.6em; transform: skewX(-14deg); color: #ffe7b0;
+  background: #1a0d2e linear-gradient(90deg, #ffc21a 0 6px, transparent 6px 10px, #ffc21a 10px 16px, transparent 16px); border: 2px solid #5b3b8f; border-radius: 4px;
+}
+.selrow .lbl > span, .selart .stages button > span, .sbtn > span { display: inline-flex; align-items: center; gap: 0.45em; transform: skewX(14deg); }
+.selart .stages button {
+  padding: 0.3em 1.3em; transform: skewX(-14deg); color: #fff; border: 3px solid #cbb8ff; border-radius: 6px;
+  background: linear-gradient(#9468f2, #5a2fc0); box-shadow: 0 0 0 2px var(--ink2), 3px 3px 0 2px var(--ink2); outline: none;
+}
+.selart .stages button svg { width: 1.4em; height: 1.4em; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.selart .stages button svg .fill { fill: currentColor; stroke: none; }
+.selart .stages button svg .cut { stroke: #5a2fc0; }
+.selart .stages button.on { color: var(--ink2); border-color: #fff07a; background: linear-gradient(#ffe14a, #ffb000); box-shadow: 0 0 0 2px var(--ink2), 0 0 18px rgba(255, 200, 0, 0.8); outline: none; }
+.selart .stages button.on svg .cut { stroke: #ffc400; }
+.selart #cpuLevel {
+  padding: 0.25em 2.2em 0.25em 1em; border: 3px solid var(--ink2); border-radius: 8px; color: var(--ink2);
+  background: #e7defa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23170c2b'/%3E%3C/svg%3E") right 0.7em center / 0.8em no-repeat;
+  -webkit-appearance: none; appearance: none; box-shadow: 3px 3px 0 var(--ink2);
+}
+.selbtns { display: flex; gap: clamp(12px, 2.4vw, 34px); align-items: center; margin-top: clamp(2px, 0.6vh, 8px); }
+button.sbtn { transform: skewX(-14deg); font-family: inherit; border: 4px solid var(--ink2); border-radius: 8px; }
+button.sbtn.back {
+  padding: 0.35em 1.6em; font-size: clamp(16px, 3.2vh, 30px); color: var(--ink2);
+  background: linear-gradient(#ffffff, #c9c3e0 55%, #9d97b8); box-shadow: 4px 4px 0 var(--ink2);
+}
+button.sbtn.fight {
+  padding: 0.2em 2.2em; font-size: clamp(22px, 5.6vh, 54px); color: var(--ink2);
+  background: linear-gradient(#fff36b, #ffd000 45%, #ff9d00); box-shadow: 5px 5px 0 var(--ink2), 0 0 26px rgba(255, 180, 0, 0.75);
+  animation: fightGlow 1.4s ease-in-out infinite;
+}
+@keyframes fightGlow { 50% { box-shadow: 5px 5px 0 var(--ink2), 0 0 40px rgba(255, 200, 0, 1); } }
+button.sbtn:hover { filter: brightness(1.08); }
+button.sbtn:active { transform: skewX(-14deg) translate(3px, 3px); }
+.selart .hint { font-size: 13px; }
+/* Phones held sideways: no logo, smaller cards. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .selart { gap: 5px; padding-top: 4px; }
+  .sel-logo { display: none; }
+  .sel-title { font-size: 5.4vh; }
+  .selart .picker { padding-top: 6.5vh; }
+  .selart .card { max-width: none; height: 30vh; aspect-ratio: auto; }
+  .pdesc { display: none; }
+  .pinfo { margin-top: 16px; }
+  .selrow .lbl, .selart .stages button, .selart #cpuLevel { font-size: 4.2vh; }
+  button.sbtn.back { font-size: 5vh; }
+  button.sbtn.fight { font-size: 7vh; }
+}
+/* Phones held upright: panels one above the other. */
+@media (orientation: portrait) and (max-width: 760px) {
+  .selart { justify-content: flex-start; overflow-y: auto; }
+  .sel-logo { max-height: 11vh; }
+  .sel-title { font-size: 5.6vw; }
+  .selart .pickers { grid-template-columns: 1fr; gap: 6px; }
+  .vs-badge { width: 70px; margin: -6px auto; }
+  .vs-badge span { font-size: 40px; }
+  .selart .picker { padding-top: 30px; }
+  .ptab { font-size: 5vw; }
+  .selart .card { max-width: 120px; }
+  .pdesc { font-size: 11px; }
+  .selrow .lbl, .selart .stages button, .selart #cpuLevel { font-size: 4vw; }
+  button.sbtn.fight { font-size: 8vw; }
+  button.sbtn.back { font-size: 5vw; }
+}
