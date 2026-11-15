@@ -235,3 +235,21 @@ test('VOADORA travels forward and ESTRELA knocks down', () => {
   for (let i = 0; i < 60; i++) { step(g, [0, 0]); if (g.f[1].st === 'fall' || g.f[1].st === 'down') fell = true; }
   assert.ok(fell, 'ESTRELA should knock down');
 });
+
+test('ESQUIVA: double tap back slips back and a jab passes through', () => {
+  const g = createGame(['hotmonster', 'flash']);
+  toFight(g); approach(g, 650);
+  // A single tap back is just a step back.
+  step(g, [LEFT, 0]); step(g, [0, 0]);
+  assert.notEqual(g.f[0].mv, 'dodge');
+  run(g, 20);
+  const x0 = g.f[0].x, hp = g.f[0].hp;
+  // P2 jabs while P1 taps back twice.
+  step(g, [LEFT, LP]); step(g, [0, 0]); step(g, [0, 0]); step(g, [LEFT, 0]);
+  assert.equal(g.f[0].mv, 'dodge');
+  assert.ok(g.f[0].inv > 0, 'untouchable while slipping');
+  run(g, 30);
+  assert.equal(g.f[0].hp, hp, 'the jab should whiff during the dodge');
+  assert.ok(x0 - g.f[0].x > 400, `dodge moved ${x0 - g.f[0].x} mm back`);
+  assert.equal(g.f[0].st, 'idle');
+});

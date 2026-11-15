@@ -28,6 +28,7 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **Genildo:** **TOLERÂNCIA ZERO**, uma rajada de 5 tiros.
 - **VOADORA:** corre e chuta voando. Acerta no alto, então só é defendida em pé.
 - **ESTRELA:** estrela com chute que derruba.
+- **ESQUIVA:** toque duas vezes para trás (no celular, puxe o direcional duas vezes). O lutador abaixa e escapa para trás, sem poder ser acertado no começo.
 - **Sequência de socos:** apertando soco fraco seguido saem até 4 socos.
 - **Defesa:** segure para trás. Agachado, você também defende os golpes baixos (rasteira e chute baixo). Golpes no ar só são defendidos em pé.
 - **Combos:** um golpe que acerta pode ser cancelado num mais forte. Exemplo: soco fraco → soco forte → especial → super.

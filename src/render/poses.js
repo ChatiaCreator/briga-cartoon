@@ -84,12 +84,16 @@ const MIXAMO_ATTACKS = {
   cw: ['Martelo_Do_Chau_Sem_Mao', 0.3, 1.12, 1.3, 2.1, 0, false, TRAVEL], // ESTRELA
   // Rising punch out of the crouch.
   chp: ['box_02', 1.0, 1.75, 1.95, 2.35],
+  // ESQUIVA: the deep duck from Mixamo "Dodging" (the game slides the fighter back).
+  dodge: ['Dodging', 0.05, 0.55, 0.55, 0.75, 0, false, TRAVEL],
   // Air kicks: only the airborne part, with the clip's own travel and height taken out.
   jlk: ['Kicking', 0.95, 1.2, 1.32, 1.42, 0, false, AIRCLIP],
   jhk: ['Inside_Crescent_Kick', 1.12, 1.32, 1.45, 1.58, 0, false, AIRCLIP],
 };
 // Each fighter swaps a few moves for their own (Mixamo clips the player picked).
-const FFA = 'Fist_Fight_A', KJU = 'Knee_Jabs_To_Uppercut';
+const FFA = 'Fist_Fight_A', KJU = 'Knee_Jabs_To_Uppercut', UJ = 'Uppercut_Jab', EUC = 'Elbow_Uppercut_Combo';
+// Uppercut out of the crouch, from Mixamo "Uppercut Jab".
+const UPPERCUT = [UJ, 0.5, 0.86, 0.95, 1.3, 0, false, TRAVEL];
 const CLIP_ATTACKS = {
   hotmonster: {
     ...MIXAMO_ATTACKS,
@@ -98,10 +102,15 @@ const CLIP_ATTACKS = {
     lp3: [FFA, 2.55, 2.7, 2.76, 2.95, 0, false, TRAVEL],
     lk: [FFA, 3.38, 3.6, 3.72, 3.95, 0, false, TRAVEL],     // snap kick from "Fist Fight A"
     hk: ['Martelo_2', 0.1, 0.45, 0.62, 1.3],
+    hp: [UJ, 1.7, 1.98, 2.06, 2.45, 0, false, TRAVEL],    // long straight from "Uppercut Jab"
+    chp: UPPERCUT,
   },
   flash: {
     ...MIXAMO_ATTACKS,
     fk: ['Flying_Kick', 0.0, 0.42, 0.56, 1.1, 0, false, TRAVEL], // VOADORA: flying kick
+    // "Elbow Uppercut Combo": the elbow is his strong punch, the uppercut his crouching one.
+    hp: [EUC, 0.35, 0.7, 0.8, 1.05, 0, false, TRAVEL],
+    chp: [EUC, 1.0, 1.33, 1.43, 1.9, 0, false, TRAVEL],
   },
   genildo: {
     ...MIXAMO_ATTACKS,
@@ -109,6 +118,7 @@ const CLIP_ATTACKS = {
     lk: [KJU, 1.38, 1.6, 1.72, 1.95, 0, false, TRAVEL],
     lk2: [KJU, 1.95, 2.15, 2.25, 2.45, 0, false, TRAVEL],
     hp: [KJU, 3.15, 3.55, 3.66, 4.25, 0, false, TRAVEL],
+    chp: UPPERCUT,
   },
 };
 

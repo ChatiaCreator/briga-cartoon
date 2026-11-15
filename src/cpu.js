@@ -42,6 +42,11 @@ export class Cpu {
 
     // Defend against attacks and incoming bags.
     const threatened = (o.st === 'attack' && dist < 1500) || g.proj.some((p) => p.owner !== this.i && Math.abs(p.x - me.x) < 1800);
+    // Sometimes slip a close attack with the ESQUIVA (double tap back) instead of blocking.
+    if (threatened && o.st === 'attack' && dist < 1500 && r < 0.06 + lv * 0.1) {
+      this.plan([back, 0, 0, back, 0], 0, 24);
+      return;
+    }
     if (threatened && r < 0.35 + lv * 0.45) {
       const low = o.mv && (o.mv === 'clk' || o.mv === 'chk');
       this.plan([], back | (low ? DOWN : 0), react + 6);

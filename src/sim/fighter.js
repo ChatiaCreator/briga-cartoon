@@ -2,7 +2,7 @@
 // compute exactly the same result from the same inputs (needed for online lockstep).
 import { CHARACTERS, BUFF_SPEED, moveTotal } from './moves.js';
 import { dirOf, LP, HP, LK, HK, SUP, EX1, EX2, BUTTONS } from './bits.js';
-import { qcf, HIST } from './motion.js';
+import { qcf, doubleBack, HIST } from './motion.js';
 
 export const WALL = 4200;          // stage half-width (mm)
 export const MAX_DIST = 5600;      // farthest the two fighters may be apart
@@ -89,6 +89,8 @@ function chooseMove(f, dir, air, minRank) {
       if (buffered(f, bit) && ok(id)) { consume(f, bit); return id; }
     }
   }
+  // ESQUIVA: only from neutral (never as a combo cancel).
+  if (!air && minRank === 0 && doubleBack(f.hist) && ok('dodge')) return 'dodge';
   const crouch = !air && (dir === 1 || dir === 2 || dir === 3);
   const prefix = air ? 'j' : crouch ? 'c' : '';
   const order = [[HK, 'hk'], [HP, 'hp'], [LK, 'lk'], [LP, 'lp']];

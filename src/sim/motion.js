@@ -16,3 +16,12 @@ export function qcf(hist) {
   }
   return false;
 }
+
+// Double tap back (ESQUIVA): back, released, back again, all within ~14 frames.
+export function doubleBack(hist) {
+  const n = hist.length;
+  if (hist[n - 1] !== 4 || hist[n - 2] === 4) return false;
+  let i = n - 2, gap = 0;
+  while (i >= 0 && hist[i] === 5 && gap < 10) { i--; gap++; }
+  return gap >= 1 && i >= 0 && hist[i] === 4 && n - 1 - i <= 14;
+}
