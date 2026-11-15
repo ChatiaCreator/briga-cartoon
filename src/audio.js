@@ -79,8 +79,8 @@ export function sfx(name, k = 0) {
 }
 
 // ---------- Announcer ----------
-// Recorded lines (assets/voice/<key>.mp3, listed in assets/voice/voices.json) are played when
-// present; otherwise the device's speech engine says the text with the chosen voice.
+// Recorded lines (assets/voice/<key>.mp3, listed in assets/voice/voices.json) are always played
+// when present; the other lines are said by the device's speech engine with the chosen voice.
 const STYLES = [
   { name: 'Locutor', pitch: 0.7, rate: 1.0 },
   { name: 'Grave', pitch: 0.35, rate: 0.9 },
@@ -93,6 +93,8 @@ const clips = new Map();
 export function loadRecordedVoices() {
   fetch('assets/voice/voices.json').then((r) => (r.ok ? r.json() : [])).then((list) => {
     recorded = new Set(Array.isArray(list) ? list : []);
+    // Fetch them now so they play without delay.
+    for (const k of recorded) { const a = new Audio(`assets/voice/${k}.mp3`); a.preload = 'auto'; clips.set(k, a); }
   }).catch(() => {});
 }
 
@@ -104,7 +106,6 @@ export function voiceOptions() {
   if (!pt.length) pt = [null];
   const out = [];
   for (const v of pt.slice(0, 4)) for (const st of STYLES) out.push({ voice: v, ...st });
-  if (recorded.size) out.unshift({ recorded: true, name: 'Gravada' });
   return out;
 }
 export function setVoicePick(i) { voicePick = i; }
@@ -116,16 +117,16 @@ export function announce(text, key = null) {
   const opts = voiceOptions();
   const pick = opts[Math.min(voicePick, opts.length - 1)] || opts[0];
   // A recorded line, if the player recorded this one.
-  if (key && recorded.has(key) && (pick?.recorded || !window.speechSynthesis)) {
+  if (key && recorded.has(key)) {
     let a = clips.get(key);
     if (!a) { a = new Audio(`assets/voice/${key}.mp3`); clips.set(key, a); }
-    try { a.currentTime = 0; a.play().catch(() => {}); } catch { /* not playable */ }
+    try { window.speechSynthesis?.cancel(); a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); } catch { /* not playable */ }
     return;
   }
   if (!window.speechSynthesis) return;
   try {
     const u = new SpeechSynthesisUtterance(text);
-    const st = pick && !pick.recorded ? pick : { ...STYLES[0], voice: null };
+    const st = pick || { ...STYLES[0], voice: null };
     u.lang = st.voice?.lang || 'pt-BR';
     if (st.voice) u.voice = st.voice;
     u.rate = st.rate; u.pitch = st.pitch; u.volume = 0.95;

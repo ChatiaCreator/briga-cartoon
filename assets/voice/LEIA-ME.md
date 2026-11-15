@@ -1,8 +1,8 @@
 # Voz gravada do locutor
 
 Coloque aqui arquivos **.mp3** com estes nomes e liste os nomes (sem `.mp3`) em `voices.json`,
-por exemplo `["luta", "round1", "nocaute"]`. O jogo usa a gravação quando ela existe e a voz do
-aparelho para o resto. Em Opções, a voz "Gravada" aparece como VOZ 1.
+por exemplo `["luta", "round1", "nocaute"]`. O jogo usa a gravação sempre que ela existe e a voz do
+aparelho (escolhida em Opções → LOCUTOR) para o resto.
 
 | Arquivo | Fala |
 |---|---|

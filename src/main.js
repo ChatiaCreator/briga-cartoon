@@ -399,6 +399,10 @@ function handleEvents(events) {
         break;
       case 'roundEnd':
         hud.flash(g.roundWinner === 2 ? 'EMPATE' : `${nameOf(g, g.roundWinner)} VENCE!`, 1800, true);
+        if (g.roundWinner === 0 || g.roundWinner === 1) {
+          const c = g.f[g.roundWinner].char;
+          announce(`${CHARACTERS[c].name} venceu!`, `venceu-${c}`);
+        }
         break;
       case 'matchEnd': {
         const w = g.matchWinner;
