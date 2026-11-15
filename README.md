@@ -87,7 +87,7 @@ src/render/
   character.js            carrega o GLB, contorno cartoon, IK de braços e pernas
   poses.js                qual animação cada estado/golpe usa, e em que trecho
   scene.js, effects.js    arena, câmera, explosões "POW!", ração, lata, aura
-src/net/                  lockstep (online) e salas PeerJS
+src/net/                  rollback (online, igual jogos de luta profissionais) e salas PeerJS
 src/cpu.js                inteligência do computador
 assets/models/            hotmonster.glb, flash.glb, genildo.glb, mixamo_anims.glb (animações do Mixamo convertidas)
 tools/mixamo/             conversor de animações do Mixamo (.fbx) para os lutadores

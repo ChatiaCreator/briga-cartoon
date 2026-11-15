@@ -1,7 +1,9 @@
 // Online rooms over PeerJS (WebRTC data channel, direct between the two browsers).
 // The host creates a room code; the guest types it. The host plays on the left (P1).
+import { delayFor } from './rollback.js';
+
 const PREFIX = 'briga-cartoon-v1-';
-export const NET_VERSION = 1;
+export const NET_VERSION = 2; // 2: rollback netcode
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function makeCode() {
@@ -117,6 +119,7 @@ export class OnlineSession {
         return;
       case 'start':
         this.delay = msg.delay;
+        if (msg.rtt) this.rtt = msg.rtt;
         this.begin({ delay: msg.delay, chars: msg.chars, me: 1, stage: msg.stage });
         return;
       case 'rematch':
@@ -137,15 +140,17 @@ export class OnlineSession {
     const sorted = this.pings.slice().sort((a, b) => a - b);
     const rtt = sorted[Math.floor(sorted.length / 2)] || 100;
     // One-way time in frames, plus a frame of slack.
-    this.delay = Math.max(2, Math.min(8, Math.ceil(rtt / 2 / 16.7) + 1));
+    this.delay = delayFor(rtt);
     this.rtt = rtt;
     const chars = [this.myChar, this.remoteChar], stage = this.pickStage();
-    this.send({ t: 'start', delay: this.delay, chars, stage });
+    this.send({ t: 'start', delay: this.delay, chars, stage, rtt: this.rtt });
     this.begin({ delay: this.delay, chars, me: 0, stage });
   }
 
   begin(info) {
     this.started = true;
+    this.matchNo = (this.matchNo || 0) + 1; // both sides count the matches the same way
+    info.matchNo = this.matchNo;
     clearTimeout(this.joinTimer);
     this.rematch = { me: false, them: false };
     this.h.start(info);
@@ -160,7 +165,7 @@ export class OnlineSession {
   checkRematch() {
     if (this.isHost && this.rematch.me && this.rematch.them) {
       const chars = [this.myChar, this.remoteChar], stage = this.pickStage();
-      this.send({ t: 'start', delay: this.delay, chars, stage });
+      this.send({ t: 'start', delay: this.delay, chars, stage, rtt: this.rtt });
       this.begin({ delay: this.delay, chars, me: 0, stage });
     }
   }

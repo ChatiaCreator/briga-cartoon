@@ -10,7 +10,7 @@ import { createFighter } from './sim/fighter.js';
 import { CHARACTERS } from './sim/moves.js';
 import { readInput, attachKeyboard } from './input.js';
 import { Cpu } from './cpu.js';
-import { Lockstep } from './net/lockstep.js';
+import { Rollback } from './net/rollback.js';
 import { OnlineSession, normalizeCode } from './net/online.js';
 import { Hud } from './ui.js';
 import { sfx, announce, unlockAudio, setMuted, isMuted, setVoice, isVoice } from './audio.js';
@@ -168,7 +168,7 @@ function newSession() {
       if (error) { netStatus(error, true); $('hostBtn').disabled = false; $('joinBtn').disabled = false; }
       else if (text) netStatus(text);
     },
-    start: (info) => startMatch('online', info.chars, { me: info.me, delay: info.delay, stage: info.stage }),
+    start: (info) => startMatch('online', info.chars, { me: info.me, delay: info.delay, stage: info.stage, matchNo: info.matchNo }),
     message: (msg) => {
       if (msg.t === 'rematch' && match?.ended) $('pauseMsg').textContent = 'Seu amigo quer revanche!';
       else if (match?.lock) match.lock.onMessage(msg);
@@ -230,8 +230,8 @@ async function startMatch(mode, chars, opts = {}) {
   };
   hud.setup(game, tags, chars.map((c) => portraits[c]));
   if (mode === 'online') {
-    match.lock = new Lockstep({ send: (m) => session.send(m) }, me, opts.delay);
-    hud.net(`online • atraso ${opts.delay} quadros${session?.rtt ? ` • ping ${Math.round(session.rtt)} ms` : ''}`);
+    match.lock = new Rollback({ send: (m) => session.send(m) }, me, opts.delay, game, opts.matchNo || 0);
+    hud.net(netLabel());
   }
   hud.show(true);
   touch.show(true);
@@ -298,22 +298,20 @@ function endMatch() {
 function tick() {
   const m = match, g = m.game;
   if (m.mode === 'online') {
+    // Rollback: never waits for the other player's input (predicts it and corrects later).
     const lock = m.lock;
-    if (m.sampled !== m.frame) {
-      lock.addLocal(m.frame, readInput('solo'));
-      m.sampled = m.frame;
-    }
-    if (!lock.ready(m.frame)) {
+    const res = lock.tick(readInput('solo'));
+    m.game = lock.game;
+    if (res === 'stall') {
       m.stall++;
-      if (m.stall === 45) hud.net('Esperando o outro jogador…', true);
+      if (m.stall === 45) hud.net('Conexão lenta… esperando o outro jogador', true);
       if (m.stall > 60 * 12) { session?.close(); endMatch(); openOnline(); netStatus('A conexão travou. Tentem de novo.', true); }
       return false;
     }
-    if (m.stall >= 45) hud.net(`online • atraso ${lock.delay} quadros`);
+    if (res === 'wait') return false; // the other side is behind: let it catch up
+    if (m.stall >= 45) hud.net(netLabel());
     m.stall = 0;
-    step(g, lock.take(m.frame));
-    m.frame++;
-    if (m.frame % 60 === 0) lock.reportHash(m.frame, checksum(g));
+    m.frame = lock.frame;
     if (lock.desync != null) {
       session?.close(); endMatch(); openOnline();
       netStatus('Os jogos dessincronizaram. Criem a sala de novo (e confiram se os dois recarregaram a página).', true);
@@ -327,8 +325,13 @@ function tick() {
     m.frame++;
     if (window.__pauseAtFrame && g.frame >= window.__pauseAtFrame) { m.paused = true; window.__pauseAtFrame = 0; }
   }
-  handleEvents(g.events);
+  handleEvents(m.game.events);
   return true;
+}
+
+function netLabel() {
+  const ping = session?.rtt ? ` • ping ${Math.round(session.rtt)} ms` : '';
+  return `online${ping}`;
 }
 
 const nameOf = (g, i) => CHARACTERS[g.f[i].char].name.toUpperCase();
@@ -461,8 +464,8 @@ function frame(now) {
         m.acc -= STEP;
         steps++;
       }
-      // Online: if the other side is ahead, run an extra frame to catch up.
-      if (match === m && m.lock && m.lock.lead(m.frame) > 3) { m.view.snapshot(m.game); tick(); }
+      // Online: if the other side is well ahead, run an extra frame to catch up.
+      if (match === m && m.lock && m.lock.advantage() <= -3) { m.view.snapshot(m.game); tick(); }
     }
     if (match === m) {
       // frac: how far we are between the last sim frame and the next one (smooth motion

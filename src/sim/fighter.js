@@ -1,5 +1,5 @@
 // Fighter state machine. Everything here is integer maths so both players' browsers
-// compute exactly the same result from the same inputs (needed for online lockstep).
+// compute exactly the same result from the same inputs (needed for online play: rollback re-simulates frames).
 import { CHARACTERS, BUFF_SPEED, moveTotal } from './moves.js';
 import { dirOf, LP, HP, LK, HK, SUP, EX1, EX2, BUTTONS } from './bits.js';
 import { qcf, doubleBack, HIST } from './motion.js';
