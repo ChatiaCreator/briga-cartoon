@@ -228,7 +228,7 @@ async function startMatch(mode, chars, opts = {}) {
     cpu: mode === 'cpu' ? new Cpu(1, opts.cpuLevel ?? 0.6) : null,
     lock: null, frame: 0, stall: 0, hold: true,
   };
-  hud.setup(game, tags);
+  hud.setup(game, tags, chars.map((c) => portraits[c]));
   if (mode === 'online') {
     match.lock = new Lockstep({ send: (m) => session.send(m) }, me, opts.delay);
     hud.net(`online • atraso ${opts.delay} quadros${session?.rtt ? ` • ping ${Math.round(session.rtt)} ms` : ''}`);
@@ -339,11 +339,11 @@ function handleEvents(events) {
   for (const ev of events) {
     switch (ev.t) {
       case 'round':
-        hud.flash(g.round === 5 ? 'ROUND FINAL' : `ROUND ${ev.round}`, 1400);
+        hud.flash(g.round === 5 ? 'ROUND FINAL' : `ROUND ${ev.round}`, 1400, false, 'round');
         sfx('bell');
         announce(`Round ${ev.round}`);
         break;
-      case 'fight': hud.flash('LUTA!', 800); announce('Luta!'); break;
+      case 'fight': hud.flash('FIGHT!', 900, false, 'fight'); announce('Luta!'); break;
       case 'hit':
         sfx(ev.heavy ? 'heavy' : 'hit', ev.combo);
         if (ev.big && !ev.ko) sfx('launch');
@@ -368,7 +368,7 @@ function handleEvents(events) {
       case 'thud': sfx('thud'); break;
       case 'timeover': hud.flash('TEMPO!', 1500); announce('Tempo!'); break;
       case 'ko':
-        if (g.timer > 0) { hud.flash('K.O.!', 1500); sfx('ko'); announce('Nocaute!'); }
+        if (g.timer > 0) { hud.flash('K.O.!', 1500, false, 'fight'); sfx('ko'); announce('Nocaute!'); }
         break;
       case 'roundEnd':
         hud.flash(g.roundWinner === 2 ? 'EMPATE' : `${nameOf(g, g.roundWinner)} VENCE!`, 1800, true);

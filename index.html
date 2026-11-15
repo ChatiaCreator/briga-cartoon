@@ -26,19 +26,32 @@
   <div id="hud" class="hidden">
     <div class="top">
       <div class="side p1">
-        <div class="name"><span id="n1">HOTMONSTER</span><small id="tag1">P1</small></div>
-        <div class="bar hp"><div class="lag" id="hplag1"></div><div class="fill" id="hp1"></div></div>
+        <div class="hrow">
+          <div class="portrait"><img id="por1" alt=""></div>
+          <div class="hmain">
+            <div class="name"><small id="tag1">P1</small><span id="n1"></span></div>
+            <div class="bar hp"><div class="lag" id="hplag1"></div><div class="fill" id="hp1"></div></div>
+          </div>
+        </div>
         <div class="pips" id="pips1"><i></i><i></i></div>
       </div>
-      <div class="timer" id="timer">99</div>
+      <div class="hcenter">
+        <img class="hlogo" src="assets/ui/logo.webp" alt="">
+        <div class="tframe"><div class="timer" id="timer">99</div></div>
+      </div>
       <div class="side p2">
-        <div class="name"><small id="tag2">P2</small><span id="n2">FLASH</span></div>
-        <div class="bar hp"><div class="lag" id="hplag2"></div><div class="fill" id="hp2"></div></div>
+        <div class="hrow">
+          <div class="portrait"><img id="por2" alt=""></div>
+          <div class="hmain">
+            <div class="name"><small id="tag2">P2</small><span id="n2"></span></div>
+            <div class="bar hp"><div class="lag" id="hplag2"></div><div class="fill" id="hp2"></div></div>
+          </div>
+        </div>
         <div class="pips" id="pips2"><i></i><i></i></div>
       </div>
     </div>
     <div class="bottom">
-      <div class="meter p1"><div class="bar sup"><div class="fill" id="sup1"></div></div><b id="supt1">SUPER</b><div class="buff" id="buff1"></div></div>
+      <div class="meter p1"><b id="supt1">SUPER</b><div class="bar sup"><div class="fill" id="sup1"></div></div><div class="buff" id="buff1"></div></div>
       <div class="meter p2"><b id="supt2">SUPER</b><div class="bar sup"><div class="fill" id="sup2"></div></div><div class="buff" id="buff2"></div></div>
     </div>
     <div class="combo p1" id="combo1"></div>

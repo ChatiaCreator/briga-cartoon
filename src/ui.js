@@ -15,10 +15,12 @@ export class Hud {
 
   show(on) { this.el.classList.toggle('hidden', !on); }
 
-  setup(g, tags) {
+  // pics: portrait image urls for the two fighters (corners of the screen).
+  setup(g, tags, pics = []) {
     for (let i = 0; i < 2; i++) {
       $(`n${i + 1}`).textContent = CHARACTERS[g.f[i].char].name.toUpperCase();
       $(`tag${i + 1}`).textContent = tags[i];
+      $(`por${i + 1}`).src = pics[i] || '';
     }
     this.last = {};
     this.flash('', 0);
@@ -73,10 +75,18 @@ export class Hud {
     this.comboTimers[attacker] = setTimeout(() => el.classList.remove('show'), 1300);
   }
 
-  flash(text, ms = 1200, small = false) {
+  // kind: '' (fiery text), 'round' (silver plate) or 'fight' (big fiery FIGHT!).
+  flash(text, ms = 1200, small = false, kind = '') {
     clearTimeout(this.bannerTimer);
-    this.banner.textContent = text;
+    this.banner.innerHTML = '';
+    // <b> carries the tilt, plate and glow; the <span> inside only the gradient letters.
+    const box = document.createElement('b'), span = document.createElement('span');
+    span.textContent = text;
+    box.appendChild(span);
+    this.banner.appendChild(box);
     this.banner.classList.toggle('small', small);
+    this.banner.dataset.kind = kind;
+    this.banner.classList.remove('show'); void this.banner.offsetWidth;
     if (!text) { this.banner.classList.remove('show'); return; }
     this.banner.classList.add('show');
     if (ms > 0) this.bannerTimer = setTimeout(() => this.banner.classList.remove('show'), ms);
