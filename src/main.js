@@ -21,7 +21,7 @@ const renderer = createRenderer($('stage'));
 const hud = new Hud();
 attachKeyboard();
 const touch = initTouch({ onPause: () => openPause() });
-const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!' };
+const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'ARMADA FATAL!' };
 const canFull = !!document.documentElement.requestFullscreen;
 if (canFull) {
   $('fullBtn').classList.remove('hidden');
@@ -47,6 +47,7 @@ const DESCR = {
   hotmonster: 'Especial: arremessa um saco de RAÇÃO. Super: chuva de ração do céu! Combo: SOCO, SOCO, SOCO+ → ESPECIAL.',
   flash: 'Especial: investida relâmpago. Super: bebe GARRA Energy (+50% dano, +20% velocidade). Combo: SOCO+, SOCO+ → pula e chuta.',
   genildo: 'Policial militar. Especial: atira com a pistola. Super: rajada TOLERÂNCIA ZERO! Combo: CHUTE, CHUTE, SOCO+ → ESPECIAL.',
+  anderon: 'Capoeira e boxe. Especial: LIGANDO PRA CASADA, pega o celular e recupera vida (se não apanhar). Super: ARMADA FATAL, 5 golpes. Combo: SOCO+, CHUTE+.',
 };
 
 // ---------- Screens ----------
@@ -366,7 +367,8 @@ function handleEvents(events) {
         const f = g.f[ev.f];
         if (ev.mv === 'super') showCutin(f);
         if (f.char === 'flash' && ev.mv === 'super') sfx('glug');
-        else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!'); }
+        else if (ev.mv === 'super') { sfx('power'); announce({ genildo: 'Tolerância zero!', anderon: 'Armada fatal!' }[f.char] || 'Chuva de ração!'); }
+        else if (f.char === 'anderon' && ev.mv === 'special') { sfx('ring'); hud.flash('LIGANDO PRA CASADA!', 1100, true); announce('Ligando pra casada!'); }
         else if (f.char === 'hotmonster' && ev.mv === 'special') setTimeout(() => sfx('throw'), 200);
         else sfx('whoosh');
         break;
@@ -374,6 +376,7 @@ function handleEvents(events) {
       case 'buff': sfx('power'); hud.flash('GARRA!', 900, true); break;
       case 'splash': if (ev.kind !== 'bullet') sfx('splash'); break;
       case 'shot': sfx('shot'); break;
+      case 'heal': sfx('heal'); break;
       case 'thud': sfx('thud'); break;
       case 'timeover': hud.flash('TEMPO!', 1500); announce('Tempo!'); break;
       case 'ko':
@@ -519,6 +522,7 @@ const PORTRAIT_FILES = {
   hotmonster: 'assets/portraits/hotmonster.webp',
   flash: 'assets/portraits/flash.webp',
   genildo: 'assets/portraits/genildo.webp',
+  anderon: 'assets/portraits/anderon.webp',
 };
 
 async function makePortraits() {

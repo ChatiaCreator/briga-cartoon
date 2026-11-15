@@ -307,3 +307,34 @@ test('juggles are limited: no hits left means attacks pass through', () => {
   for (let i = 0; i < 40 && d.st === 'fall'; i++) { d.vy = 0; d.y = 600; step(g, [0, 0]); }
   assert.equal(d.hp, hp, 'shot passes through a fighter with no juggle hits left');
 });
+
+test('Anderon special: the phone call heals, a hit hangs up', () => {
+  const g = createGame(['anderon', 'flash']);
+  toFight(g);
+  g.f[0].hp = 600;
+  step(g, [LP | HP, 0]);
+  assert.equal(g.f[0].mv, 'special');
+  run(g, 80);
+  assert.equal(g.f[0].hp, 600 + 8 * 18, 'eight heal ticks of 18');
+  // Interrupted: P2 dashes in and hits during the call.
+  const g2 = createGame(['anderon', 'flash']);
+  toFight(g2); approach(g2, 700);
+  g2.f[0].hp = 600;
+  step(g2, [LP | HP, 0]);
+  run(g2, 22);
+  step(g2, [0, HP]);
+  run(g2, 60);
+  assert.ok(g2.f[0].hp < 600 + 8 * 18 - 85, `hp ${g2.f[0].hp}`);
+});
+
+test('Anderon super ARMADA FATAL hits five times', () => {
+  const g = createGame(['anderon', 'genildo']);
+  toFight(g); approach(g, 700);
+  g.f[0].meter = 1000;
+  const hp = g.f[1].hp;
+  let hits = 0;
+  step(g, [SUP, 0]);
+  for (let i = 0; i < 140; i++) { step(g, [0, 0]); hits += g.events.filter((e) => e.t === 'hit' && e.by === 0).length; }
+  assert.equal(hits, 5);
+  assert.ok(hp - g.f[1].hp > 180, `dealt ${hp - g.f[1].hp}`);
+});

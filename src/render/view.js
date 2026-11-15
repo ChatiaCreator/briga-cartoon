@@ -8,7 +8,7 @@ import { shadowTexture, loadImage } from './textures.js';
 import { CHARACTERS } from '../sim/moves.js';
 
 const FACE_ANGLE = 1.15; // radians: side-on, turned a little towards the camera
-const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff };
+const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e };
 const LIMBS = ['LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'];
 
 // The K.O. that ends the match: played in slow motion with the camera zoomed in.
@@ -110,6 +110,11 @@ export class GameView {
         this.fx.muzzle(pos);
         this.arena.shake = Math.max(this.arena.shake, 0.05);
       } else if (ev.t === 'land') this.fx.dust(this.lastState?.f[ev.f].x ?? 0);
+      else if (ev.t === 'heal') {
+        const c = this.chars[ev.f];
+        this.fx.heal(c.b.Head.getWorldPosition(new THREE.Vector3()), ev.amount);
+        this.flash[ev.f] = 0;
+      }
     }
   }
 

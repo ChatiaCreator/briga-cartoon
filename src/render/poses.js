@@ -91,6 +91,7 @@ const MIXAMO_ATTACKS = {
   jhk: ['Inside_Crescent_Kick', 1.12, 1.32, 1.45, 1.58, 0, false, AIRCLIP],
 };
 // Each fighter swaps a few moves for their own (Mixamo clips the player picked).
+const PEC = 'Punch_To_Elbow_Combo';
 const FFA = 'Fist_Fight_A', KJU = 'Knee_Jabs_To_Uppercut', UJ = 'Uppercut_Jab', EUC = 'Elbow_Uppercut_Combo';
 // Uppercut out of the crouch, from Mixamo "Uppercut Jab".
 const UPPERCUT = [UJ, 0.5, 0.86, 0.95, 1.3, 0, false, TRAVEL];
@@ -113,6 +114,17 @@ const CLIP_ATTACKS = {
     hp: [EUC, 0.35, 0.7, 0.8, 1.05, 0, false, TRAVEL],
     chp: [EUC, 1.0, 1.33, 1.43, 1.9, 0, false, TRAVEL],
     tc: [EUC, 0.95, 1.33, 1.43, 1.9, 0, false, TRAVEL],   // UPPER RELÂMPAGO: the uppercut after the elbow
+  },
+  anderon: {
+    ...MIXAMO_ATTACKS,
+    // Mixamo "Punching" opens the jab string, then the hooks of "Punch To Elbow Combo".
+    lp: ['Punching', 0.2, 0.4, 0.46, 0.7],
+    lp2: [PEC, 0.85, 1.08, 1.14, 1.4, 0, false, TRAVEL],
+    lp3: [PEC, 1.6, 1.86, 1.92, 2.1, 0, false, TRAVEL],
+    lp4: [PEC, 2.1, 2.34, 2.4, 2.6, 0, false, TRAVEL],
+    hp: [PEC, 2.65, 2.94, 3.02, 3.4, 0, false, TRAVEL],     // elbow
+    hk: ['Armada', 0.55, 1.22, 1.32, 1.63, 0, false, TRAVEL], // capoeira "armada"
+    tc: ['Armada', 0.3, 1.22, 1.32, 1.63, 0, false, TRAVEL],
   },
   genildo: {
     ...MIXAMO_ATTACKS,
@@ -164,6 +176,19 @@ function specialPose(f, m) {
     const holding = t < total - 6;
     return { ...CLIP, clip: 'Pistol_Idle', clipTime: 1.0, spine: [-0.12 * k, 0, 0], head: [-0.06 * k, 0, 0],
       hand: holding ? 'gun' : null, grip: holding, blend: 0.14 };
+  }
+  if (f.char === 'anderon' && f.mv === 'special') {
+    // Mixamo "make a call": phone up to the ear, talking, then hangs up.
+    const k = (a, b, x) => a + (b - a) * clamp01(x);
+    // Talking part: back and forth over 6.4-8.0 s, where he faces the camera.
+    const tri = (x) => 1 - Math.abs((x % 2) - 1);
+    const time = t < 20 ? k(3.8, 6.4, t / 20) : t < 62 ? 6.4 + 1.6 * tri((t - 20) / 28) : k(14.5, 15.3, (t - 62) / 8);
+    return { ...CLIP, clip: 'make_a_call_02', clipTime: time, hand: t >= 6 && t < 66 ? 'phone' : null, blend: 0.12 };
+  }
+  if (f.char === 'anderon' && f.mv === 'super') {
+    // The whole "Punch To Elbow Combo" string, sped up to land with the five hits.
+    const time = t < m.startup ? 0.2 + 0.25 * (t / m.startup) : Math.min(3.4, 0.45 + (t - m.startup) * (2.6 / 44));
+    return { ...CLIP, clip: PEC, clipTime: time, lockXZ: true, blend: 0.08 };
   }
   if (f.char === 'hotmonster' && f.mv === 'special') {
     // Wind up with the bag behind, then throw it overhand.
@@ -236,9 +261,12 @@ function rawPose(f, g, T) {
         if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7) };
         // Genildo draws on his opponent: "Parado!"
         if (f.char === 'genildo') return { ...CLIP, clip: 'Pistol_Idle', clipTime: (secs * 0.5) % 3.9, hand: 'gun', grip: true };
+        // Anderon is on the phone, then hangs up and gets ready.
+        if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 6.4 + 1.6 * (1 - Math.abs(((secs / 1.2) % 2) - 1)), hand: 'phone' };
         // Flash shows off with push-ups, then springs up into his stance.
         return { ...CLIP, clip: 'press-up', clipTime: Math.min(1.9, secs * 1.15) };
       }
+      if (f.char === 'anderon') return { ...CLIP, clip: 'Idle', clipTime: (T * 0.9) % 3.55 };
       return { ...CLIP, clip: 'box_01', clipTime: idleTime(T) };
     }
     case 'walk': {
@@ -296,6 +324,8 @@ function rawPose(f, g, T) {
       if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
       // Genildo celebrates with a b-boy uprock (Mixamo "Bboy Uprock", looped).
       if (f.char === 'genildo') return { ...CLIP, clip: 'Bboy_Uprock', clipTime: (t / 60) % 2.25, blend: 0.3 };
+      // Anderon calls home to tell about the win.
+      if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 3.6 + Math.min(11, t / 60), hand: t > 60 && t < 650 ? 'phone' : null, blend: 0.3 };
       return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };
     case 'lose':
       // Lost on time. Hotmonster staggers and collapses; Flash hangs his head.

@@ -43,6 +43,15 @@ export class Effects {
     this.can.visible = false;
     scene.add(this.can);
 
+    // Anderon's phone: black body with a glowing screen (screen faces -Z of the phone).
+    this.phone = new THREE.Group();
+    const phBody = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.15, 0.014), new THREE.MeshToonMaterial({ color: 0x15151c }));
+    const phScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.064, 0.13), new THREE.MeshBasicMaterial({ color: 0x5fd0ff }));
+    phScreen.position.z = 0.0075;
+    this.phone.add(phBody, phScreen);
+    this.phone.visible = false;
+    scene.add(this.phone);
+
     // Genildo's pistol (barrel along +Z) and the bullets with a glowing tracer behind.
     const gunMat = new THREE.MeshToonMaterial({ color: 0x24242c });
     this.gun = new THREE.Group();
@@ -68,6 +77,27 @@ export class Effects {
     this.kibble = [];
   }
 
+  // Phone call heal: a green "+18" rising from the head and sparkles.
+  heal(pos, amount) {
+    if (!this.healTex) this.healTex = {};
+    const key = String(amount);
+    if (!this.healTex[key]) {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+      const g = c.getContext('2d');
+      g.font = 'bold 84px Impact, Arial Black, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = 12; g.strokeStyle = '#0b3d12'; g.strokeText(`+${amount}`, 128, 66);
+      g.fillStyle = '#7dff1a'; g.fillText(`+${amount}`, 128, 66);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+      this.healTex[key] = t;
+    }
+    const p = pos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.3, 0.3, 0.3));
+    this.sprite(this.healTex[key], p, 0.42, 0.9, { grow: 1.1, vel: new THREE.Vector3(0, 0.7, 0), aspect: 2 });
+    for (let i = 0; i < 3; i++) {
+      this.sprite(this.glowGreen, pos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.6, -0.3 - Math.random() * 0.6, 0.2)), 0.18, 0.7,
+        { grow: 0.6, vel: new THREE.Vector3(0, 0.9 + Math.random() * 0.5, 0) });
+    }
+  }
+
   makeBag() {
     const m = new THREE.Mesh(this.bagGeo, this.bagMats);
     m.castShadow = true;
@@ -81,7 +111,7 @@ export class Effects {
     s.scale.setScalar(size * 0.4);
     s.renderOrder = 10;
     this.scene.add(s);
-    this.items.push({ obj: s, life, age: 0, size, grow: opts.grow ?? 1, vel: opts.vel || null, rot: opts.rot || 0 });
+    this.items.push({ obj: s, life, age: 0, size, grow: opts.grow ?? 1, vel: opts.vel || null, rot: opts.rot || 0, aspect: opts.aspect || 1 });
     return s;
   }
 
@@ -168,6 +198,7 @@ export class Effects {
     this.handBag.visible = false;
     this.can.visible = false;
     this.gun.visible = false;
+    this.phone.visible = false;
     for (let i = 0; i < chars.length; i++) {
       const what = poses[i]?.hand;
       if (!what) continue;
@@ -180,6 +211,15 @@ export class Effects {
       const hand = c.b.RightHand;
       const pos = hand.getWorldPosition(new THREE.Vector3());
       const q = hand.getWorldQuaternion(new THREE.Quaternion());
+      if (what === 'phone') {
+        // Lying in the palm along the fingers, screen against the palm (at the ear).
+        this.phone.visible = true;
+        this.phone.position.copy(pos);
+        this.phone.quaternion.copy(q);
+        this.phone.translateY(0.09);
+        this.phone.translateZ(0.025);
+        continue;
+      }
       const obj = what === 'can' ? this.can : this.handBag;
       obj.visible = true;
       obj.position.copy(pos);
@@ -197,7 +237,7 @@ export class Effects {
       const k = it.age / it.life;
       if (k >= 1) { this.scene.remove(it.obj); it.obj.material.dispose(); continue; }
       const s = it.size * (0.4 + (it.grow - 0.4) * Math.min(1, k * 3));
-      it.obj.scale.setScalar(s);
+      it.obj.scale.set(s * it.aspect, s, 1);
       it.obj.material.opacity = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
       it.obj.material.rotation = it.rot;
       if (it.vel) it.obj.position.addScaledVector(it.vel, dt);

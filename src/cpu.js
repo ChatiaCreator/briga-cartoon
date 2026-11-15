@@ -52,10 +52,12 @@ export class Cpu {
       this.plan([], back | (low ? DOWN : 0), react + 6);
       return;
     }
-    if (me.meter >= 1000 && (me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
+    if (me.meter >= 1000 && (me.char === 'anderon' ? dist < 1300 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
       this.plan([SUP, 0], 0, 20);
       return;
     }
+    // Anderon makes his healing call when he is hurt and the opponent is far away.
+    if (me.char === 'anderon' && dist > 2600 && me.hp < me.maxHp * 0.8 && r < 0.4) { this.plan([LP | HP, 0], 0, 70); return; }
     if (dist > 2400) {
       if (char.moves.special.projectile && r < 0.3) { this.plan([DOWN, DOWN | fwd, fwd, fwd | LP, 0], 0, 25); return; }
       if (me.char === 'flash' && dist < 3000 && r < 0.25) { this.plan([DOWN, DOWN | fwd, fwd, fwd | LP, 0], 0, 20); return; }
@@ -87,6 +89,7 @@ export class Cpu {
       hotmonster: [LP, ...z(7), LP, ...z(7), HP, ...z(14), LP | HP],
       flash: [HP, ...z(18), HP, ...z(8), ...z(22, UP | fwd), 0, HK],
       genildo: [LK, ...z(8), LK, ...z(8), HP, ...z(24), LP | HP],
+      anderon: [HP, ...z(16), HK, ...z(14), ...z(16, UP | fwd), 0, HK],
     }[me.char];
     if (own) combos.push(own, own);
     combos.push([LP, ...z(14), DOWN | HP, ...z(20, DOWN), ...z(16, UP | fwd), 0, HK]);

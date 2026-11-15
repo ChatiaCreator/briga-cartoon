@@ -288,6 +288,17 @@ function stepAttack(f, dir, o, g) {
       });
     }
   }
+  // Phone call: heals in small steps while it lasts (being hit interrupts the move).
+  if (m.heal) {
+    const h = m.heal;
+    if (f.sf >= h.from && f.sf <= h.to && (f.sf - h.from) % h.every === 0 && f.hp > 0 && f.hp < f.maxHp) {
+      const amount = Math.min(h.amount, f.maxHp - f.hp);
+      f.hp += amount;
+      g.events.push({ t: 'heal', f: f.id, amount });
+    }
+  }
+  // Multi-hit moves: the hit is re-armed at these frames.
+  if (m.rehit && m.rehit.includes(f.sf)) f.hit = false;
   if (m.buff && f.sf === m.startup - 12) {
     f.buff = m.buff;
     g.events.push({ t: 'buff', f: f.id });
