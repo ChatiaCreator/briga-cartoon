@@ -36,7 +36,7 @@ document.addEventListener('fullscreenchange', () => renderOptions());
 let match = null;        // the running fight
 let session = null;      // online session
 const sel = { mode: 'local', chars: ['hotmonster', 'flash'], stage: 'street' };
-export const STAGES = ['street', 'beach', 'petshop'];
+export const STAGES = ['street', 'beach', 'petshop', 'marcozero'];
 // "random" is picked when the match starts (by the host, online).
 function resolveStage(s) {
   return STAGES.includes(s) ? s : STAGES[Math.floor(Math.random() * STAGES.length)];

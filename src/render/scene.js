@@ -7,6 +7,7 @@ import {
 import { WALL } from '../sim/fighter.js';
 import { buildBeach, updateBeach } from './beach.js';
 import { buildPetshop, updatePetshop } from './petshop.js';
+import { buildMarcoZero, updateMarcoZero } from './marcozero.js';
 
 export function createRenderer(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -45,6 +46,7 @@ export class Arena {
     this.scene.add(sun, sun.target);
     if (stage === 'beach') buildBeach(this, canImg);
     else if (stage === 'petshop') buildPetshop(this);
+    else if (stage === 'marcozero') buildMarcoZero(this);
     else this.buildStreet(canImg);
   }
 
@@ -226,6 +228,7 @@ export class Arena {
     this.hype = Math.max(0, this.hype - dt * 0.5);
     if (this.stage === 'beach') { updateBeach(this, dt, T); return; }
     if (this.stage === 'petshop') { updatePetshop(this, dt, T); return; }
+    if (this.stage === 'marcozero') { updateMarcoZero(this, dt, T); return; }
     const hype = Math.min(1, this.hype);
     for (const f of this.fires) {
       f.light.intensity = 3 + Math.sin(T * 17) * 0.7 + Math.sin(T * 29) * 0.5;
