@@ -79,6 +79,17 @@ function twoBoneIK(upper, mid, end, target, pole) {
   aim(mid, _C, _T);
 }
 
+const _UP = new THREE.Vector3(0, 1, 0);
+const GRIP_R = new THREE.Vector3(0, -0.12, 1).normalize();     // right hand: forward, wrist cocked a bit
+const GRIP_L = new THREE.Vector3(-0.5, -0.05, 1).normalize();  // left hand: forward and across, under the right
+// Rotation whose +Z is `f` and +Y is `t` (made orthogonal to f).
+function basisQ(f, t) {
+  const z = f.clone().normalize();
+  const y = t.clone().addScaledVector(z, -t.dot(z)).normalize();
+  const x = new THREE.Vector3().crossVectors(y, z);
+  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
+}
+
 function makeOutline(mesh, thickness) {
   const mat = new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.BackSide });
   mat.onBeforeCompile = (shader) => {
@@ -178,6 +189,24 @@ export class Character {
       RightFoot: mq.clone().multiply(this.b.RightFoot.getWorldQuaternion(new THREE.Quaternion())),
     };
 
+    // Rest frame of each hand in model space (orientation, finger direction, thumb side),
+    // used to turn the hands into a pistol grip (see gripPistol).
+    this.handRest = {};
+    for (const side of ['Right', 'Left']) {
+      const hand = this.b[side + 'Hand'];
+      const mid = boneByName(this.model, side + 'HandMiddle1'), thumb = boneByName(this.model, side + 'HandThumb1');
+      if (!mid || !thumb) continue;
+      const h = toModel(hand);
+      const f = toModel(mid).sub(h).normalize();
+      const t = toModel(thumb).sub(h);
+      t.addScaledVector(f, -t.dot(f)).normalize();
+      const q = mq.clone().multiply(hand.getWorldQuaternion(new THREE.Quaternion()));
+      // Palm normal: fingers × thumb side points out of the back of the right hand.
+      const palm = new THREE.Vector3().crossVectors(f, t).multiplyScalar(side === 'Right' ? -1 : 1);
+      this.handRest[side] = { q, f, t, palmLocal: palm.applyQuaternion(q.clone().invert()) };
+    }
+    this.fingerBones = this.bones.filter((o) => /Hand(Thumb|Index|Middle|Ring|Pinky)\d/.test(o.name));
+
     // Clips are sampled directly (no AnimationMixer, which skips writes when it thinks a
     // value hasn't changed). Only rotations are used, so clips from another model with the
     // same Mixamo skeleton play correctly.
@@ -264,6 +293,62 @@ export class Character {
   }
 
   hasClip(name) { return !!this.clips[name]; }
+
+  // Close the hands: finger rotations taken from a clip where the fighter makes fists.
+  makeFists(clipName = 'box_01', time = 1.5) {
+    const clip = this.clips[clipName];
+    if (!clip) return;
+    for (const { bone, interp } of clip.samplers) {
+      if (!this.fingerBones.includes(bone)) continue;
+      bone.quaternion.fromArray(interp.evaluate(time));
+      const r = this.retarget?.get(bone);
+      if (r) bone.quaternion.premultiply(r.ip).multiply(r.o);
+    }
+  }
+
+  // Pistol grip: right hand with the fingers forward, thumb up and palm inward; the left hand
+  // wraps around it from the side. Directions are in model space (+Z forward, +Y up).
+  gripPistol() {
+    const mq = this.model.getWorldQuaternion(new THREE.Quaternion());
+    for (const side of ['Right', 'Left']) {
+      const R = this.handRest[side];
+      if (!R) continue;
+      const f = side === 'Right' ? GRIP_R : GRIP_L;
+      const D = basisQ(f, _UP).multiply(basisQ(R.f, R.t).invert());
+      setWorldQuaternion(this.b[side + 'Hand'], mq.clone().multiply(D).multiply(R.q));
+      this.curlFingers(side);
+    }
+  }
+
+  // Close one hand around a grip: every finger joint bends towards the palm.
+  curlFingers(side, amount = 1) {
+    const R = this.handRest[side];
+    if (!R) return;
+    const hand = this.b[side + 'Hand'];
+    const palm = R.palmLocal.clone().applyQuaternion(hand.getWorldQuaternion(new THREE.Quaternion()));
+    const p0 = new THREE.Vector3(), p1 = new THREE.Vector3(), axis = new THREE.Vector3(), q = new THREE.Quaternion();
+    for (const bone of this.fingerBones) {
+      if (!bone.name.includes(side + 'Hand')) continue;
+      const child = bone.children.find((c) => c.isBone);
+      if (!child) continue;
+      const thumb = bone.name.includes('Thumb');
+      bone.getWorldPosition(p0); child.getWorldPosition(p1);
+      axis.crossVectors(p1.sub(p0).normalize(), palm);
+      if (axis.lengthSq() < 1e-6) continue;
+      q.setFromAxisAngle(axis.normalize(), amount * (thumb ? 0.55 : 1.25));
+      setWorldQuaternion(bone, q.multiply(bone.getWorldQuaternion(new THREE.Quaternion())));
+    }
+  }
+
+  // Where the pistol sits in the right hand (world space), or null.
+  pistolTransform(pos, quat) {
+    if (!this.handRest.Right) return false;
+    const mq = this.model.getWorldQuaternion(new THREE.Quaternion());
+    const fwd = GRIP_R.clone().applyQuaternion(mq), up = _UP.clone().applyQuaternion(mq);
+    quat.copy(mq).multiply(basisQ(GRIP_R, _UP));
+    this.b.RightHand.getWorldPosition(pos).addScaledVector(fwd, 0.075).addScaledVector(up, 0.03);
+    return true;
+  }
 
   // Model space → world.
   mw(x, y, z, out = new THREE.Vector3()) {
@@ -386,6 +471,8 @@ export class Character {
         this.mw(rp.RightArm.x + hip[0] + rh[0], rp.RightArm.y + hip[1] + rh[1], rp.RightArm.z + hip[2] + rh[2]),
         this.mdir(-0.5, -1, -0.6));
     }
+
+    if (P.grip) this.gripPistol();
 
     if (!P.clip || P.legsIK) {
       const lf = P.lf, rf = P.rf;

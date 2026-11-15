@@ -86,7 +86,29 @@ const MIXAMO_ATTACKS = {
   jlk: ['Kicking', 0.95, 1.2, 1.32, 1.42, 0, false, AIRCLIP],
   jhk: ['Inside_Crescent_Kick', 1.12, 1.32, 1.45, 1.58, 0, false, AIRCLIP],
 };
-const CLIP_ATTACKS = { hotmonster: MIXAMO_ATTACKS, flash: MIXAMO_ATTACKS };
+// Each fighter swaps a few moves for their own (Mixamo clips the player picked).
+const FFA = 'Fist_Fight_A', KJU = 'Knee_Jabs_To_Uppercut';
+const CLIP_ATTACKS = {
+  hotmonster: {
+    ...MIXAMO_ATTACKS,
+    // Jab string mixes in the hooks from "Fist Fight A".
+    lp2: [FFA, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL],
+    lp3: [FFA, 2.55, 2.7, 2.76, 2.95, 0, false, TRAVEL],
+    lk: [FFA, 3.38, 3.6, 3.72, 3.95, 0, false, TRAVEL],     // snap kick from "Fist Fight A"
+    hk: ['Martelo_2', 0.1, 0.45, 0.62, 1.3],
+  },
+  flash: {
+    ...MIXAMO_ATTACKS,
+    fk: ['Flying_Kick', 0.0, 0.42, 0.56, 1.1, 0, false, TRAVEL], // VOADORA: flying kick
+  },
+  genildo: {
+    ...MIXAMO_ATTACKS,
+    // Clinch knees and the uppercut from "Knee Jabs To Uppercut".
+    lk: [KJU, 1.38, 1.6, 1.72, 1.95, 0, false, TRAVEL],
+    lk2: [KJU, 1.95, 2.15, 2.25, 2.45, 0, false, TRAVEL],
+    hp: [KJU, 3.15, 3.55, 3.66, 4.25, 0, false, TRAVEL],
+  },
+};
 
 function attackPose(f, m, t) {
   const set = CLIP_ATTACKS[f.char] || CLIP_ATTACKS.flash;
@@ -115,29 +137,18 @@ function attackPose(f, m, t) {
   return p;
 }
 
-// Genildo: pistol held out in both hands at shoulder height (IK targets, model units).
-const AIM = withP(STANCE, { rh: [0.05, 0.02, 0.22], lh: [-0.09, 0.01, 0.2], spine: [-0.02, 0.25, 0], head: [0.05, -0.15, 0], hip: [0, 0.01, 0] });
-const SALUTE = withP(STANCE, {
-  rh: [0.13, 0.17, 0.0], lh: [0.04, -0.22, -0.13], spine: [-0.1, 0, 0], head: [-0.06, 0, 0],
-  lf: [-0.03, 0, -0.1], rf: [0.03, 0, 0.09], hip: [0, 0.03, 0],
-});
-// Each shot kicks the hands up and back for a few frames.
-function recoil(t, shots) {
-  let k = 0;
-  for (const s of shots) if (t >= s && t < s + 5) k = Math.max(k, 1 - (t - s) / 5);
-  return withP(AIM, { rh: [0, 0.07 * k, -0.06 * k], lh: [0, 0.06 * k, -0.05 * k], spine: [-0.08 * k, 0, 0] });
-}
-
 function specialPose(f, m) {
   const t = f.sf;
   if (f.char === 'genildo' && (f.mv === 'special' || f.mv === 'super')) {
-    // Draw, aim with both hands, fire (with recoil), then holster.
+    // Mixamo "Pistol Idle": two-handed aim, hands closed on the grip. Each shot kicks the
+    // upper body back for a few frames; the pistol is put away at the end of the recovery.
     const shots = f.mv === 'special' ? [m.projectile.at] : m.burst.frames;
-    const draw = Math.min(12, shots[0] - 2), end = shots[shots.length - 1] + 6, total = m.startup + m.active + m.recovery;
-    if (t < draw) return { ...mixPose(STANCE, AIM, ease(t / draw)), hand: 'gun' };
-    if (t < end) return { ...recoil(t, shots), hand: 'gun' };
-    const k = ease(clamp01((t - end) / Math.max(1, total - end)));
-    return { ...mixPose(AIM, STANCE, k), hand: k < 0.6 ? 'gun' : null };
+    const total = m.startup + m.active + m.recovery;
+    let k = 0;
+    for (const sh of shots) if (t >= sh && t < sh + 5) k = Math.max(k, 1 - (t - sh) / 5);
+    const holding = t < total - 6;
+    return { ...CLIP, clip: 'Pistol_Idle', clipTime: 1.0, spine: [-0.12 * k, 0, 0], head: [-0.06 * k, 0, 0],
+      hand: holding ? 'gun' : null, grip: holding, blend: 0.14 };
   }
   if (f.char === 'hotmonster' && f.mv === 'special') {
     // Wind up with the bag behind, then throw it overhand.
@@ -209,7 +220,7 @@ function rawPose(f, g, T) {
         const secs = g.phaseF / 60;
         if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7) };
         // Genildo draws on his opponent: "Parado!"
-        if (f.char === 'genildo') return { ...mixPose(STANCE, AIM, ease(clamp01((secs - 0.3) / 0.4))), hand: secs > 0.3 ? 'gun' : null };
+        if (f.char === 'genildo') return { ...CLIP, clip: 'Pistol_Idle', clipTime: (secs * 0.5) % 3.9, hand: 'gun', grip: true };
         // Flash shows off with push-ups, then springs up into his stance.
         return { ...CLIP, clip: 'press-up', clipTime: Math.min(1.9, secs * 1.15) };
       }
@@ -268,8 +279,8 @@ function rawPose(f, g, T) {
       return { ...CLIP, clip: 'Getting_Up', clipTime: 4.2 + clamp01(t / 18) * 1.7 };
     case 'win':
       if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
-      // Genildo stands to attention and salutes.
-      if (f.char === 'genildo') return mixPose(STANCE, SALUTE, ease(clamp01(t / 20)));
+      // Genildo celebrates with a b-boy uprock (Mixamo "Bboy Uprock", looped).
+      if (f.char === 'genildo') return { ...CLIP, clip: 'Bboy_Uprock', clipTime: (t / 60) % 2.25, blend: 0.3 };
       return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };
     case 'lose':
       // Lost on time. Hotmonster staggers and collapses; Flash hangs his head.

@@ -173,13 +173,8 @@ export class Effects {
       if (!what) continue;
       const c = chars[i];
       if (what === 'gun') {
-        // Pointed where the fighter faces, held between both hands.
-        const r = c.b.RightHand.getWorldPosition(new THREE.Vector3());
-        const l = c.b.LeftHand.getWorldPosition(new THREE.Vector3());
-        this.gun.visible = true;
-        this.gun.position.copy(r).lerp(l, 0.35);
-        c.model.getWorldQuaternion(this.gun.quaternion);
-        this.gun.translateZ(0.06);
+        // Grip in the right palm, barrel along the aim.
+        this.gun.visible = c.pistolTransform(this.gun.position, this.gun.quaternion);
         continue;
       }
       const hand = c.b.RightHand;
