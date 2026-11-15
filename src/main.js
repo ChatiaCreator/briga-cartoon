@@ -395,7 +395,7 @@ function handleEvents(events) {
       case 'thud': sfx('thud'); break;
       case 'timeover': hud.flash('TEMPO!', 1500); announce('Tempo!', 'tempo'); break;
       case 'ko':
-        if (g.timer > 0) { hud.flash('K.O.!', 1500, false, 'fight'); sfx('ko'); announce('Nocaute!', 'nocaute'); }
+        if (g.timer > 0) { hud.flash('LEVOU UMA\nPISA!', 2400, false, 'pisa'); sfx('ko'); announce('Levou uma pisa!', 'nocaute'); }
         break;
       case 'roundEnd':
         hud.flash(g.roundWinner === 2 ? 'EMPATE' : `${nameOf(g, g.roundWinner)} VENCE!`, 1800, true);

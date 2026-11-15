@@ -136,7 +136,7 @@ export class Effects {
   hit(ev) {
     const pos = new THREE.Vector3(ev.x / 1000, ev.y / 1000, 0.6);
     if (ev.ko) {
-      // The HUD already shows "K.O.!", so the impact itself is a plain big burst.
+      // The HUD already shows "LEVOU UMA PISA!", so the impact itself is a plain big burst.
       this.sprite(this.bursts.light, pos, 1.6, 0.5, { grow: 1.4 });
     } else if (ev.heavy) {
       const tex = this.bursts.words[Math.floor(Math.random() * this.bursts.words.length)];

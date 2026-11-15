@@ -196,6 +196,11 @@ kbd { display: inline-block; min-width: 24px; padding: 2px 6px; margin: 0 2px; b
 #hud .banner[data-kind="fight"] { font-size: clamp(60px, 13vw, 190px); }
 #hud .banner[data-kind="fight"] b { animation: fire 0.35s ease-in-out infinite alternate; }
 #hud .banner[data-kind="fight"] span { background-image: linear-gradient(#fffbd0, #ffe14a 25%, #ff9d00 55%, #e8401a 80%, #a80f12); }
+/* K.O. = "LEVOU UMA PISA!": two lines of fiery letters, the second one huge */
+#hud .banner[data-kind="pisa"] { font-size: clamp(34px, 7.5vw, 110px); line-height: 0.95; }
+#hud .banner[data-kind="pisa"] b { animation: fire 0.35s ease-in-out infinite alternate; }
+#hud .banner[data-kind="pisa"] span { white-space: pre-line; background-image: linear-gradient(#fffbd0, #ffe14a 25%, #ff9d00 55%, #e8401a 80%, #a80f12); }
+#hud .banner[data-kind="pisa"] span::first-line { font-size: 0.75em; }
 @keyframes fire { to { filter: drop-shadow(4px 4px 0 var(--ink2)) drop-shadow(0 0 28px rgba(255, 90, 0, 1)); } }
 /* ROUND 1: silver letters on a red slanted plate */
 #hud .banner[data-kind="round"] b {

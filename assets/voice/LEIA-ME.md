@@ -9,7 +9,7 @@ aparelho (escolhida em Opções → LOCUTOR) para o resto.
 | `round1.mp3` … `round4.mp3` | "Round 1" … "Round 4" |
 | `round-final.mp3` | "Round final" |
 | `luta.mp3` | "Luta!" |
-| `nocaute.mp3` | "Nocaute!" |
+| `nocaute.mp3` | "Levou uma pisa!" (o K.O.) |
 | `tempo.mp3` | "Tempo!" |
 | `empate.mp3` | "Empate!" |
 | `venceu-hotmonster.mp3`, `venceu-flash.mp3`, `venceu-genildo.mp3`, `venceu-anderon.mp3`, `venceu-hgl.mp3` | "<nome> venceu!" |
