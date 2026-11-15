@@ -20,7 +20,7 @@ export function createFighter(id, char, x) {
     hp: c.hp, maxHp: c.hp, meter: 0,
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
     combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, hitKind: 'head', hitRank: 1, chain: 0,
-    jug: 0, bounce: 0, // juggle hits left while falling; ground bounce pending
+    jug: 0, bounce: 0, grab: 0, // juggle hits left while falling; ground bounce pending; throw connected
     hist: new Array(HIST).fill(5), prev: 0, press: [99, 99, 99, 99, 99, 99, 99],
   };
 }
@@ -30,7 +30,7 @@ export function resetFighterForRound(f, x) {
   Object.assign(f, {
     x, y: 0, vx: 0, vy: 0, pv: 0, facing: f.id === 0 ? 1 : -1, hp: c.hp,
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
-    combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, jug: 0, bounce: 0, chain: 0,
+    combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, jug: 0, bounce: 0, chain: 0, grab: 0,
   });
 }
 
@@ -121,6 +121,43 @@ function toNeutral(f) {
   f.st = 'idle'; f.sf = 0; f.mv = ''; f.vx = 0; f.combo = 0; f.guard = false; f.jug = 0; f.bounce = 0;
 }
 
+const GRABBABLE = new Set(['idle', 'walk', 'crouch', 'land', 'jumpsquat', 'attack']);
+function canGrab(f, o) {
+  if (o.y !== 0 || o.inv > 0 || !GRABBABLE.has(o.st)) return false;
+  if (o.st === 'attack' && (getMove(o)?.air || o.mv === 'throw')) return false;
+  return Math.abs(o.x - f.x) <= CHARACTERS[f.char].moves.throw.throw.range;
+}
+
+// The throw: reach (startup), grab if the opponent is still there, carry over the shoulder and
+// slam them down behind. A whiff leaves the thrower open for the move's recovery.
+function stepThrow(f, m, o, g) {
+  const t = m.throw;
+  if (f.sf === m.startup) {
+    if (canGrab(f, o)) {
+      f.grab = 1; f.inv = t.land + t.after;
+      o.st = 'thrown'; o.sf = 0; o.mv = ''; o.vx = 0; o.pv = 0; o.guard = false; o.combo = 0;
+      g.events.push({ t: 'grab', f: f.id, x: (f.x + o.x) >> 1 });
+    } else f.grab = 0;
+  }
+  if (f.grab && f.sf === m.startup + t.land && o.st === 'thrown') {
+    // Slam: damage, the opponent lies behind the thrower, facing them.
+    let dmg = m.dmg;
+    if (f.buff > 0) dmg = Math.trunc((dmg * 150) / 100);
+    o.hp = Math.max(0, o.hp - dmg);
+    f.meter = Math.min(METER_MAX, f.meter + Math.trunc(m.dmg / 2));
+    o.meter = Math.min(METER_MAX, o.meter + Math.trunc(m.dmg / 4));
+    o.x = Math.max(-WALL, Math.min(WALL, f.x - f.facing * t.back));
+    o.facing = f.facing; o.y = 0; o.vy = 0; o.sf = 0; o.inv = t.inv;
+    o.st = o.hp === 0 ? 'ko' : 'down';
+    if (o.hp === 0) o.ko = true;
+    g.hitstop = 10;
+    g.events.push({ t: 'hit', x: o.x, y: 300, f: o.id, by: f.id, dmg, combo: 1, heavy: true, ko: o.ko, big: true, slam: true });
+    g.events.push({ t: 'thud', f: o.id, x: o.x });
+  }
+  const total = m.startup + (f.grab ? t.land + t.after : m.recovery);
+  if (f.sf >= total) { f.grab = 0; toNeutral(f); }
+}
+
 function startJump(f, dir) {
   f.st = 'jumpsquat'; f.sf = 0; f.mv = ''; f.guard = false;
   f.jumpDir = dir === 7 ? -f.facing : dir === 9 ? f.facing : 0;
@@ -155,6 +192,8 @@ export function stepFighter(f, input, o, g) {
   switch (f.st) {
     case 'idle': case 'walk': case 'crouch': case 'land': {
       if (f.st === 'land' && f.sf < 4) break;
+      // AGARRÃO: forward or back + SOCO+ right next to an opponent who can be grabbed.
+      if ((dir === 6 || dir === 4) && buffered(f, HP) && canGrab(f, o)) { consume(f, HP); startMove(f, 'throw', g); break; }
       const mv = chooseMove(f, dir, false, 0);
       if (mv) { startMove(f, mv, g); break; }
       if (dir >= 7) { startJump(f, dir); break; }
@@ -222,6 +261,21 @@ export function stepFighter(f, input, o, g) {
     case 'down':
       if (f.sf >= 40) { f.st = 'rise'; f.sf = 0; f.inv = 20; }
       break;
+    case 'thrown': {
+      const t = CHARACTERS[o.char].moves.throw.throw;
+      // The thrower was interrupted: let go.
+      if (o.st !== 'attack' || o.mv !== 'throw') { f.st = 'fall'; f.sf = 0; f.y = 1; f.vy = 60; f.vx = 0; break; }
+      // Escape: SOCO+ pressed just before or right after being grabbed.
+      if (f.sf <= t.tech && buffered(f, HP)) {
+        consume(f, HP);
+        const away = f.x === o.x ? -o.facing : Math.sign(f.x - o.x);
+        for (const [who, dirn] of [[f, away], [o, -away]]) {
+          who.st = 'block'; who.sf = 0; who.stun = 16; who.mv = ''; who.guardLow = false; who.pv = 40 * dirn; who.inv = 0;
+        }
+        g.events.push({ t: 'tech', f: f.id, x: (f.x + o.x) >> 1 });
+      }
+      break;
+    }
     case 'rise':
       if (f.sf >= 18) toNeutral(f);
       break;
@@ -243,6 +297,7 @@ function opponentThreatens(f, o, g) {
 
 function stepAttack(f, dir, o, g) {
   const m = getMove(f);
+  if (m.throw) { stepThrow(f, m, o, g); return; }
   const sp = speedPct(f);
   if (m.air) {
     applyGravity(f);

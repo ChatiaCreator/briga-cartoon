@@ -32,6 +32,7 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **HGL:** **CHAVE DE FENDA**, arremessa a chave de fenda girando no inimigo e derruba.
 - **VOADORA:** corre e chuta voando. Acerta no alto, então só é defendida em pé.
 - **ESTRELA:** estrela com chute que derruba.
+- **AGARRÃO:** colado no adversário, para frente (ou para trás) + soco forte. Joga o adversário por cima do ombro e ele cai do outro lado. Não dá para defender: para escapar, aperte soco forte logo que for agarrado.
 - **ESQUIVA:** toque duas vezes para trás (no celular, puxe o direcional duas vezes). O lutador abaixa e escapa para trás, sem poder ser acertado no começo.
 - **Sequência de socos:** apertando soco fraco seguido saem até 4 socos.
 - **Defesa:** segure para trás. Agachado, você também defende os golpes baixos (rasteira e chute baixo). Golpes no ar só são defendidos em pé.

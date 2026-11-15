@@ -142,11 +142,16 @@ export class GameView {
     const prev = this.prev && this.prev.frame === g.frame - 1 ? this.prev : null;
     const lk = prev ? frac : 1;
     const poses = [];
+    const pos = g.f.map((f, i) => {
+      const [px, py] = prev ? prev.f[i] : [f.x, f.y];
+      return [(px + (f.x - px) * lk) / 1000, (py + (f.y - py) * lk) / 1000];
+    });
     for (let i = 0; i < 2; i++) {
       const f = g.f[i];
       const c = this.chars[i];
-      const [px, py] = prev ? prev.f[i] : [f.x, f.y];
-      const x = (px + (f.x - px) * lk) / 1000, y = (py + (f.y - py) * lk) / 1000;
+      // Being thrown: drawn on the thrower's spot (the paired clip places the body).
+      const thrown = f.st === 'thrown';
+      const [x, y] = pos[thrown ? 1 - i : i];
       c.root.position.set(x, y, 0);
       (this.posX ||= [0, 0])[i] = x;
       // Whoever gets hit shakes in place during the hit-stop.
@@ -154,9 +159,10 @@ export class GameView {
         c.root.position.x += Math.sin(this.T * 95) * (f.st === 'block' ? 0.015 : 0.035);
       }
       // Turning around goes through facing the camera instead of popping.
-      const want = f.facing * FACE_ANGLE;
+      const want = (thrown ? g.f[1 - i].facing : f.facing) * FACE_ANGLE;
       if (this.yaw[i] === null) this.yaw[i] = want;
-      this.yaw[i] += (want - this.yaw[i]) * (1 - Math.pow(0.0005, dt));
+      if (thrown) this.yaw[i] = this.yaw[1 - i] ?? want;
+      else this.yaw[i] += (want - this.yaw[i]) * (1 - Math.pow(0.0005, dt));
       c.root.rotation.y = this.yaw[i];
       // Animation time runs between sim frames too (except while the hit-stop freezes it).
       const sub = g.hitstop > 0 || !prev ? 0 : frac;

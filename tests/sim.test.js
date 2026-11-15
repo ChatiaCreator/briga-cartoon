@@ -372,3 +372,46 @@ test('HGL special CARRINHO slides under a bullet and must be blocked low', () =>
   run(g2, 40, () => [0, RIGHT]);
   assert.ok(g2.f[1].hp < hp2, 'standing block should not stop the slide');
 });
+
+test('AGARRÃO: forward + SOCO+ up close throws the opponent behind and knocks down', () => {
+  const g = createGame(['hotmonster', 'flash']);
+  toFight(g); approach(g, 600);
+  const hp = g.f[1].hp, x0 = g.f[0].x;
+  step(g, [RIGHT | HP, 0]);
+  assert.equal(g.f[0].mv, 'throw');
+  run(g, 8);
+  assert.equal(g.f[1].st, 'thrown');
+  run(g, 70);
+  assert.equal(g.f[1].hp, hp - 130);
+  assert.ok(g.f[1].x < x0, 'landed on the other side of the thrower');
+  assert.ok(['down', 'rise'].includes(g.f[1].st), g.f[1].st);
+  run(g, 120);
+  assert.equal(g.f[0].st, 'idle');
+  assert.equal(g.f[0].facing, -1, 'the thrower turns to face the opponent');
+});
+
+test('AGARRÃO: blocking does not stop it, pressing SOCO+ right away escapes', () => {
+  const g = createGame(['hotmonster', 'flash']);
+  toFight(g); approach(g, 600);
+  const hp = g.f[1].hp;
+  step(g, [RIGHT | HP, RIGHT]);            // P2 holds back (block) — still grabbed
+  run(g, 6, () => [0, RIGHT]);
+  assert.equal(g.f[1].st, 'thrown');
+  step(g, [0, HP]);                         // escape
+  run(g, 30);
+  assert.equal(g.f[1].hp, hp, 'escaped without damage');
+  assert.notEqual(g.f[1].st, 'thrown');
+  assert.ok(g.f[1].x - g.f[0].x >= 500, 'pushed apart');
+});
+
+test('AGARRÃO: too far away it whiffs and leaves the thrower open', () => {
+  const g = createGame(['hotmonster', 'flash']);
+  toFight(g); approach(g, 1500);
+  step(g, [RIGHT | HP, 0]);
+  assert.notEqual(g.f[0].mv, 'throw', 'out of range: a normal strong punch instead');
+  const g2 = createGame(['hotmonster', 'flash']);
+  toFight(g2); approach(g2, 600);
+  step(g2, [UP, 0]); step(g2, [0, UP]); run(g2, 3);     // P2 jumps
+  step(g2, [RIGHT | HP, 0]);
+  assert.notEqual(g2.f[1].st, 'thrown', 'airborne opponents cannot be grabbed');
+});

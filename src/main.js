@@ -420,7 +420,7 @@ function handleEvents(events) {
       case 'fight': hud.flash('FIGHT!', 900, false, 'fight'); announce('Luta!', 'luta'); break;
       case 'hit':
         sfx(ev.heavy ? 'heavy' : 'hit', ev.combo);
-        if (ev.big && !ev.ko) sfx('launch');
+        if (ev.big && !ev.ko && !ev.slam) sfx('launch');
         if (touch.enabled && ev.f === (m.mode === 'online' ? m.me : 0)) buzz(ev.heavy ? 60 : 25);
         hud.combo(ev.by, ev.combo, ev.dmg);
         break;
@@ -442,6 +442,8 @@ function handleEvents(events) {
       case 'splash': if (ev.kind === 'racao') sfx('splash'); else if (ev.kind === 'screwdriver') sfx('clank'); break;
       case 'shot': sfx('shot'); break;
       case 'heal': sfx('heal'); break;
+      case 'grab': sfx('whoosh'); sfx('block'); break;
+      case 'tech': sfx('block'); hud.flash('ESCAPOU!', 900, true); break;
       case 'thud': sfx('thud'); break;
       case 'timeover': hud.flash('TEMPO!', 1500); announce('Tempo!', 'tempo'); break;
       case 'ko':

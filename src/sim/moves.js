@@ -26,6 +26,10 @@ const normals = {
   fk:  { rank: 2, startup: 18, active: 6, recovery: 16, dmg: 90, hitstun: 22, blockstun: 16, push: 220, height: 'high', box: [150, 900, 950, 1650], travel: [2, 24, 50] },
   // ESTRELA: cartwheel into a kick that knocks down.
   cw:  { rank: 2, startup: 20, active: 6, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 200, height: 'mid', box: [100, 700, 900, 1550], travel: [0, 22, 34], kd: true },
+  // AGARRÃO (forward or back + SOCO+ next to the opponent): shoulder throw. Can't be blocked;
+  // the one grabbed escapes by pressing SOCO+ right away. The opponent lands behind the thrower.
+  throw: { rank: 0, startup: 5, active: 0, recovery: 24, dmg: 130, hitstun: 0, blockstun: 0, push: 0, height: 'mid',
+    throw: { range: 760, land: 60, after: 28, back: 1300, tech: 10, inv: 70 } },
   // ESQUIVA (tap back twice): ducks and slips back, untouchable for the first 14 frames.
   // No hitbox (it never becomes active); punishable at the end.
   dodge: { rank: 0, startup: 22, active: 0, recovery: 6, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid', invuln: 14, travel: [1, 15, -46] },

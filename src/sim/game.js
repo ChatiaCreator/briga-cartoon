@@ -112,7 +112,7 @@ function nextRound(g) {
 }
 
 function hurtbox(f) {
-  if (f.st === 'down' || f.st === 'rise' || f.st === 'ko') return null;
+  if (f.st === 'down' || f.st === 'rise' || f.st === 'ko' || f.st === 'thrown') return null;
   // Knocked into the air: only hittable while juggle hits are left.
   if (f.st === 'fall' && f.jug <= 0) return null;
   const h = isCrouching(f) ? 1100 : f.y > 0 ? 1450 : 1750;
@@ -236,7 +236,7 @@ function separate(g) {
     right.x -= excess - (excess >> 1);
   }
   // Bodies don't overlap unless one is high in the air.
-  if (a.y < 900 && b.y < 900 && a.st !== 'down' && b.st !== 'down' && a.st !== 'ko' && b.st !== 'ko') {
+  if (a.y < 900 && b.y < 900 && a.st !== 'down' && b.st !== 'down' && a.st !== 'ko' && b.st !== 'ko' && a.st !== 'thrown' && b.st !== 'thrown') {
     const dx = b.x - a.x;
     if (Math.abs(dx) < BODY_W) {
       const s = dx !== 0 ? Math.sign(dx) : a.facing;
@@ -261,7 +261,7 @@ function updateFacing(f, o) {
 }
 
 // 32-bit FNV-1a over the state that matters, used to detect online desyncs.
-const ST = ['idle', 'walk', 'crouch', 'land', 'jumpsquat', 'air', 'attack', 'hit', 'block', 'fall', 'down', 'rise', 'ko', 'win', 'lose'];
+const ST = ['idle', 'walk', 'crouch', 'land', 'jumpsquat', 'air', 'attack', 'hit', 'block', 'fall', 'down', 'rise', 'ko', 'win', 'lose', 'thrown'];
 const PH = ['intro', 'fight', 'ko', 'roundEnd', 'matchEnd'];
 export function checksum(g) {
   let h = 0x811c9dc5;
@@ -277,7 +277,7 @@ export function checksum(g) {
   for (const f of g.f) {
     mix(f.x); mix(f.y); mix(f.vx); mix(f.vy); mix(f.pv); mix(f.facing); mix(f.hp); mix(f.meter);
     mix(ST.indexOf(f.st)); mix(f.sf); mix(f.mv.length ? f.mv.charCodeAt(0) * 256 + f.mv.charCodeAt(f.mv.length - 1) : 0);
-    mix(f.stun); mix(f.inv); mix(f.buff); mix(f.combo); mix(f.jug); mix(f.bounce);
+    mix(f.stun); mix(f.inv); mix(f.buff); mix(f.combo); mix(f.jug); mix(f.bounce); mix(f.grab);
   }
   for (const p of g.proj) { mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); }
   return h >>> 0;

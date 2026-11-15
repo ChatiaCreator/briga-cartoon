@@ -11,7 +11,7 @@ const clean = (n) => n.replace(/^mixamorig[:_]?/, '');
 const bonesOf = (root) => { const m = new Map(); root.traverse((o) => { if (o.isBone || /mixamorig/.test(o.name)) m.set(clean(o.name), o); }); return m; };
 
 // Rest pose of the target (the fighters share the same skeleton).
-const target = await new GLTFLoader().loadAsync('../../assets/models/hotmonster.glb');
+const target = await new GLTFLoader().loadAsync('../models_src/hotmonster.glb');
 const tBones = bonesOf(target.scene);
 
 window.inspect = async (url) => {

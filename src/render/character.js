@@ -338,6 +338,16 @@ export class Character {
       // Keep the clip's sway around the rest spot, minus its overall drift.
       this.b.Hips.position.set(rest.x + (v[0] - h.x0 - h.dx * k), v[1], rest.z + (v[2] - h.z0 - h.dz * k));
       if (opts?.lockXZ) { this.b.Hips.position.x = rest.x; this.b.Hips.position.z = rest.z; }
+      // Paired clips (throws): positions relative to a point of another clip (the thrower's
+      // hips at the grab), so two characters standing at the same spot line up as authored.
+      if (opts?.anchorClip) {
+        const ac = this.clips[opts.anchorClip]?.hips;
+        if (ac) {
+          const a = ac.interp.evaluate(opts.anchorAt).slice();
+          this.b.Hips.position.x = rest.x + (v[0] - a[0]);
+          this.b.Hips.position.z = rest.z + (v[2] - a[2]);
+        }
+      }
       if (opts?.clampUp) this.b.Hips.position.y = Math.min(v[1], rest.y);
     }
     this.limitArmTwist();
@@ -499,6 +509,18 @@ export class Character {
       hb.position.copy(hb.parent.worldToLocal(this.model.localToWorld(lp)));
       hb.updateMatrixWorld(true);
       this.rotateModelSpace(hb, 0, P.clipYaw, 0);
+    }
+
+    // Paired clips are authored facing sideways: turn the whole clip (hips position around the
+    // standing spot, and orientation) by P.clipRot.
+    if (P.clip && P.clipRot) {
+      const hb = this.b.Hips, rh = this.restPos.Hips;
+      const lp = this.model.worldToLocal(hb.getWorldPosition(new THREE.Vector3()));
+      const dx = lp.x - rh.x, dz = lp.z - rh.z, c = Math.cos(P.clipRot), s = Math.sin(P.clipRot);
+      lp.x = rh.x + dx * c + dz * s; lp.z = rh.z - dx * s + dz * c;
+      hb.position.copy(hb.parent.worldToLocal(this.model.localToWorld(lp)));
+      hb.updateMatrixWorld(true);
+      this.rotateModelSpace(hb, 0, P.clipRot, 0);
     }
 
     // Feet planted where the clip puts them (legs then bend with IK when the hips move).

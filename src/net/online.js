@@ -3,7 +3,7 @@
 import { delayFor } from './rollback.js';
 
 const PREFIX = 'briga-cartoon-v1-';
-export const NET_VERSION = 5; // 5: compressed models, new delay table
+export const NET_VERSION = 6; // 6: AGARRÃO
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function makeCode() {

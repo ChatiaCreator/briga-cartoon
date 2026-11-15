@@ -249,6 +249,18 @@ function standPose(t) {
   return { ...KNEEL, clip: 'Crouch_To_Stand', clipTime: 0.6 + 0.65 * clamp01(t / STAND_TIME), blend: 0.06, key: 'stand' };
 }
 
+// Shoulder throw (Mixamo "Shoulder Throw Aggressor / Victim", a paired animation): both clips
+// share one space, so both characters are drawn at the thrower's spot and facing.
+const THROW_GRAB = 1.9;    // clip time of the grab
+const THROW_ROT = Math.PI / 2;
+const THROWER = { ...CLIP, clip: 'Shoulder_Throw_Aggressor', anchorClip: 'Shoulder_Throw_Aggressor', anchorAt: THROW_GRAB, clipRot: THROW_ROT, blend: 0.06 };
+const THROWN = { ...CLIP, clip: 'Shoulder_Throw_Victim', anchorClip: 'Shoulder_Throw_Aggressor', anchorAt: THROW_GRAB, clipRot: THROW_ROT };
+// Sim frame of the throw -> clip time: reach 1.5 -> 1.9 s, then 1.6x speed (slam at 3.5 s).
+function throwClipTime(sf, m) {
+  if (sf < m.startup) return 1.5 + 0.4 * (sf / m.startup);
+  return THROW_GRAB + ((sf - m.startup) / 60) * 1.6;
+}
+
 function idleTime(T) {
   // Sway through the boxing stance part of box_01 (no punches between 1.0 and 2.2 s),
   // easing at both ends instead of bouncing.
@@ -258,7 +270,7 @@ function idleTime(T) {
 // How long (seconds) the previous pose takes to blend into each state.
 const BLEND = {
   idle: 0.16, walk: 0.12, crouch: 0.09, jumpsquat: 0.05, air: 0.09, land: 0.06, attack: 0.05,
-  block: 0.05, hit: 0.035, fall: 0.07, down: 0.15, rise: 0.1, ko: 0.06, win: 0.3, lose: 0.3,
+  block: 0.05, hit: 0.035, fall: 0.07, down: 0.15, rise: 0.1, ko: 0.06, win: 0.3, lose: 0.3, thrown: 0.06,
 };
 
 export function poseFor(f, g, T) {
@@ -318,8 +330,20 @@ function rawPose(f, g, T) {
       return { ...CLIP, clip: 'Jumping', clipTime: 0.55 + prog * 0.5, ...AIRCLIP,
         body: [flip ? k * Math.PI * 2 : 0, 0, 0, 0, 0.9] };
     }
+    case 'thrown': {
+      // Played on the thrower's spot and timeline (see view.js), with the paired victim clip.
+      const o = g?.f[1 - f.id];
+      const at = o && o.mv === 'throw' ? throwClipTime(o.sf, CHARACTERS[o.char].moves.throw) : THROW_GRAB;
+      return { ...THROWN, clipTime: at, blend: 0.06 };
+    }
     case 'attack': {
       const m = CHARACTERS[f.char].moves[f.mv];
+      if (f.mv === 'throw') {
+        const t = throwClipTime(f.sf, m);
+        // Reaching (before the grab) stays on the spot; after it, the paired clip.
+        if (f.sf < m.startup || !f.grab) return { ...CLIP, clip: 'Shoulder_Throw_Aggressor', clipTime: Math.min(t, 2.0), lockXZ: true, clipRot: THROW_ROT, blend: 0.06 };
+        return { ...THROWER, clipTime: t };
+      }
       if (f.mv === 'special' || f.mv === 'super') return specialPose(f, m);
       return attackPose(f, m, T);
     }

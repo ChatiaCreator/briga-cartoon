@@ -19,6 +19,13 @@ export class Cpu {
 
   input(g) {
     if (g.phase !== 'fight') { this.queue = []; return 0; }
+    // Grabbed: sometimes escapes (more often on harder levels).
+    const me = g.f[this.i];
+    if (me.st === 'thrown') {
+      if (me.sf === 2) this.techTry = this.rnd() < 0.15 + this.level * 0.45;
+      this.queue = [];
+      return this.techTry && me.sf === 3 ? HP : 0;
+    }
     if (this.queue.length) return this.queue.shift();
     if (this.wait > 0) { this.wait--; return this.hold; }
     this.decide(g);
@@ -93,6 +100,8 @@ export class Cpu {
       hgl: [LK, ...z(8), HP, ...z(16), ...z(16, UP | fwd), 0, HK],
     }[me.char];
     if (own) combos.push(own, own);
+    // AGARRÃO when right next to the opponent (and they are not jumping).
+    if (dist < 700 && o.y === 0) combos.push([fwd | HP], [fwd | HP]);
     combos.push([LP, ...z(14), DOWN | HP, ...z(20, DOWN), ...z(16, UP | fwd), 0, HK]);
     if (r < 0.25 + lv * 0.5) {
       const c = combos[Math.floor(this.rnd() * combos.length)];
