@@ -30,5 +30,6 @@ export function stepProjectiles(g) {
 
 export function projectileBox(p) {
   if (p.kind === 'bullet') return [p.x - 120, p.y - 90, p.x + 120, p.y + 90];
+  if (p.kind === 'screwdriver') return [p.x - 200, p.y - 120, p.x + 200, p.y + 120];
   return [p.x - 180, p.y - 180, p.x + 180, p.y + 180];
 }

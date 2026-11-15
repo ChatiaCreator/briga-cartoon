@@ -8,7 +8,7 @@ import { shadowTexture, loadImage } from './textures.js';
 import { CHARACTERS } from '../sim/moves.js';
 
 const FACE_ANGLE = 1.15; // radians: side-on, turned a little towards the camera
-const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e };
+const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e, hgl: 0xff9a2e };
 const LIMBS = ['LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'];
 
 // The K.O. that ends the match: played in slow motion with the camera zoomed in.
@@ -99,7 +99,8 @@ export class GameView {
         this.arena.shake = Math.max(this.arena.shake, ev.ko ? 0.35 : ev.big ? 0.26 : ev.heavy ? 0.14 : 0.05);
         this.arena.cheer(ev.ko ? 1.5 : ev.big ? 1 : ev.heavy ? 0.5 : 0.15);
       } else if (ev.t === 'block') this.fx.block(ev);
-      else if (ev.t === 'splash' && ev.kind !== 'bullet') this.fx.splash(ev.x, ev.air ? 1200 : 0);
+      else if (ev.t === 'splash' && ev.kind === 'racao') this.fx.splash(ev.x, ev.air ? 1200 : 0);
+      else if (ev.t === 'splash' && ev.kind === 'screwdriver') this.fx.sparks(ev.x, ev.air ? 1400 : 100);
       else if (ev.t === 'thud') { this.fx.dust(ev.x); this.arena.shake = Math.max(this.arena.shake, 0.1); }
       else if (ev.t === 'bounce') { this.fx.dust(ev.x); this.fx.dust(ev.x); this.arena.shake = Math.max(this.arena.shake, 0.22); }
       else if (ev.t === 'shot') {

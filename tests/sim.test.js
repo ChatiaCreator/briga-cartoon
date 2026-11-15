@@ -337,3 +337,38 @@ test('Anderon special ARMADA travels and knocks down', () => {
   for (let i = 0; i < 50; i++) { step(g, [0, 0]); if (g.f[1].st === 'fall' || g.f[1].st === 'down') fell = true; }
   assert.ok(fell);
 });
+
+test('HGL super throws the screwdriver across the stage and knocks down', () => {
+  const g = createGame(['hgl', 'flash']);
+  toFight(g);
+  g.f[0].meter = 1000;
+  const hp = g.f[1].hp;
+  step(g, [SUP, 0]);
+  let saw = false, fell = false;
+  for (let i = 0; i < 140; i++) {
+    step(g, [0, 0]);
+    if (g.proj.some((p) => p.kind === 'screwdriver')) saw = true;
+    if (g.f[1].st === 'fall' || g.f[1].st === 'down') fell = true;
+  }
+  assert.ok(saw, 'a screwdriver was thrown');
+  assert.ok(fell, 'it knocks down');
+  assert.ok(hp - g.f[1].hp >= 200, `dealt ${hp - g.f[1].hp}`);
+});
+
+test('HGL special CARRINHO slides under a bullet and must be blocked low', () => {
+  const g = createGame(['hgl', 'genildo']);
+  toFight(g); approach(g, 1800);
+  step(g, [0, LP | HP]);         // Genildo fires
+  run(g, 8);
+  const hp = g.f[0].hp;
+  step(g, [LP | HP, 0]);         // HGL slides
+  run(g, 20);
+  assert.equal(g.f[0].hp, hp, 'the bullet passed over the slide');
+  // Standing block does not stop it.
+  const g2 = createGame(['hgl', 'flash']);
+  toFight(g2); approach(g2, 1200);
+  const hp2 = g2.f[1].hp;
+  step(g2, [LP | HP, RIGHT]);
+  run(g2, 40, () => [0, RIGHT]);
+  assert.ok(g2.f[1].hp < hp2, 'standing block should not stop the slide');
+});

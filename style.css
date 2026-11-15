@@ -752,3 +752,6 @@ button.sbtn:active { transform: skewX(-14deg) translate(3px, 3px); }
 #tbuttons button[data-code="KeyY"] { background-image: url(assets/ui/touch/estrela.webp); }
 #tbuttons button.down { transform: scale(0.9); filter: brightness(1.25) drop-shadow(0 0 8px #fff); box-shadow: none; }
 #tpause { font-family: 'Luckiest Guy', var(--font); background: #120a24; color: #fff; border: 3px solid #ffc21a; border-radius: 10px; box-shadow: 0 0 0 2px #170c2b; }
+/* Card names shrink with the card (5+ fighters on narrow screens). */
+.selart .card { container-type: inline-size; }
+.selart .card .cn { font-size: min(14cqw, 18px); padding-inline: 2px; white-space: nowrap; }

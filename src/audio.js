@@ -69,6 +69,8 @@ export function sfx(name, k = 0) {
     case 'thud': tone(c, 'sine', 90, 35, 0.25, 0.6); break;
     case 'bell': tone(c, 'sine', 880, 870, 0.8, 0.25); tone(c, 'sine', 1320, 1300, 0.6, 0.1); break;
     case 'shot': burst(c, 0.14, 0.9, 3500); tone(c, 'square', 220, 45, 0.12, 0.35); break;
+    case 'clank': tone(c, 'square', 1800, 1200, 0.08, 0.2); tone(c, 'triangle', 2600, 2000, 0.25, 0.12, 0.03); burst(c, 0.12, 0.3, 6000); break;
+    case 'spin': tone(c, 'sawtooth', 400, 1400, 0.25, 0.06); break;
     case 'ring': for (let i = 0; i < 4; i++) tone(c, 'square', i % 2 ? 1320 : 1480, i % 2 ? 1320 : 1480, 0.08, 0.12, i * 0.1); break;
     case 'heal': tone(c, 'sine', 660, 990, 0.18, 0.18); tone(c, 'sine', 990, 1320, 0.14, 0.1, 0.06); break;
     case 'jump': tone(c, 'sine', 300, 600, 0.12, 0.12); break;

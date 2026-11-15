@@ -21,7 +21,7 @@ const renderer = createRenderer($('stage'));
 const hud = new Hud();
 attachKeyboard();
 const touch = initTouch({ onPause: () => openPause() });
-const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'LIGANDO PRA CASADA!' };
+const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'LIGANDO PRA CASADA!', hgl: 'CHAVE DE FENDA!' };
 const canFull = !!document.documentElement.requestFullscreen;
 if (canFull) {
   $('fullBtn').classList.remove('hidden');
@@ -47,6 +47,7 @@ const DESCR = {
   hotmonster: 'Especial: arremessa um saco de RAÇÃO. Super: chuva de ração do céu! Combo: SOCO, SOCO, SOCO+ → ESPECIAL.',
   flash: 'Especial: investida relâmpago. Super: bebe GARRA Energy (+50% dano, +20% velocidade). Combo: SOCO+, SOCO+ → pula e chuta.',
   genildo: 'Policial militar. Especial: atira com a pistola. Super: rajada TOLERÂNCIA ZERO! Combo: CHUTE, CHUTE, SOCO+ → ESPECIAL.',
+  hgl: 'Mecânico. Especial: CARRINHO, desliza por baixo dos golpes altos e derruba. Super: CHAVE DE FENDA, arremessa a chave no inimigo! Combo: CHUTE, SOCO+.',
   anderon: 'Capoeira e boxe. Especial: ARMADA, chute giratório que avança e derruba. Super: LIGANDO PRA CASADA, recupera vida (se não apanhar). Combo: SOCO+, CHUTE+.',
 };
 
@@ -368,13 +369,14 @@ function handleEvents(events) {
         if (ev.mv === 'super') showCutin(f);
         if (f.char === 'flash' && ev.mv === 'super') sfx('glug');
         else if (f.char === 'anderon' && ev.mv === 'super') { sfx('ring'); announce('Ligando pra casada!'); }
+        else if (f.char === 'hgl' && ev.mv === 'super') { sfx('power'); setTimeout(() => sfx('spin'), 500); announce('Chave de fenda!'); }
         else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!'); }
         else if (f.char === 'hotmonster' && ev.mv === 'special') setTimeout(() => sfx('throw'), 200);
         else sfx('whoosh');
         break;
       }
       case 'buff': sfx('power'); hud.flash('GARRA!', 900, true); break;
-      case 'splash': if (ev.kind !== 'bullet') sfx('splash'); break;
+      case 'splash': if (ev.kind === 'racao') sfx('splash'); else if (ev.kind === 'screwdriver') sfx('clank'); break;
       case 'shot': sfx('shot'); break;
       case 'heal': sfx('heal'); break;
       case 'thud': sfx('thud'); break;
@@ -523,6 +525,7 @@ const PORTRAIT_FILES = {
   flash: 'assets/portraits/flash.webp',
   genildo: 'assets/portraits/genildo.webp',
   anderon: 'assets/portraits/anderon.webp',
+  hgl: 'assets/portraits/hgl.webp',
 };
 
 async function makePortraits() {

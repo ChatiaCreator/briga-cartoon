@@ -115,6 +115,14 @@ const CLIP_ATTACKS = {
     chp: [EUC, 1.0, 1.33, 1.43, 1.9, 0, false, TRAVEL],
     tc: [EUC, 0.95, 1.33, 1.43, 1.9, 0, false, TRAVEL],   // UPPER RELÂMPAGO: the uppercut after the elbow
   },
+  hgl: {
+    ...MIXAMO_ATTACKS,
+    hp: ['Illegal_Headbutt', 0.4, 0.84, 0.92, 1.4, 0, false, TRAVEL],    // headbutt
+    tc: ['Illegal_Headbutt', 0.2, 0.84, 0.92, 1.45, 0, false, TRAVEL],
+    jhk: ['Flying_Bicycle_Kick', 0.0, 0.3, 0.45, 0.66, 0, false, AIRCLIP], // bicycle kick in the air
+    special: ['Running_Slide', 0.05, 0.3, 0.75, 1.3, 0, false, TRAVEL],   // CARRINHO
+    dodge: ['Long_Right_Side_Step', 0.05, 0.4, 0.4, 0.8, 0, false, TRAVEL],
+  },
   anderon: {
     ...MIXAMO_ATTACKS,
     // Mixamo "Punching" opens the jab string, then the hooks of "Punch To Elbow Combo".
@@ -179,6 +187,15 @@ function specialPose(f, m) {
       hand: holding ? 'gun' : null, grip: holding, blend: 0.14 };
   }
   if (f.char === 'anderon' && f.mv === 'special') return attackPose(f, m, 0); // ARMADA
+  if (f.char === 'hgl' && f.mv === 'special') return attackPose(f, m, 0); // CARRINHO
+  if (f.char === 'hgl' && f.mv === 'super') {
+    // The baseball pitch from his model: wind-up, release at 1.84 s (the frame the
+    // screwdriver leaves his hand), follow-through.
+    const k = (a, b, x) => a + (b - a) * clamp01(x);
+    const at = m.projectile.at;
+    const time = t < at ? k(1.0, 1.84, t / at) : k(1.84, 2.6, (t - at) / m.recovery);
+    return { ...CLIP, clip: 'pitch_baseball', clipTime: time, lockXZ: true, hand: t < at ? 'screwdriver' : null, blend: 0.1 };
+  }
   if (f.char === 'anderon' && f.mv === 'super') {
     // Mixamo "Talking On A Cell Phone": hand up to the ear, a bit of the talk, then lowers it.
     const k = (a, b, x) => a + (b - a) * clamp01(x);
@@ -256,6 +273,8 @@ function rawPose(f, g, T) {
         if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7) };
         // Genildo draws on his opponent: "Parado!"
         if (f.char === 'genildo') return { ...CLIP, clip: 'Pistol_Idle', clipTime: (secs * 0.5) % 3.9, hand: 'gun', grip: true };
+        // HGL shows off his screwdriver.
+        if (f.char === 'hgl') return { ...CLIP, clip: 'box_01', clipTime: idleTime(T), hand: 'screwdriver' };
         // Anderon makes the "on the phone" gesture (no phone in his hand).
         if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 6.4 + 1.6 * (1 - Math.abs(((secs / 1.2) % 2) - 1)) };
         // Flash shows off with push-ups, then springs up into his stance.
@@ -319,6 +338,8 @@ function rawPose(f, g, T) {
       if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
       // Genildo celebrates with a b-boy uprock (Mixamo "Bboy Uprock", looped).
       if (f.char === 'genildo') return { ...CLIP, clip: 'Bboy_Uprock', clipTime: (t / 60) % 2.25, blend: 0.3 };
+      // HGL sings his victory (animation from his model).
+      if (f.char === 'hgl') return { ...CLIP, clip: 'sing_02', clipTime: (t / 60) % 15, blend: 0.3 };
       // Anderon calls home to tell about the win.
       if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 3.6 + Math.min(11, t / 60), blend: 0.3 };
       return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };

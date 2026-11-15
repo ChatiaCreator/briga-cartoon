@@ -39,6 +39,7 @@ export function isCrouching(f) {
   if (f.st === 'crouch') return true;
   if (f.st === 'block' && f.guardLow) return true;
   if (f.st === 'attack' && f.mv && f.mv[0] === 'c') return true;
+  if (f.st === 'attack' && getMove(f)?.lowBody) return true;
   return false;
 }
 export function speedPct(f) { return f.buff > 0 ? BUFF_SPEED : 100; }
@@ -267,7 +268,7 @@ function stepAttack(f, dir, o, g) {
     const p = m.projectile;
     g.spawn(f.id, {
       kind: p.kind, x: f.x + p.dx * f.facing, y: p.y,
-      vx: Math.trunc((p.vx * sp) / 100) * f.facing, vy: p.vy, g: p.g, move: 'special',
+      vx: Math.trunc((p.vx * sp) / 100) * f.facing, vy: p.vy, g: p.g, move: f.mv,
     });
   }
   if (m.burst) {

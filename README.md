@@ -1,6 +1,6 @@
 # Fight Friends
 
-Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo** e **Anderon Silva**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em dois cenários: a **rua** ao pôr do sol e a **praia**.
+Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderon Silva** e **HGL**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em dois cenários: a **rua** ao pôr do sol e a **praia**.
 
 **Jogar:** https://chatiacreator.github.io/briga-cartoon/
 
@@ -23,11 +23,13 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **Flash:** dá uma investida relâmpago.
   - **Genildo** (policial militar): saca a pistola e atira.
   - **Anderon Silva:** **ARMADA**, chute giratório de capoeira que avança e derruba.
+  - **HGL** (mecânico): **CARRINHO**, desliza por baixo dos golpes altos e dos tiros e derruba. Só é defendido agachado.
 - **Super:** precisa da barra cheia, que enche quando você bate e quando apanha.
   - **Hotmonster:** chuva de sacos de ração do céu.
   - **Flash:** bebe **GARRA Energy** e ganha +50% de dano e +20% de velocidade por 8 segundos.
   - **Genildo:** **TOLERÂNCIA ZERO**, uma rajada de 5 tiros.
   - **Anderon Silva:** **LIGANDO PRA CASADA**, faz uma ligação e recupera vida. No começo ninguém acerta ele; depois, se apanhar, a ligação cai.
+  - **HGL:** **CHAVE DE FENDA**, arremessa a chave de fenda girando no inimigo e derruba.
 - **VOADORA:** corre e chuta voando. Acerta no alto, então só é defendida em pé.
 - **ESTRELA:** estrela com chute que derruba.
 - **ESQUIVA:** toque duas vezes para trás (no celular, puxe o direcional duas vezes). O lutador abaixa e escapa para trás, sem poder ser acertado no começo.
@@ -40,6 +42,7 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **Flash, UPPER RELÂMPAGO:** soco forte, soco forte (cotovelada e uppercut que lança). Depois, pule e chute no ar, ou use o especial.
   - **Genildo, ENQUADRO:** chute, chute, soco forte (joelhada, joelhada, uppercut que lança). Depois, o tiro do especial acerta no ar.
   - **Anderon Silva, ARMADA DO ANDERON:** soco forte, chute forte (cotovelada e armada de capoeira que lança). Depois, pule e chute no ar.
+  - **HGL, CABEÇADA ILEGAL:** chute, soco forte (cabeçada que lança). Depois, pule e acerte a bicicleta no ar.
 - **Contador de combo:** mostra os golpes e o dano total; combos grandes ganham "BOM!", "BRUTAL!" e "INSANO!".
 - **Partida:** melhor de 3 rounds, com 99 segundos por round.
 
@@ -111,6 +114,6 @@ Os ossos do Mixamo têm os mesmos nomes dos ossos dos modelos, mas ficam virados
 
 ## Créditos
 
-- **Personagens:** Hotmonster, Flash, Genildo e Anderon Silva, do autor do jogo.
+- **Personagens:** Hotmonster, Flash, Genildo, Anderon Silva e HGL, do autor do jogo.
 - **GARRA Energy:** marca fictícia criada para o jogo.
 - **Bibliotecas:** three.js (MIT) e PeerJS (MIT). As licenças estão em `vendor/`.

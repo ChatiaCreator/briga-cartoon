@@ -43,6 +43,23 @@ export class Effects {
     this.can.visible = false;
     scene.add(this.can);
 
+    // HGL's screwdriver (along +Y: red and yellow handle, steel shaft and tip).
+    this.makeScrewdriver = () => {
+      const g = new THREE.Group();
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.13, 10), new THREE.MeshToonMaterial({ color: 0xe8402e }));
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.03, 10), new THREE.MeshToonMaterial({ color: 0xffd23f }));
+      band.position.y = 0.035;
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.2, 8), new THREE.MeshToonMaterial({ color: 0xd9dce6 }));
+      shaft.position.y = 0.165;
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.006), new THREE.MeshToonMaterial({ color: 0xeef0f6 }));
+      tip.position.y = 0.275;
+      g.add(handle, band, shaft, tip);
+      return g;
+    };
+    this.screwdriver = this.makeScrewdriver();
+    this.screwdriver.visible = false;
+    scene.add(this.screwdriver);
+
     // Genildo's pistol (barrel along +Z) and the bullets with a glowing tracer behind.
     const gunMat = new THREE.MeshToonMaterial({ color: 0x24242c });
     this.gun = new THREE.Group();
@@ -86,6 +103,16 @@ export class Effects {
     for (let i = 0; i < 3; i++) {
       this.sprite(this.glowGreen, pos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.6, -0.3 - Math.random() * 0.6, 0.2)), 0.18, 0.7,
         { grow: 0.6, vel: new THREE.Vector3(0, 0.9 + Math.random() * 0.5, 0) });
+    }
+  }
+
+  // Metal hitting the floor or a fighter: a quick burst of sparks.
+  sparks(x, y) {
+    const pos = new THREE.Vector3(x / 1000, y / 1000, 0.4);
+    this.sprite(this.bursts.block, pos, 0.7, 0.18, { grow: 1.6 });
+    for (let i = 0; i < 6; i++) {
+      this.sprite(this.glowSpark || (this.glowSpark = glowTexture('rgba(255,230,140,0.95)')), pos.clone(), 0.14, 0.35,
+        { vel: new THREE.Vector3((Math.random() - 0.5) * 4, Math.random() * 3, 0) });
     }
   }
 
@@ -168,13 +195,19 @@ export class Effects {
       seen.add(p.id);
       let m = this.projMeshes.get(p.id);
       if (!m) {
-        m = p.kind === 'bullet' ? this.makeBullet(Math.sign(p.vx) || 1) : this.makeBag();
+        if (p.kind === 'bullet') m = this.makeBullet(Math.sign(p.vx) || 1);
+        else if (p.kind === 'screwdriver') { m = new THREE.Group(); const s = this.makeScrewdriver(); s.scale.setScalar(2.2); s.position.y = -0.3; m.add(s); }
+        else m = this.makeBag();
         this.scene.add(m);
         this.projMeshes.set(p.id, m);
       }
       const [px, py] = prev?.get(p.id) || [p.x, p.y];
       m.position.set((px + (p.x - px) * k) / 1000, (py + (p.y - py) * k) / 1000, 0);
-      if (p.kind !== 'bullet') {
+      if (p.kind === 'screwdriver') {
+        // Spins end over end with a white blur behind.
+        m.rotation.z -= dt * 22 * Math.sign(p.vx || 1);
+        if (Math.random() < 0.5) this.sprite(this.dustTex, m.position.clone(), 0.5, 0.18, { grow: 0.4 });
+      } else if (p.kind !== 'bullet') {
         m.rotation.z -= dt * 8 * Math.sign(p.vx || 1);
         m.rotation.y = 0.5;
       }
@@ -189,6 +222,7 @@ export class Effects {
     this.handBag.visible = false;
     this.can.visible = false;
     this.gun.visible = false;
+    this.screwdriver.visible = false;
     for (let i = 0; i < chars.length; i++) {
       const what = poses[i]?.hand;
       if (!what) continue;
@@ -201,6 +235,15 @@ export class Effects {
       const hand = c.b.RightHand;
       const pos = hand.getWorldPosition(new THREE.Vector3());
       const q = hand.getWorldQuaternion(new THREE.Quaternion());
+      if (what === 'screwdriver') {
+        // Held by the handle, along the fingers.
+        this.screwdriver.visible = true;
+        this.screwdriver.position.copy(pos);
+        this.screwdriver.quaternion.copy(q);
+        this.screwdriver.translateY(0.06);
+        this.screwdriver.translateZ(0.025);
+        continue;
+      }
       const obj = what === 'can' ? this.can : this.handBag;
       obj.visible = true;
       obj.position.copy(pos);

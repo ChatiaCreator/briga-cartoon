@@ -3,7 +3,7 @@
 import { delayFor } from './rollback.js';
 
 const PREFIX = 'briga-cartoon-v1-';
-export const NET_VERSION = 3; // 3: Anderon Silva
+export const NET_VERSION = 4; // 4: HGL
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function makeCode() {

@@ -111,6 +111,27 @@ CHARACTERS.anderon = {
   },
 };
 
+CHARACTERS.hgl = {
+  name: 'HGL',
+  // Mechanic. Slides under attacks (and bullets) and throws his screwdriver.
+  hp: 1000, walk: 40, back: 32, jumpVy: 200, jumpVx: 42, gravity: 11,
+  model: 'assets/models/hgl.glb',
+  combo: 'CABEÇADA ILEGAL',
+  targets: [{ from: 'lk', minChain: 0, btn: 'HP', to: 'tc' }],
+  moves: {
+    ...normals,
+    // Finisher of CHUTE, SOCO+: a big headbutt that launches.
+    tc: { rank: 2, startup: 10, active: 4, recovery: 22, dmg: 95, hitstun: 0, blockstun: 16, push: 140, height: 'mid', box: [80, 1150, 650, 1750], launch: 150, jc: true, travel: [0, 10, 20] },
+    // Special "CARRINHO": a long low slide that knocks down. His body is low while sliding,
+    // so high attacks and bullets pass over him. Block it crouching.
+    special: { rank: 3, startup: 10, active: 16, recovery: 18, dmg: 95, hitstun: 0, blockstun: 16, push: 200, height: 'low', chip: 10,
+      box: [80, 0, 820, 450], travel: [4, 26, 60], kd: true, lowBody: true },
+    // Super "CHAVE DE FENDA": winds up like a baseball pitch and throws his screwdriver.
+    super: { rank: 4, startup: 30, active: 0, recovery: 34, dmg: 230, hitstun: 0, blockstun: 20, push: 220, height: 'mid', chip: 20, kd: true,
+      invuln: 30, projectile: { at: 30, dx: 450, y: 1400, vx: 150, vy: 0, g: 0, kind: 'screwdriver' } },
+  },
+};
+
 export const BUFF_DMG = 150;   // percent
 export const BUFF_SPEED = 120; // percent
 
