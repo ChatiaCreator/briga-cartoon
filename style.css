@@ -9,6 +9,7 @@
   --bg: #2b1055;
   --hp: linear-gradient(#ffe36b, #f5a524);
   --font: 'Arial Black', 'Arial', system-ui, sans-serif;
+  --ink2: #170c2b;
 }
 * { box-sizing: border-box; }
 html, body {
@@ -549,3 +550,205 @@ button.sbtn:active { transform: skewX(-14deg) translate(3px, 3px); }
   button.sbtn.fight { font-size: 8vw; }
   button.sbtn.back { font-size: 5vw; }
 }
+
+/* ---------- Painted screens (online, controls, options, victory) ----------
+   Each screen is a 16:9 picture scaled to fit; the real buttons and texts sit exactly on the
+   painted ones (--x/--y/--w/--h are pixels of the 1672x941 picture). On tall screens (phones
+   held upright) the same elements simply stack, over the picture blurred. */
+.artscr { --ink2: #170c2b; padding: 0; gap: 0; justify-content: center; background: #1a0a33; font-family: 'Luckiest Guy', var(--font); }
+#online, #online .stage { background-image: url(assets/ui/online_bg.webp); }
+#controls, #controls .stage { background-image: url(assets/ui/controls_bg.webp); }
+#options, #options .stage { background-image: url(assets/ui/options_bg.webp); }
+#victory, #victory .stage { background-image: url(assets/ui/victory_bg.webp); }
+.artscr { background-size: cover; background-position: center; }
+.artscr::before { content: ''; position: fixed; inset: 0; backdrop-filter: blur(14px) brightness(0.55); -webkit-backdrop-filter: blur(14px) brightness(0.55); pointer-events: none; }
+.artscr .stage {
+  position: relative; flex: none; width: min(100vw, calc(100vh * 1672 / 941)); aspect-ratio: 1672 / 941;
+  background-size: 100% 100%; container-type: inline-size; box-shadow: 0 0 60px rgba(0, 0, 0, 0.6);
+}
+@supports (height: 100dvh) { .artscr .stage { width: min(100vw, calc(100dvh * 1672 / 941)); } }
+.artscr .ptitle, .artscr .ponly { display: none; }
+.artscr .ov {
+  position: absolute; margin: 0; box-sizing: border-box;
+  left: calc(var(--x) * 100% / 1672); top: calc(var(--y) * 100% / 941);
+  width: calc(var(--w) * 100% / 1672); height: calc(var(--h) * 100% / 941);
+}
+/* Invisible buttons over the painted ones: they only light up under the finger/mouse. */
+.artscr button.ov { font-family: 'Luckiest Guy', var(--font); }
+.artscr button.ov.hit {
+  padding: 0; border: 0; background: transparent; box-shadow: none; color: transparent; font-size: 0;
+  border-radius: 1cqw; transform: skewX(-14deg); transition: background 0.1s;
+}
+.artscr button.ov.hit:hover, .artscr button.ov.hit:focus-visible { background: rgba(255, 255, 255, 0.16); outline: none; box-shadow: 0 0 1.4cqw rgba(255, 230, 120, 0.7); }
+.artscr button.ov.hit:active { background: rgba(0, 0, 0, 0.2); transform: skewX(-14deg) translate(0.2cqw, 0.2cqw); }
+.artscr button.ov.hit:disabled { background: rgba(20, 8, 40, 0.45); cursor: default; }
+/* Online */
+#roomCode {
+  display: grid; place-items: center; border-radius: 0.6cqw; background: linear-gradient(#2a0b08, #120302);
+  box-shadow: inset 0 0 1.4cqw rgba(0, 0, 0, 0.8); font-size: 4.4cqw; letter-spacing: 0.4cqw; line-height: 1;
+  color: #ffd23f; text-shadow: 0.2cqw 0.2cqw 0 var(--ink2), 0 0 1.2cqw rgba(255, 170, 0, 0.7); min-height: 0;
+}
+#roomCode:empty::before { content: '— — — — — —'; color: rgba(255, 210, 63, 0.35); font-size: 2cqw; letter-spacing: 0; }
+#joinCode {
+  padding: 0 1cqw; border: 0; border-radius: 1.2cqw; background: transparent; color: var(--ink2); box-shadow: none;
+  font-family: inherit; font-size: 3.2cqw; letter-spacing: 0.8cqw; text-align: center; text-transform: uppercase;
+}
+#joinCode::placeholder { color: rgba(23, 12, 43, 0.35); letter-spacing: 0.3cqw; }
+#joinCode:focus { outline: 0.25cqw solid #ffd23f; }
+#netStatus {
+  display: flex; align-items: center; padding: 0 1cqw; max-width: none; text-align: left; overflow: hidden;
+  font-family: system-ui, sans-serif; font-weight: 800; font-size: 1.35cqw; color: #fff; white-space: nowrap; text-overflow: ellipsis;
+}
+#netStatus:empty::before { content: 'Crie uma sala ou digite o código do amigo'; opacity: 0.75; }
+#netStatus.err { color: #ffb4a8; }
+/* Controls: the lists inside the painted frames */
+.artscr .panel {
+  width: auto; padding: 0.6cqw 1.1cqw; border: 0; border-radius: 0; background: none; display: block; text-align: left;
+  overflow: auto; scrollbar-width: thin; font-size: max(8px, 1cqw);
+}
+.artscr .panel h3 { display: none; }
+.artscr .panel table { font-size: 1em; table-layout: fixed; }
+.artscr .panel td:first-child { width: 30%; white-space: normal; }
+.artscr .panel td { overflow-wrap: anywhere; }
+.artscr .panel td { padding: 0.25em 0.4em; border-top: 1px solid rgba(255, 255, 255, 0.12); color: #f3eaff; }
+.artscr .panel tr:first-child td { border-top: 0; }
+.artscr .panel td:first-child { color: #ffd98a; }
+.artscr .panel kbd { font-size: 0.85em; min-width: 1.6em; padding: 0 0.3em; }
+.artscr .panel .hint { font-size: 0.9em; margin-top: 0.3em; }
+.artscr .panel:last-of-type td:first-child { width: 24%; }
+.artscr .panel:last-of-type { -webkit-mask-image: linear-gradient(#000 85%, transparent); mask-image: linear-gradient(#000 85%, transparent); padding-bottom: 1.6cqw; }
+/* Options: real switches over the painted ones */
+.artscr button.ov.opt { padding: 0; border: 0; background: transparent; box-shadow: none; border-radius: 1cqw; transform: none; font-size: 0; }
+.artscr button.ov.opt:hover { background: rgba(255, 255, 255, 0.06); }
+.artscr .opt .lbl { display: none; }
+.artscr .opt b {
+  position: absolute; left: calc(620 / 920 * 100%); width: calc(286 / 920 * 100%); top: 10%; height: 80%;
+  display: flex; align-items: center; justify-content: center; padding: 0 32% 0 4%; border-radius: 99px; font-family: 'Luckiest Guy', var(--font);
+  background: linear-gradient(#5cff4a, #19b21a 55%, #0d8a12); border: 0.25cqw solid #0a3d10;
+  box-shadow: 0 0 0 0.2cqw #b8f5a8, 0 0 1.2cqw rgba(60, 255, 60, 0.55);
+  font-weight: normal; font-size: 1.6cqw; text-transform: uppercase; white-space: nowrap; color: #fff; text-shadow: 0.15cqw 0.15cqw 0 #0a3d10;
+  transition: background 0.15s;
+}
+.artscr .opt b::after {
+  content: ''; position: absolute; right: 3%; top: 8%; height: 84%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #d6d6e2 70%); box-shadow: 0 0.2cqw 0.4cqw rgba(0, 0, 0, 0.5); transition: right 0.15s;
+}
+.artscr .opt.off b { padding: 0 4% 0 32%; background: linear-gradient(#ff6a5a, #d01c1c 55%, #8f0b0b); border-color: #4a0606; box-shadow: 0 0 0 0.2cqw #ffc0b8, 0 0 1.2cqw rgba(255, 50, 50, 0.5); text-shadow: 0.15cqw 0.15cqw 0 #4a0606; }
+.artscr .opt.off b::after { right: auto; left: 3%; }
+.artscr .opt:disabled b { filter: grayscale(1) brightness(0.7); }
+/* Victory: the winner's portrait inside the gold frame */
+.winframe { clip-path: polygon(16.6% 7.4%, 99% 1.4%, 87.4% 91.6%, 2.2% 97.6%); background: #111; }
+.winframe img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; animation: winZoom 0.6s ease-out both; }
+@keyframes winZoom { from { transform: scale(1.25); opacity: 0; } }
+.winframe b {
+  position: absolute; left: 0; right: 0; bottom: 4%; padding: 3% 0 1%; text-align: center; font-weight: normal;
+  background: linear-gradient(rgba(10, 4, 20, 0), rgba(10, 4, 20, 0.85)); font-family: 'Luckiest Guy', var(--font); font-size: 3.2cqw; color: #ffe14a; text-shadow: 0.2cqw 0.2cqw 0 var(--ink2);
+}
+#winMsg { display: flex; align-items: center; justify-content: center; margin: 0; font-size: 1.6cqw; color: #fff; text-shadow: 0 0 0.5cqw #000; max-width: none; }
+/* Tall screens: same elements stacked, readable without the picture's layout */
+@media (max-aspect-ratio: 5/4) {
+  .artscr { justify-content: flex-start; overflow-y: auto; padding: max(14px, env(safe-area-inset-top)) 16px 20px; }
+  .artscr .stage { width: min(560px, 100%); aspect-ratio: auto; background: none; box-shadow: none; container-type: normal; display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+  .artscr .ptitle { display: block; text-align: center; }
+  .artscr h2.ptitle { margin: 4px 0 6px; font-weight: normal; font-size: 9vw; color: #ffe14a; text-shadow: 3px 3px 0 var(--ink2); }
+  .artscr h3.ptitle { margin: 8px 0 0; font-weight: normal; font-size: 5vw; color: #fff; }
+  .artscr .ponly { display: block; }
+  .artscr .ov { position: relative; left: auto; top: auto; width: auto; height: auto; }
+  .artscr button.ov.hit, .artscr button.ov.opt {
+    padding: 0.4em 1em; font-size: 6vw; color: var(--ink2); border: 4px solid var(--ink2); border-radius: 8px; transform: skewX(-10deg);
+    background: linear-gradient(#ffffff, #c9c3e0 55%, #9d97b8); box-shadow: 4px 4px 0 var(--ink2);
+  }
+  .artscr button.ov.hit.gold { background: linear-gradient(#fff36b, #ffd000 45%, #ff9d00); }
+  .artscr button.ov.opt { display: flex; justify-content: space-between; align-items: center; transform: none; font-size: 5vw; background: rgba(23, 12, 43, 0.75); color: #fff; border-color: #8f6ad8; }
+  .artscr .opt .lbl { display: inline; }
+  .artscr .opt b { position: relative; left: auto; width: 34%; top: auto; height: 1.6em; font-size: 0.6em; }
+  #roomCode { height: 70px; font-size: 13vw; }
+  #roomCode:empty::before { font-size: 6vw; }
+  #joinCode { height: 60px; font-size: 8vw; background: #f1eefb; }
+  #netStatus { min-height: 2.4em; white-space: normal; font-size: 4vw; justify-content: center; text-align: center; }
+  .artscr .panel { padding: 12px; font-size: 14px; background: rgba(23, 12, 43, 0.8); border: 3px solid #8f6ad8; border-radius: 12px; }
+  .artscr .panel h3 { display: block; font-weight: normal; }
+  .artscr .panel:last-of-type { -webkit-mask-image: none; mask-image: none; }
+  .winframe { aspect-ratio: 506 / 310; clip-path: none; border: 5px solid #ffc400; border-radius: 10px; }
+  .winframe b { font-size: 8vw; }
+  #winMsg { font-size: 4vw; }
+}
+
+/* ---------- Pause ---------- */
+#pause { background: rgba(14, 6, 30, 0.72); backdrop-filter: blur(3px); }
+.pbox {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.8vh, 18px);
+  padding: clamp(14px, 3vh, 34px) clamp(22px, 4vw, 60px) clamp(18px, 3.4vh, 38px); font-family: 'Luckiest Guy', var(--font);
+  background: linear-gradient(135deg, rgba(64, 20, 130, 0.95), rgba(28, 8, 60, 0.95));
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1.6px), linear-gradient(135deg, rgba(64, 20, 130, 0.96), rgba(28, 8, 60, 0.96));
+  background-size: 7px 7px, auto; border: 4px solid #d9dcef; border-radius: 10px; transform: skewX(-6deg);
+  box-shadow: 0 0 0 4px #170c2b, 0 0 40px rgba(170, 70, 255, 0.7);
+}
+.pbox > * { transform: skewX(6deg); }
+.plogo { width: clamp(150px, 22vw, 300px); margin: calc(-1 * clamp(40px, 8vh, 80px)) 0 0; filter: drop-shadow(0 4px 0 rgba(10, 4, 25, 0.5)); }
+.pplate {
+  display: flex; align-items: center; gap: 0.4em; margin: 0; padding: 0.1em 0.8em 0; font-weight: normal; font-size: clamp(30px, 7vh, 72px);
+  background: linear-gradient(#6a2bd6, #3a0f8a); border: 4px solid #e9eaf7; border-radius: 6px; box-shadow: 0 0 0 3px #170c2b, 4px 4px 0 3px #170c2b;
+  color: #fff; text-shadow: 3px 3px 0 #170c2b; text-align: center;
+}
+.pplate .pico { font-size: 0.75em; letter-spacing: -0.12em; }
+#pause .status { margin: 0; font-family: system-ui, sans-serif; color: #fff; min-height: 1.2em; }
+.pbtns { display: flex; flex-direction: column; gap: clamp(8px, 1.6vh, 14px); width: min(440px, 70vw); }
+.pbtns .sbtn { width: 100%; font-size: clamp(18px, 4.4vh, 38px) !important; padding: 0.25em 1em !important; }
+
+/* ---------- VS screen (arena art) ---------- */
+#vs { background: #1a0a33 url(assets/ui/select_bg.webp) center / cover no-repeat; font-family: 'Luckiest Guy', var(--font); }
+#vs::before { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, rgba(232, 40, 40, 0.45) 0 49.6%, rgba(23, 12, 43, 0.9) 49.6% 50.4%, rgba(30, 110, 255, 0.45) 50.4%); }
+.vs-side img {
+  height: min(56vh, 40vw); aspect-ratio: 0.86; object-fit: cover; object-position: 50% 8%; border-radius: 10px;
+  border: 5px solid #ff4a3d; background: linear-gradient(#c81d25, #5a0a14); transform: skewX(-6deg);
+  box-shadow: 0 0 0 4px #170c2b, 8px 8px 0 4px #170c2b, 0 0 34px rgba(255, 60, 50, 0.7); filter: none;
+}
+.vs-side.right img { border-color: #3d8bff; background: linear-gradient(#1d5fd6, #0a1c5a); transform: skewX(6deg) scaleX(-1); box-shadow: 0 0 0 4px #170c2b, -8px 8px 0 4px #170c2b, 0 0 34px rgba(50, 120, 255, 0.7); }
+.vs-side span {
+  margin-top: 10px; padding: 0.06em 0.8em 0; transform: skewX(-12deg); font-size: clamp(22px, 5vw, 56px); -webkit-text-stroke: 0;
+  background: linear-gradient(#ff5a4a, #c4101a); border: 3px solid #170c2b; border-radius: 5px; text-shadow: 3px 3px 0 #170c2b; box-shadow: 0 0 18px rgba(255, 60, 50, 0.6);
+}
+.vs-side.right span { background: linear-gradient(#4aa0ff, #1a4fd6); box-shadow: 0 0 18px rgba(50, 130, 255, 0.6); }
+.vs-mid {
+  background: linear-gradient(#fff6a0, #ffd000 45%, #ff7a00); -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-stroke: 5px #170c2b; text-shadow: none; filter: drop-shadow(6px 6px 0 #170c2b) drop-shadow(0 0 24px rgba(255, 120, 0, 0.9));
+}
+
+/* ---------- Super cut-in: the fiery SUPER! band ---------- */
+#cutin .band, #cutin.green .band, #cutin.blue .band {
+  position: absolute; left: -4vw; right: auto; top: 50%; width: 108vw; height: auto; aspect-ratio: 1672 / 300; padding: 0; margin-top: calc(-108vw * 300 / 1672 / 2);
+  display: block; border: 0; box-shadow: none; overflow: visible; background: url(assets/ui/super_band.webp) center / 100% 100% no-repeat; transform: rotate(-5deg);
+}
+#cutin.p2 .band { transform: rotate(5deg); }
+#cutin .band img, #cutin.p2 .band img {
+  position: absolute; left: 5.6%; top: 7%; width: 25.4%; height: 89%; margin: 0; object-fit: cover; object-position: 50% 10%;
+  clip-path: polygon(23% 13%, 97% 5%, 84% 88%, 2.4% 98%); filter: none; transform: none; align-self: auto;
+}
+#cutin .cut-text { position: absolute; right: 8%; top: 96%; flex-direction: row; align-items: center; gap: 0.6em; transform: skewX(-10deg); padding: 0.15em 0.9em 0.05em; background: #170c2b; border: 3px solid #ffc21a; border-radius: 5px; box-shadow: 0 0 18px rgba(255, 170, 0, 0.6); font-family: 'Luckiest Guy', var(--font); }
+#cutin .cut-text small { color: #ffd98a; font-size: clamp(12px, 1.8vw, 24px); }
+#cutin .cut-text b { font-weight: normal; font-size: clamp(18px, 3vw, 44px); -webkit-text-stroke: 0; text-shadow: 3px 3px 0 #000; color: #fff; }
+
+/* ---------- Combo counter: fiery gold numbers, red plate ---------- */
+#hud .combo b { font-weight: normal; background: linear-gradient(#fffbd0, #ffe14a 30%, #ff9d00 60%, #e8401a); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 2px #170c2b; filter: drop-shadow(3px 3px 0 #170c2b) drop-shadow(0 0 10px rgba(255, 120, 0, 0.8)); text-shadow: none; }
+#hud .combo.big b { font-size: 1.3em; color: transparent; }
+#hud .combo small { display: inline-block; margin-top: 4px; padding: 0.1em 0.6em 0; transform: skewX(-12deg); background: linear-gradient(#ff4a3d, #b8101c); border: 2px solid #170c2b; border-radius: 4px; color: #fff; font-size: 0.48em; text-shadow: 1px 1px 0 #170c2b; }
+
+/* ---------- Touch controls (painted buttons) ---------- */
+#stick { background: url(assets/ui/touch/stick_base.webp) center / contain no-repeat; border: 0; }
+#knob { width: 46%; background: url(assets/ui/touch/stick_knob.webp) center / contain no-repeat; border: 0; }
+#tbuttons { grid-template-columns: repeat(2, clamp(56px, 14vmin, 90px)); gap: 4px 8px; }
+#tbuttons button, #tbuttons button.hv, #tbuttons button.sp, #tbuttons button.su, #tbuttons button.ex {
+  aspect-ratio: 1; border: 0; border-radius: 50%; box-shadow: none; color: transparent; font-size: 0;
+  background: center / contain no-repeat; filter: drop-shadow(2px 3px 0 rgba(10, 4, 25, 0.6));
+}
+#tbuttons button[data-code="KeyJ"] { background-image: url(assets/ui/touch/soco.webp); }
+#tbuttons button[data-code="KeyK"] { background-image: url(assets/ui/touch/socop.webp); }
+#tbuttons button[data-code="KeyU"] { background-image: url(assets/ui/touch/chute.webp); }
+#tbuttons button[data-code="KeyI"] { background-image: url(assets/ui/touch/chutep.webp); }
+#tbuttons button[data-code="KeyL"] { background-image: url(assets/ui/touch/especial.webp); }
+#tbuttons button[data-code="KeyO"] { background-image: url(assets/ui/touch/super.webp); }
+#tbuttons button[data-code="KeyH"] { background-image: url(assets/ui/touch/voadora.webp); }
+#tbuttons button[data-code="KeyY"] { background-image: url(assets/ui/touch/estrela.webp); }
+#tbuttons button.down { transform: scale(0.9); filter: brightness(1.25) drop-shadow(0 0 8px #fff); box-shadow: none; }
+#tpause { font-family: 'Luckiest Guy', var(--font); background: #120a24; color: #fff; border: 3px solid #ffc21a; border-radius: 10px; box-shadow: 0 0 0 2px #170c2b; }

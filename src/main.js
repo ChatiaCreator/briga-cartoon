@@ -22,12 +22,16 @@ const hud = new Hud();
 attachKeyboard();
 const touch = initTouch({ onPause: () => openPause() });
 const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!' };
-if (document.documentElement.requestFullscreen) {
+const canFull = !!document.documentElement.requestFullscreen;
+if (canFull) {
   $('fullBtn').classList.remove('hidden');
   $('fullBtn').onclick = goFullscreen;
-  $('optFull').classList.remove('hidden');
-  $('optFull').onclick = goFullscreen;
 }
+$('optFull').disabled = !canFull;
+$('optFull').onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen?.(); else goFullscreen();
+};
+document.addEventListener('fullscreenchange', () => renderOptions());
 
 let attract = null;      // background scene behind the menus
 let match = null;        // the running fight
@@ -124,6 +128,7 @@ function renderOptions() {
   set('optSound', !isMuted(), 'ligado', 'desligado');
   set('optVoice', isVoice(), 'ligado', 'desligado');
   set('optVibe', isVibration(), 'ligada', 'desligada');
+  set('optFull', !!document.fullscreenElement, 'ligada', canFull ? 'desligada' : 'indisponível');
   $('mute').classList.toggle('off', isMuted());
   $('mute').setAttribute('aria-label', isMuted() ? 'Som desligado' : 'Som ligado');
 }
@@ -149,7 +154,7 @@ function openOnline() {
   show('online');
   netStatus('');
   $('roomCode').textContent = '';
-  $('copyBtn').classList.add('hidden');
+  delete $('copyBtn').dataset.code;
   $('hostBtn').disabled = false;
   $('joinBtn').disabled = false;
   const fromLink = normalizeCode((location.hash.match(/sala=([A-Za-z0-9]+)/) || [])[1]);
@@ -162,7 +167,6 @@ function newSession() {
     status: ({ code, text, error }) => {
       if (code) {
         $('roomCode').textContent = code;
-        $('copyBtn').classList.remove('hidden');
         $('copyBtn').dataset.code = code;
       }
       if (error) { netStatus(error, true); $('hostBtn').disabled = false; $('joinBtn').disabled = false; }
@@ -170,7 +174,7 @@ function newSession() {
     },
     start: (info) => startMatch('online', info.chars, { me: info.me, delay: info.delay, stage: info.stage, matchNo: info.matchNo }),
     message: (msg) => {
-      if (msg.t === 'rematch' && match?.ended) $('pauseMsg').textContent = 'Seu amigo quer revanche!';
+      if (msg.t === 'rematch' && match?.ended) endMsg('Seu amigo quer revanche!');
       else if (match?.lock) match.lock.onMessage(msg);
     },
     closed: (reason) => {
@@ -203,6 +207,7 @@ $('joinBtn').onclick = () => {
 
 $('copyBtn').onclick = async () => {
   const code = $('copyBtn').dataset.code;
+  if (!code) { netStatus('Primeiro aperte CRIAR SALA.'); return; }
   const link = `${location.origin}${location.pathname}#sala=${code}`;
   try { await navigator.clipboard.writeText(link); netStatus('Link copiado! Mande para o seu amigo.'); }
   catch { netStatus(`Link: ${link}`); }
@@ -293,6 +298,7 @@ function endMatch() {
   $('vs').classList.add('hidden');
   $('cutin').classList.add('hidden');
   $('pause').classList.add('hidden');
+  $('victory').classList.add('hidden');
 }
 
 function tick() {
@@ -390,7 +396,24 @@ function handleEvents(events) {
   }
 }
 
+// Message on the end-of-match screen (rematch requests online).
+function endMsg(text) {
+  $('pauseMsg').textContent = text;
+  $('winMsg').textContent = text;
+}
+
 function openEndMenu(text) {
+  const w = match.game.matchWinner;
+  if (w === 0 || w === 1) {
+    // Victory screen with the winner's portrait in the gold frame.
+    const c = match.game.f[w].char;
+    $('winImg').src = portraits[c] || '';
+    $('winName').textContent = CHARACTERS[c].name.toUpperCase();
+    $('winMsg').textContent = '';
+    $('winRematch').disabled = false;
+    $('victory').classList.remove('hidden');
+    return;
+  }
   $('pauseTitle').textContent = text;
   $('pauseMsg').textContent = '';
   $('resumeBtn').classList.add('hidden');
@@ -421,20 +444,26 @@ $('quitBtn').onclick = () => {
   endMatch();
   show('menu');
 };
-$('rematchBtn').onclick = () => {
+function rematch() {
   if (!match) return;
   if (match.mode === 'online') {
     $('rematchBtn').disabled = true;
-    $('pauseMsg').textContent = 'Esperando seu amigo aceitar a revanche…';
+    $('winRematch').disabled = true;
+    endMsg('Esperando seu amigo aceitar a revanche…');
     session.askRematch();
   } else {
     $('pause').classList.add('hidden');
+    $('victory').classList.add('hidden');
     startMatch(match.mode, match.chars, match.opts);
   }
-};
+}
+$('rematchBtn').onclick = rematch;
+$('winRematch').onclick = rematch;
+$('winMenu').onclick = () => $('quitBtn').onclick();
 
 window.addEventListener('keydown', (e) => {
   if (e.code !== 'Escape' || !match) return;
+  if (!$('victory').classList.contains('hidden')) return;
   if ($('pause').classList.contains('hidden')) openPause();
   else if (!match.ended) closePause();
 });
@@ -555,6 +584,7 @@ async function boot() {
 window.__game = {
   get match() { return match; },
   startMatch,
+  openEndMenu, // tests
 };
 
 boot();
