@@ -448,13 +448,29 @@ function frame(now) {
 // ---------- Boot ----------
 const portraits = {};
 
+// Drawn portraits for the select cards, the VS screen and the super cut-in. Characters
+// without one get a picture rendered from their 3D model.
+const PORTRAIT_FILES = {
+  hotmonster: 'assets/portraits/hotmonster.webp',
+  flash: 'assets/portraits/flash.webp',
+  genildo: 'assets/portraits/genildo.webp',
+};
+
 async function makePortraits() {
+  await Promise.all(Object.entries(PORTRAIT_FILES).map(([id, url]) => new Promise((done) => {
+    const img = new Image();
+    img.onload = () => { portraits[id] = url; done(); };
+    img.onerror = () => done(); // fall back to the rendered portrait
+    img.src = url;
+  })));
+  if (Object.keys(CHARACTERS).every((id) => portraits[id])) return;
   const size = 256;
   const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   r.setSize(size, size, false);
   r.outputColorSpace = THREE.SRGBColorSpace;
   const shared = await sharedClips();
   for (const id of Object.keys(CHARACTERS)) {
+    if (portraits[id]) continue;
     const scene = new THREE.Scene();
     scene.add(new THREE.HemisphereLight(0xffffff, 0x664466, 2.2));
     const d = new THREE.DirectionalLight(0xffffff, 2); d.position.set(2, 3, 4); scene.add(d);
