@@ -206,6 +206,16 @@ export class Character {
       this.handRest[side] = { q, f, t, palmLocal: palm.applyQuaternion(q.clone().invert()) };
     }
     this.fingerBones = this.bones.filter((o) => /Hand(Thumb|Index|Middle|Ring|Pinky)\d/.test(o.name));
+    // Upper arm -> forearm and forearm -> hand (in that order): rest rotation and the bone's own
+    // axis (towards the next joint), for limitArmTwist.
+    this.armTwist = [];
+    for (const side of ['Left', 'Right']) {
+      for (const [a, b] of [['Arm', 'ForeArm'], ['ForeArm', 'Hand']]) {
+        const arm = this.b[side + a], fore = this.b[side + b];
+        const restQ = this.rest[this.bones.indexOf(arm)][1];
+        this.armTwist.push({ arm, fore, restQ, restInv: restQ.clone().invert(), u: fore.position.clone().normalize() });
+      }
+    }
 
     // Clips are sampled directly (no AnimationMixer, which skips writes when it thinks a
     // value hasn't changed). Only rotations are used, so clips from another model with the
@@ -289,7 +299,27 @@ export class Character {
       if (opts?.lockXZ) { this.b.Hips.position.x = rest.x; this.b.Hips.position.z = rest.z; }
       if (opts?.clampUp) this.b.Hips.position.y = Math.min(v[1], rest.y);
     }
+    this.limitArmTwist();
     return true;
+  }
+
+  // Some clips (Flash's own dance, guard and defeat) roll the upper arm up to 180 degrees
+  // around itself and roll the forearm back: the hand ends up right, but the upper arm's skin
+  // twists like a candy wrapper. Twist beyond the limit moves down to the next bone (upper
+  // arm -> forearm -> hand), which leaves the elbow, forearm and hand exactly where they were.
+  limitArmTwist(limit = 1.05) {
+    for (const { arm, fore, restQ, restInv, u } of this.armTwist) {
+      const d = _q1.copy(restInv).multiply(arm.quaternion);          // rotation from rest
+      const sTw = d.x * u.x + d.y * u.y + d.z * u.z;
+      let ang = 2 * Math.atan2(sTw, d.w);                             // signed twist about u
+      if (ang > Math.PI) ang -= 2 * Math.PI; else if (ang < -Math.PI) ang += 2 * Math.PI;
+      if (Math.abs(ang) <= limit) continue;
+      const keep = Math.sign(ang) * limit;
+      // d = swing * twist; keep the swing and only part of the twist on the upper arm.
+      const swing = d.multiply(_q2.setFromAxisAngle(u, -ang));
+      arm.quaternion.copy(restQ).multiply(swing).multiply(_q2.setFromAxisAngle(u, keep));
+      fore.quaternion.premultiply(_q3.setFromAxisAngle(u, ang - keep));
+    }
   }
 
   hasClip(name) { return !!this.clips[name]; }
