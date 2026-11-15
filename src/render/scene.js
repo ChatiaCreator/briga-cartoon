@@ -1,10 +1,11 @@
-// Renderer, side camera and the cartoon street arena.
+// Renderer, side camera and the arenas (the street; the beach lives in beach.js).
 import * as THREE from 'three';
 import {
   skyTexture, groundTexture, buildingTexture, billboardTexture, sidewalkTexture, shopTexture, awningTexture,
   neonTexture, skylineTexture, sunTexture, cloudTexture, stripeTexture, glowTexture, flameTexture,
 } from './textures.js';
 import { WALL } from '../sim/fighter.js';
+import { buildBeach, updateBeach } from './beach.js';
 
 export function createRenderer(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -25,16 +26,12 @@ const SHOPS = [
 const SHOP_Z = -7.5;
 
 export class Arena {
-  constructor(canImg) {
+  constructor(canImg, stage = 'street') {
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.Fog(0xd7385e, 24, 70);
     this.camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.1, 200);
     this.camX = 0; this.camZ = 9; this.shake = 0;
     this.hype = 0;
-    const s = this.scene;
-    const rnd = (() => { let x = 12345; return () => ((x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 4294967296); })();
-
-    s.add(new THREE.HemisphereLight(0xfff1e0, 0x553366, 1.6));
+    this.stage = stage;
     const sun = new THREE.DirectionalLight(0xffd9b0, 2.5);
     sun.position.set(-4, 9, 7);
     sun.castShadow = true;
@@ -42,7 +39,17 @@ export class Arena {
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 6, bottom: -2, near: 1, far: 30 });
     sun.shadow.bias = -0.0005;
     this.sun = sun;
-    s.add(sun, sun.target);
+    this.scene.add(sun, sun.target);
+    if (stage === 'beach') buildBeach(this, canImg);
+    else this.buildStreet(canImg);
+  }
+
+  // The street at sunset: shops, neon signs, string lights, burning drums.
+  buildStreet(canImg) {
+    const s = this.scene;
+    s.fog = new THREE.Fog(0xd7385e, 24, 70);
+    const rnd = (() => { let x = 12345; return () => ((x = (Math.imul(x, 1664525) + 1013904223) >>> 0) / 4294967296); })();
+    s.add(new THREE.HemisphereLight(0xfff1e0, 0x553366, 1.6));
     // Pink-orange rim light from the sunset behind.
     const rim = new THREE.DirectionalLight(0xff9a8a, 1.6);
     rim.position.set(3, 4, -6);
@@ -213,6 +220,7 @@ export class Arena {
   // Ambient animation: fire, neon flicker, clouds, twinkling bulbs.
   update(dt, T) {
     this.hype = Math.max(0, this.hype - dt * 0.5);
+    if (this.stage === 'beach') { updateBeach(this, dt, T); return; }
     const hype = Math.min(1, this.hype);
     for (const f of this.fires) {
       f.light.intensity = 3 + Math.sin(T * 17) * 0.7 + Math.sin(T * 29) * 0.5;

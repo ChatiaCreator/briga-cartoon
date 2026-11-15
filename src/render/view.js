@@ -47,7 +47,7 @@ export async function preloadModels() {
 }
 
 export class GameView {
-  static async create(chars) {
+  static async create(chars, stage = 'street') {
     const canImg = await canImage();
     const shared = await sharedClips();
     const fighters = [];
@@ -57,11 +57,11 @@ export class GameView {
       const tint = i === 1 && chars[0] === chars[1] ? 0x9fc6ff : null; // mirror match: tint P2
       fighters.push(new Character(gltf, { tint, extraClips: shared.filter((a) => !own.has(a.name)) }));
     }
-    return new GameView(fighters, canImg);
+    return new GameView(fighters, canImg, stage);
   }
 
-  constructor(fighters, canImg) {
-    this.arena = new Arena(canImg);
+  constructor(fighters, canImg, stage) {
+    this.arena = new Arena(canImg, stage);
     this.scene = this.arena.scene;
     this.chars = fighters;
     this.fx = new Effects(this.scene, canImg);

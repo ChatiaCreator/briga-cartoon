@@ -30,7 +30,12 @@ if (isTouchDevice() && document.documentElement.requestFullscreen) {
 let attract = null;      // background scene behind the menus
 let match = null;        // the running fight
 let session = null;      // online session
-const sel = { mode: 'local', chars: ['hotmonster', 'flash'] };
+const sel = { mode: 'local', chars: ['hotmonster', 'flash'], stage: 'street' };
+export const STAGES = ['street', 'beach'];
+// "random" is picked when the match starts (by the host, online).
+function resolveStage(s) {
+  return STAGES.includes(s) ? s : STAGES[Math.floor(Math.random() * STAGES.length)];
+}
 
 const DESCR = {
   hotmonster: 'Especial: arremessa um saco de RAÇÃO. Super: chuva de ração do céu!',
@@ -55,7 +60,9 @@ function openSelect(mode) {
   $('selLabel1').textContent = mode === 'cpu' ? 'Computador' : 'Jogador 2 (setas)';
   $('selTitle').textContent = solo ? 'Escolha seu lutador' : 'Escolha os lutadores';
   $('fightBtn').textContent = solo ? 'Continuar →' : 'LUTAR!';
+  $('stageHint').classList.toggle('hidden', !solo);
   renderCards();
+  renderStages();
   show('select');
 }
 
@@ -74,6 +81,13 @@ function renderCards() {
   }
 }
 
+function renderStages() {
+  for (const b of document.querySelectorAll('#stageRow [data-stage]')) b.classList.toggle('on', b.dataset.stage === sel.stage);
+}
+for (const b of document.querySelectorAll('#stageRow [data-stage]')) {
+  b.onclick = () => { sel.stage = b.dataset.stage; sfx('block'); renderStages(); };
+}
+
 document.addEventListener('click', (e) => {
   unlockAudio();
   const go = e.target.closest('[data-go]')?.dataset.go;
@@ -90,7 +104,7 @@ $('mute').onclick = () => {
 
 $('fightBtn').onclick = () => {
   if (sel.mode === 'online') { openOnline(); return; }
-  startMatch(sel.mode, sel.chars.slice(), { cpuLevel: Number($('cpuLevel').value) });
+  startMatch(sel.mode, sel.chars.slice(), { cpuLevel: Number($('cpuLevel').value), stage: resolveStage(sel.stage) });
 };
 
 // ---------- Online lobby ----------
@@ -122,7 +136,7 @@ function newSession() {
       if (error) { netStatus(error, true); $('hostBtn').disabled = false; $('joinBtn').disabled = false; }
       else if (text) netStatus(text);
     },
-    start: (info) => startMatch('online', info.chars, { me: info.me, delay: info.delay }),
+    start: (info) => startMatch('online', info.chars, { me: info.me, delay: info.delay, stage: info.stage }),
     message: (msg) => {
       if (msg.t === 'rematch' && match?.ended) $('pauseMsg').textContent = 'Seu amigo quer revanche!';
       else if (match?.lock) match.lock.onMessage(msg);
@@ -142,7 +156,7 @@ $('hostBtn').onclick = () => {
   try {
     $('hostBtn').disabled = true;
     netStatus('Criando sala…');
-    newSession().host(sel.chars[0]);
+    newSession().host(sel.chars[0], () => resolveStage(sel.stage));
   } catch (e) { netStatus(e.message, true); $('hostBtn').disabled = false; }
 };
 
@@ -172,7 +186,7 @@ async function startMatch(mode, chars, opts = {}) {
   hideScreens();
   $('loading').textContent = 'Carregando luta…';
   if (match) disposeMatch();
-  const view = await GameView.create(chars);
+  const view = await GameView.create(chars, STAGES.includes(opts.stage) ? opts.stage : 'street');
   view.arena.resize(innerWidth, innerHeight);
   const game = createGame(chars);
   const me = opts.me ?? 0;

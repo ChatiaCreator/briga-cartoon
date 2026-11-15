@@ -26,7 +26,7 @@ const ERRORS = {
 
 export class OnlineSession {
   constructor(handlers) {
-    this.h = handlers; // { status(text), start({delay, chars, me}), message(msg), closed(reason) }
+    this.h = handlers; // { status(text), start({delay, chars, me, stage}), message(msg), closed(reason) }
     this.peer = null;
     this.conn = null;
     this.isHost = false;
@@ -43,9 +43,11 @@ export class OnlineSession {
     return window.Peer;
   }
 
-  host(char) {
+  // pickStage() chooses the arena for each match (the host decides for both players).
+  host(char, pickStage = () => 'street') {
     this.isHost = true;
     this.myChar = char;
+    this.pickStage = pickStage;
     const tryOpen = (attempt) => {
       const code = makeCode();
       const peer = new this.Peer(PREFIX + code, { debug: 0 });
@@ -115,7 +117,7 @@ export class OnlineSession {
         return;
       case 'start':
         this.delay = msg.delay;
-        this.begin({ delay: msg.delay, chars: msg.chars, me: 1 });
+        this.begin({ delay: msg.delay, chars: msg.chars, me: 1, stage: msg.stage });
         return;
       case 'rematch':
         this.rematch.them = true;
@@ -137,9 +139,9 @@ export class OnlineSession {
     // One-way time in frames, plus a frame of slack.
     this.delay = Math.max(2, Math.min(8, Math.ceil(rtt / 2 / 16.7) + 1));
     this.rtt = rtt;
-    const chars = [this.myChar, this.remoteChar];
-    this.send({ t: 'start', delay: this.delay, chars });
-    this.begin({ delay: this.delay, chars, me: 0 });
+    const chars = [this.myChar, this.remoteChar], stage = this.pickStage();
+    this.send({ t: 'start', delay: this.delay, chars, stage });
+    this.begin({ delay: this.delay, chars, me: 0, stage });
   }
 
   begin(info) {
@@ -157,9 +159,9 @@ export class OnlineSession {
 
   checkRematch() {
     if (this.isHost && this.rematch.me && this.rematch.them) {
-      const chars = [this.myChar, this.remoteChar];
-      this.send({ t: 'start', delay: this.delay, chars });
-      this.begin({ delay: this.delay, chars, me: 0 });
+      const chars = [this.myChar, this.remoteChar], stage = this.pickStage();
+      this.send({ t: 'start', delay: this.delay, chars, stage });
+      this.begin({ delay: this.delay, chars, me: 0, stage });
     }
   }
 
