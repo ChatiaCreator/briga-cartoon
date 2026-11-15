@@ -89,6 +89,7 @@ const STYLES = [
 let voicePick = 0;            // index into voiceOptions()
 let recorded = new Set();     // keys that have a recorded file
 const clips = new Map();
+let busyUntil = 0;            // when the recorded line now playing ends
 
 export function loadRecordedVoices() {
   fetch('assets/voice/voices.json').then((r) => (r.ok ? r.json() : [])).then((list) => {
@@ -116,11 +117,21 @@ export function announce(text, key = null) {
   if (muted || !voice) return;
   const opts = voiceOptions();
   const pick = opts[Math.min(voicePick, opts.length - 1)] || opts[0];
-  // A recorded line, if the player recorded this one.
+  // A recorded line, if the player recorded this one. If another line is still playing
+  // (e.g. "Round 3" when "Fight!" comes), wait for it to end (up to 1.5 s) instead of
+  // talking over it.
   if (key && recorded.has(key)) {
     let a = clips.get(key);
     if (!a) { a = new Audio(`assets/voice/${key}.mp3`); clips.set(key, a); }
-    try { window.speechSynthesis?.cancel(); a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); } catch { /* not playable */ }
+    const play = () => {
+      try {
+        window.speechSynthesis?.cancel();
+        a.currentTime = 0; a.volume = 1; a.play().catch(() => {});
+        busyUntil = performance.now() + (Number.isFinite(a.duration) && a.duration > 0 ? a.duration * 1000 : 1500);
+      } catch { /* not playable */ }
+    };
+    const wait = busyUntil - performance.now();
+    if (wait > 0 && wait < 1500) setTimeout(play, wait + 60); else play();
     return;
   }
   if (!window.speechSynthesis) return;

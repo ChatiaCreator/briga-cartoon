@@ -380,7 +380,7 @@ function handleEvents(events) {
       case 'move': {
         const f = g.f[ev.f];
         if (ev.mv === 'super') showCutin(f);
-        if (f.char === 'flash' && ev.mv === 'super') sfx('glug');
+        if (f.char === 'flash' && ev.mv === 'super') { announce('Garra Energy!', 'super-flash'); setTimeout(() => sfx('glug'), 900); }
         else if (f.char === 'anderon' && ev.mv === 'super') { sfx('ring'); announce('Ligando pra casada!', 'super-anderon'); }
         else if (f.char === 'hgl' && ev.mv === 'super') { sfx('power'); setTimeout(() => sfx('spin'), 500); announce('Chave de fenda!', 'super-hgl'); }
         else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!', `super-${f.char}`); }
