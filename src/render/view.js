@@ -1,6 +1,6 @@
 // Draws a game state: fighters, projectiles, effects and camera. Read-only on the sim.
 import * as THREE from 'three';
-import { Character, loadGLTF } from './character.js';
+import { Character, loadGLTF, setReferenceRig } from './character.js';
 import { poseFor } from './poses.js';
 import { Arena } from './scene.js';
 import { Effects, Aura, Trail } from './effects.js';
@@ -8,7 +8,7 @@ import { shadowTexture, loadImage } from './textures.js';
 import { CHARACTERS } from '../sim/moves.js';
 
 const FACE_ANGLE = 1.15; // radians: side-on, turned a little towards the camera
-const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a };
+const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff };
 const LIMBS = ['LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'];
 
 // The K.O. that ends the match: played in slow motion with the camera zoomed in.
@@ -35,6 +35,7 @@ export function sharedClips() {
 const EXTRA_ANIMS = ['assets/models/extra_anims.glb', 'assets/models/mixamo_anims.glb'];
 async function loadShared() {
   const all = new Map();
+  setReferenceRig((await loadGLTF(CHARACTERS.hotmonster.model)).scene);
   for (const url of [...Object.values(CHARACTERS).map((c) => c.model), ...EXTRA_ANIMS]) {
     for (const a of (await loadGLTF(url)).animations) if (!all.has(a.name)) all.set(a.name, a);
   }
@@ -98,9 +99,16 @@ export class GameView {
         this.arena.shake = Math.max(this.arena.shake, ev.ko ? 0.35 : ev.heavy ? 0.14 : 0.05);
         this.arena.cheer(ev.ko ? 1.5 : ev.heavy ? 0.5 : 0.15);
       } else if (ev.t === 'block') this.fx.block(ev);
-      else if (ev.t === 'splash') this.fx.splash(ev.x, ev.air ? 1200 : 0);
+      else if (ev.t === 'splash' && ev.kind !== 'bullet') this.fx.splash(ev.x, ev.air ? 1200 : 0);
       else if (ev.t === 'thud') { this.fx.dust(ev.x); this.arena.shake = Math.max(this.arena.shake, 0.1); }
-      else if (ev.t === 'land') this.fx.dust(this.lastState?.f[ev.f].x ?? 0);
+      else if (ev.t === 'shot') {
+        // Muzzle flash at the gun (in front of the shooter's hands).
+        const c = this.chars[ev.f];
+        const pos = c.b.RightHand.getWorldPosition(new THREE.Vector3());
+        pos.add(new THREE.Vector3(0, 0, 0.3).applyQuaternion(c.model.getWorldQuaternion(new THREE.Quaternion())));
+        this.fx.muzzle(pos);
+        this.arena.shake = Math.max(this.arena.shake, 0.05);
+      } else if (ev.t === 'land') this.fx.dust(this.lastState?.f[ev.f].x ?? 0);
     }
   }
 

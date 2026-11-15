@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, checksum } from '../src/sim/game.js';
-import { LP, HP, LK, HK, SUP, LEFT, RIGHT, DOWN, UP } from '../src/sim/bits.js';
+import { LP, HP, LK, HK, SUP, EX1, EX2, LEFT, RIGHT, DOWN, UP } from '../src/sim/bits.js';
 
 function run(g, frames, fn) {
   for (let i = 0; i < frames; i++) step(g, fn ? fn(g.frame, g) : [0, 0]);
@@ -192,4 +192,46 @@ test('determinism: same random inputs give the same checksum', () => {
     }
   };
   check(a.g, 'g');
+});
+
+test('Genildo special fires a bullet that crosses the stage and hits', () => {
+  const g = createGame(['genildo', 'flash']);
+  toFight(g);
+  const hp = g.f[1].hp;
+  step(g, [LP | HP, 0]);
+  assert.equal(g.f[0].mv, 'special');
+  let bullet = null;
+  for (let i = 0; i < 80; i++) {
+    step(g, [0, 0]);
+    bullet = bullet || g.proj.find((p) => p.kind === 'bullet');
+  }
+  assert.ok(bullet, 'a bullet was fired');
+  assert.equal(bullet.vy, 0, 'bullets fly straight');
+  assert.ok(g.f[1].hp < hp, 'the shot should hit from full screen');
+});
+
+test('Genildo super fires a five-shot burst', () => {
+  const g = createGame(['genildo', 'flash']);
+  toFight(g);
+  g.f[0].meter = 1000;
+  const shots = new Set();
+  step(g, [SUP, 0]);
+  for (let i = 0; i < 200; i++) { step(g, [0, 0]); for (const p of g.proj) shots.add(p.id); }
+  assert.equal(shots.size, 5);
+});
+
+test('VOADORA travels forward and ESTRELA knocks down', () => {
+  const g = createGame(['hotmonster', 'flash']);
+  toFight(g);
+  const x0 = g.f[0].x;
+  step(g, [EX1, 0]);
+  assert.equal(g.f[0].mv, 'fk');
+  run(g, 12);
+  assert.ok(g.f[0].x - x0 > 300, 'VOADORA should move forward');
+  run(g, 60);
+  approach(g, 1200);
+  step(g, [EX2, 0]);
+  let fell = false;
+  for (let i = 0; i < 60; i++) { step(g, [0, 0]); if (g.f[1].st === 'fall' || g.f[1].st === 'down') fell = true; }
+  assert.ok(fell, 'ESTRELA should knock down');
 });

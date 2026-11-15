@@ -94,6 +94,15 @@ function makeOutline(mesh, thickness) {
   return outline;
 }
 
+// Reference rig: the skeleton every clip was authored or converted for (Hotmonster's).
+// Other models with the same bone names but differently rolled bones get their clips
+// corrected on the fly (see Character.retarget).
+let REF_REST = null;
+export function setReferenceRig(root) {
+  REF_REST = new Map();
+  root.traverse((o) => { if (o.isBone) REF_REST.set(o.name, o.quaternion.clone()); });
+}
+
 // The models carry a "neutral_bone" outside the body hierarchy. Vertices weighted to it stay
 // behind when the body travels (lying down, lunging) and show up as long thin spikes, so
 // their weight goes to the strongest other bone of that vertex (or the hips).
@@ -155,6 +164,7 @@ export class Character {
     this.bones = [];
     this.model.traverse((o) => { if (o.isBone) this.bones.push(o); });
     this.rest = this.bones.map((o) => [o.position.clone(), o.quaternion.clone(), o.scale.clone()]);
+    this.retarget = this.makeRetarget();
 
     // Rest joint positions in model space.
     this.model.updateMatrixWorld(true);
@@ -173,6 +183,28 @@ export class Character {
     // same Mixamo skeleton play correctly.
     this.clips = {};
     for (const clip of [...gltf.animations, ...extraClips]) this.addClip(clip);
+  }
+
+  // For a bone whose rest frame differs from the reference rig's, a clip rotation q (made for
+  // the reference) becomes inv(O_parent) * q * O_self, where O is the accumulated offset
+  // between the two rest frames. Bones already matching get no entry (no extra cost).
+  makeRetarget() {
+    if (!REF_REST) return null;
+    const O = new Map(), out = new Map();
+    let any = false;
+    for (const b of this.bones) {
+      const ref = REF_REST.get(b.name);
+      const op = O.get(b.parent) || new THREE.Quaternion();
+      if (!ref) { O.set(b, op.clone()); continue; }
+      const o = ref.clone().invert().multiply(op).multiply(b.quaternion);
+      O.set(b, o);
+      const ip = op.clone().invert();
+      if (2 * Math.acos(Math.min(1, Math.abs(o.w))) > 0.02 || 2 * Math.acos(Math.min(1, Math.abs(op.w))) > 0.02) {
+        out.set(b, { ip, o });
+        any = true;
+      }
+    }
+    return any ? out : null;
   }
 
   addClip(clip) {
@@ -213,7 +245,11 @@ export class Character {
     const clip = this.clips[name];
     if (!clip) return false;
     const t = Math.min(Math.max(time, 0), clip.duration);
-    for (const { bone, interp } of clip.samplers) bone.quaternion.fromArray(interp.evaluate(t));
+    for (const { bone, interp } of clip.samplers) {
+      bone.quaternion.fromArray(interp.evaluate(t));
+      const r = this.retarget?.get(bone);
+      if (r) bone.quaternion.premultiply(r.ip).multiply(r.o);
+    }
     const h = clip.hips;
     if (h) {
       const v = h.interp.evaluate(t);

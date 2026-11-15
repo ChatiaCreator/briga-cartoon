@@ -54,6 +54,22 @@ export const CHARACTERS = {
   },
 };
 
+CHARACTERS.genildo = {
+  name: 'Genildo',
+  // Military police officer: sturdier and a bit slower than the others.
+  hp: 1050, walk: 34, back: 28, jumpVy: 195, jumpVx: 38, gravity: 11,
+  model: 'assets/models/genildo.glb',
+  moves: {
+    ...normals,
+    // Special: draws the pistol and fires one fast, straight shot.
+    special: { rank: 3, startup: 16, active: 0, recovery: 24, dmg: 80, hitstun: 20, blockstun: 14, push: 180, height: 'mid', chip: 8,
+      projectile: { at: 16, dx: 520, y: 1330, vx: 160, vy: 0, g: 0, kind: 'bullet' } },
+    // Super "TOLERÂNCIA ZERO": a burst of five shots.
+    super: { rank: 4, startup: 22, active: 0, recovery: 30, dmg: 55, hitstun: 22, blockstun: 12, push: 100, height: 'mid', chip: 8,
+      invuln: 30, burst: { frames: [22, 29, 36, 43, 50], ys: [1330, 1250, 1380, 1290, 1340], dx: 520, vx: 170, kind: 'bullet' } },
+  },
+};
+
 export const BUFF_DMG = 150;   // percent
 export const BUFF_SPEED = 120; // percent
 

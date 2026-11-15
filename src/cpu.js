@@ -47,7 +47,7 @@ export class Cpu {
       this.plan([], back | (low ? DOWN : 0), react + 6);
       return;
     }
-    if (me.meter >= 1000 && (me.char === 'flash' || dist < 3000) && r < 0.5) {
+    if (me.meter >= 1000 && (me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
       this.plan([SUP, 0], 0, 20);
       return;
     }

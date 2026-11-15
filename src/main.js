@@ -21,7 +21,7 @@ const renderer = createRenderer($('stage'));
 const hud = new Hud();
 attachKeyboard();
 const touch = initTouch({ onPause: () => openPause() });
-const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!' };
+const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!' };
 if (isTouchDevice() && document.documentElement.requestFullscreen) {
   $('fullBtn').classList.remove('hidden');
   $('fullBtn').onclick = goFullscreen;
@@ -35,6 +35,7 @@ const sel = { mode: 'local', chars: ['hotmonster', 'flash'] };
 const DESCR = {
   hotmonster: 'Especial: arremessa um saco de RAÇÃO. Super: chuva de ração do céu!',
   flash: 'Especial: investida relâmpago. Super: bebe GARRA Energy (+50% dano, +20% velocidade).',
+  genildo: 'Policial militar. Especial: atira com a pistola. Super: rajada TOLERÂNCIA ZERO!',
 };
 
 // ---------- Screens ----------
@@ -218,7 +219,7 @@ function showCutin(f) {
   $('cutImg').src = portraits[f.char] || '';
   $('cutWho').textContent = CHARACTERS[f.char].name.toUpperCase();
   $('cutName').textContent = SUPER_NAMES[f.char] || 'SUPER!';
-  el.className = `${f.id === 1 ? 'p2' : ''} ${f.char === 'flash' ? 'green' : ''}`;
+  el.className = `${f.id === 1 ? 'p2' : ''} ${f.char === 'flash' ? 'green' : f.char === 'genildo' ? 'blue' : ''}`;
   for (const n of el.querySelectorAll('*')) { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; }
   el.dataset.until = String(performance.now() + 400); // shown at least this long
   clearTimeout(showCutin.t);
@@ -307,13 +308,14 @@ function handleEvents(events) {
         const f = g.f[ev.f];
         if (ev.mv === 'super') showCutin(f);
         if (f.char === 'flash' && ev.mv === 'super') sfx('glug');
-        else if (ev.mv === 'super') { sfx('power'); announce('Chuva de ração!'); }
+        else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!'); }
         else if (f.char === 'hotmonster' && ev.mv === 'special') setTimeout(() => sfx('throw'), 200);
         else sfx('whoosh');
         break;
       }
       case 'buff': sfx('power'); hud.flash('GARRA!', 900, true); break;
-      case 'splash': sfx('splash'); break;
+      case 'splash': if (ev.kind !== 'bullet') sfx('splash'); break;
+      case 'shot': sfx('shot'); break;
       case 'thud': sfx('thud'); break;
       case 'timeover': hud.flash('TEMPO!', 1500); announce('Tempo!'); break;
       case 'ko':

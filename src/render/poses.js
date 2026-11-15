@@ -115,8 +115,30 @@ function attackPose(f, m, t) {
   return p;
 }
 
+// Genildo: pistol held out in both hands at shoulder height (IK targets, model units).
+const AIM = withP(STANCE, { rh: [0.05, 0.02, 0.22], lh: [-0.09, 0.01, 0.2], spine: [-0.02, 0.25, 0], head: [0.05, -0.15, 0], hip: [0, 0.01, 0] });
+const SALUTE = withP(STANCE, {
+  rh: [0.13, 0.17, 0.0], lh: [0.04, -0.22, -0.13], spine: [-0.1, 0, 0], head: [-0.06, 0, 0],
+  lf: [-0.03, 0, -0.1], rf: [0.03, 0, 0.09], hip: [0, 0.03, 0],
+});
+// Each shot kicks the hands up and back for a few frames.
+function recoil(t, shots) {
+  let k = 0;
+  for (const s of shots) if (t >= s && t < s + 5) k = Math.max(k, 1 - (t - s) / 5);
+  return withP(AIM, { rh: [0, 0.07 * k, -0.06 * k], lh: [0, 0.06 * k, -0.05 * k], spine: [-0.08 * k, 0, 0] });
+}
+
 function specialPose(f, m) {
   const t = f.sf;
+  if (f.char === 'genildo' && (f.mv === 'special' || f.mv === 'super')) {
+    // Draw, aim with both hands, fire (with recoil), then holster.
+    const shots = f.mv === 'special' ? [m.projectile.at] : m.burst.frames;
+    const draw = Math.min(12, shots[0] - 2), end = shots[shots.length - 1] + 6, total = m.startup + m.active + m.recovery;
+    if (t < draw) return { ...mixPose(STANCE, AIM, ease(t / draw)), hand: 'gun' };
+    if (t < end) return { ...recoil(t, shots), hand: 'gun' };
+    const k = ease(clamp01((t - end) / Math.max(1, total - end)));
+    return { ...mixPose(AIM, STANCE, k), hand: k < 0.6 ? 'gun' : null };
+  }
   if (f.char === 'hotmonster' && f.mv === 'special') {
     // Wind up with the bag behind, then throw it overhand.
     const W = withP(STANCE, { rh: [0.02, 0.2, -0.25], spine: [-0.2, -0.5, 0], head: [-0.1, 0, 0] });
@@ -186,6 +208,8 @@ function rawPose(f, g, T) {
       if (g && g.phase === 'intro') {
         const secs = g.phaseF / 60;
         if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7) };
+        // Genildo draws on his opponent: "Parado!"
+        if (f.char === 'genildo') return { ...mixPose(STANCE, AIM, ease(clamp01((secs - 0.3) / 0.4))), hand: secs > 0.3 ? 'gun' : null };
         // Flash shows off with push-ups, then springs up into his stance.
         return { ...CLIP, clip: 'press-up', clipTime: Math.min(1.9, secs * 1.15) };
       }
@@ -244,10 +268,12 @@ function rawPose(f, g, T) {
       return { ...CLIP, clip: 'Getting_Up', clipTime: 4.2 + clamp01(t / 18) * 1.7 };
     case 'win':
       if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
+      // Genildo stands to attention and salutes.
+      if (f.char === 'genildo') return mixPose(STANCE, SALUTE, ease(clamp01(t / 20)));
       return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };
     case 'lose':
       // Lost on time. Hotmonster staggers and collapses; Flash hangs his head.
-      if (f.char === 'hotmonster') return { ...CLIP, clip: 'defeat_03', clipTime: Math.min(5.5, t / 60) };
+      if (f.char !== 'flash') return { ...CLIP, clip: 'defeat_03', clipTime: Math.min(5.5, t / 60) };
       return { ...CLIP, clip: 'defeat_02', clipTime: (t / 60) % 8.4 };
     default:
       return STANCE;

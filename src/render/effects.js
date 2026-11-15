@@ -43,6 +43,25 @@ export class Effects {
     this.can.visible = false;
     scene.add(this.can);
 
+    // Genildo's pistol (barrel along +Z) and the bullets with a glowing tracer behind.
+    const gunMat = new THREE.MeshToonMaterial({ color: 0x24242c });
+    this.gun = new THREE.Group();
+    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.2), gunMat);
+    slide.position.set(0, 0.02, 0.06);
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.11, 0.05), gunMat);
+    grip.position.set(0, -0.04, -0.01); grip.rotation.x = -0.25;
+    this.gun.add(slide, grip);
+    this.gun.visible = false;
+    scene.add(this.gun);
+    this.bulletGeo = new THREE.CapsuleGeometry(0.03, 0.1, 3, 8).rotateZ(Math.PI / 2);
+    this.bulletMat = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
+    const tc = document.createElement('canvas'); tc.width = 128; tc.height = 8;
+    const tg = tc.getContext('2d'), gr = tg.createLinearGradient(0, 0, 128, 0);
+    gr.addColorStop(0, 'rgba(255,200,80,0)'); gr.addColorStop(1, 'rgba(255,240,180,0.9)');
+    tg.fillStyle = gr; tg.fillRect(0, 0, 128, 8);
+    this.tracerMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(tc), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    this.tracerGeo = new THREE.PlaneGeometry(1.0, 0.07);
+
     // Kibble pieces scattered on the ground.
     this.kibbleGeo = new THREE.DodecahedronGeometry(0.05, 0);
     this.kibbleMat = new THREE.MeshToonMaterial({ color: 0x7a4419 });
@@ -106,20 +125,38 @@ export class Effects {
     // Spare bags on the floor get removed by syncProjectiles.
   }
 
+  makeBullet(dir) {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(this.bulletGeo, this.bulletMat));
+    const tr = new THREE.Mesh(this.tracerGeo, this.tracerMat);
+    tr.position.x = -0.5 * dir;
+    if (dir < 0) tr.rotation.y = Math.PI;
+    g.add(tr);
+    return g;
+  }
+
+  // Muzzle flash where a shot is fired.
+  muzzle(pos) {
+    this.sprite(this.bursts.light, pos, 0.55, 0.09, { grow: 1.5 });
+    this.sprite(this.dustTex, pos, 0.6, 0.4, { grow: 2, vel: new THREE.Vector3(0, 0.4, 0) });
+  }
+
   syncProjectiles(proj, dt, prev = null, k = 1) {
     const seen = new Set();
     for (const p of proj) {
       seen.add(p.id);
       let m = this.projMeshes.get(p.id);
       if (!m) {
-        m = this.makeBag();
+        m = p.kind === 'bullet' ? this.makeBullet(Math.sign(p.vx) || 1) : this.makeBag();
         this.scene.add(m);
         this.projMeshes.set(p.id, m);
       }
       const [px, py] = prev?.get(p.id) || [p.x, p.y];
       m.position.set((px + (p.x - px) * k) / 1000, (py + (p.y - py) * k) / 1000, 0);
-      m.rotation.z -= dt * 8 * Math.sign(p.vx || 1);
-      m.rotation.y = 0.5;
+      if (p.kind !== 'bullet') {
+        m.rotation.z -= dt * 8 * Math.sign(p.vx || 1);
+        m.rotation.y = 0.5;
+      }
     }
     for (const [id, m] of this.projMeshes) {
       if (!seen.has(id)) { this.scene.remove(m); this.projMeshes.delete(id); }
@@ -130,10 +167,21 @@ export class Effects {
   holdItems(chars, poses) {
     this.handBag.visible = false;
     this.can.visible = false;
+    this.gun.visible = false;
     for (let i = 0; i < chars.length; i++) {
       const what = poses[i]?.hand;
       if (!what) continue;
       const c = chars[i];
+      if (what === 'gun') {
+        // Pointed where the fighter faces, held between both hands.
+        const r = c.b.RightHand.getWorldPosition(new THREE.Vector3());
+        const l = c.b.LeftHand.getWorldPosition(new THREE.Vector3());
+        this.gun.visible = true;
+        this.gun.position.copy(r).lerp(l, 0.35);
+        c.model.getWorldQuaternion(this.gun.quaternion);
+        this.gun.translateZ(0.06);
+        continue;
+      }
       const hand = c.b.RightHand;
       const pos = hand.getWorldPosition(new THREE.Vector3());
       const q = hand.getWorldQuaternion(new THREE.Quaternion());

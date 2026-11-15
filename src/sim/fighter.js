@@ -255,6 +255,15 @@ function stepAttack(f, dir, o, g) {
       vx: Math.trunc((p.vx * sp) / 100) * f.facing, vy: p.vy, g: p.g, move: 'special',
     });
   }
+  if (m.burst) {
+    const k = m.burst.frames.indexOf(f.sf);
+    if (k >= 0) {
+      g.spawn(f.id, {
+        kind: m.burst.kind, x: f.x + m.burst.dx * f.facing, y: m.burst.ys[k],
+        vx: Math.trunc((m.burst.vx * sp) / 100) * f.facing, vy: 0, g: 0, move: 'super',
+      });
+    }
+  }
   if (m.rain) {
     const k = m.rain.frames.indexOf(f.sf);
     if (k >= 0) {

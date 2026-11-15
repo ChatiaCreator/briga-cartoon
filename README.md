@@ -1,6 +1,6 @@
 # Briga Cartoon
 
-Jogo de luta cartoon 2.5D que roda no navegador: **Hotmonster × Flash**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador.
+Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash** e **Genildo**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador.
 
 **Jogar:** https://chatiacreator.github.io/briga-cartoon/
 
@@ -21,9 +21,11 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
 - **Especial:** `↓ ↘ →` + soco, ou o atalho.
   - **Hotmonster:** arremessa um saco de ração em arco.
   - **Flash:** dá uma investida relâmpago.
+  - **Genildo** (policial militar): saca a pistola e atira.
 - **Super:** precisa da barra cheia, que enche quando você bate e quando apanha.
   - **Hotmonster:** chuva de sacos de ração do céu.
   - **Flash:** bebe **GARRA Energy** e ganha +50% de dano e +20% de velocidade por 8 segundos.
+  - **Genildo:** **TOLERÂNCIA ZERO**, uma rajada de 5 tiros.
 - **VOADORA:** corre e chuta voando. Acerta no alto, então só é defendida em pé.
 - **ESTRELA:** estrela com chute que derruba.
 - **Sequência de socos:** apertando soco fraco seguido saem até 4 socos.
@@ -80,7 +82,7 @@ src/render/
   scene.js, effects.js    arena, câmera, explosões "POW!", ração, lata, aura
 src/net/                  lockstep (online) e salas PeerJS
 src/cpu.js                inteligência do computador
-assets/models/            hotmonster.glb, flash.glb, mixamo_anims.glb (animações do Mixamo convertidas)
+assets/models/            hotmonster.glb, flash.glb, genildo.glb, mixamo_anims.glb (animações do Mixamo convertidas)
 tools/mixamo/             conversor de animações do Mixamo (.fbx) para os lutadores
 assets/can/garra.svg      rótulo da lata GARRA Energy
 vendor/                   three.js 0.170.0 e PeerJS 1.5.4 (cópias locais)
@@ -99,6 +101,6 @@ Os ossos do Mixamo têm os mesmos nomes dos ossos dos modelos, mas ficam virados
 
 ## Créditos
 
-- **Personagens:** Hotmonster e Flash, do autor do jogo.
+- **Personagens:** Hotmonster, Flash e Genildo, do autor do jogo.
 - **GARRA Energy:** marca fictícia criada para o jogo.
 - **Bibliotecas:** three.js (MIT) e PeerJS (MIT). As licenças estão em `vendor/`.

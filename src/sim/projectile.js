@@ -7,6 +7,8 @@ export function spawnProjectile(g, owner, p) {
     x: p.x, y: p.y, vx: p.vx, vy: p.vy, g: p.g,
     move: p.move, age: 0,
   });
+  // Lets the view draw a muzzle flash and play the gunshot.
+  if (p.kind === 'bullet') g.events.push({ t: 'shot', f: owner, x: p.x, y: p.y, dir: Math.sign(p.vx) });
 }
 
 export function stepProjectiles(g) {
@@ -27,5 +29,6 @@ export function stepProjectiles(g) {
 }
 
 export function projectileBox(p) {
+  if (p.kind === 'bullet') return [p.x - 120, p.y - 90, p.x + 120, p.y + 90];
   return [p.x - 180, p.y - 180, p.x + 180, p.y + 180];
 }

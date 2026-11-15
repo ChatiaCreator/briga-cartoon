@@ -137,6 +137,17 @@ kbd { display: inline-block; min-width: 24px; padding: 2px 6px; margin: 0 2px; b
   .cards { flex-direction: column; }
   .card img { aspect-ratio: 2; }
 }
+/* Phones lying down: both pickers side by side, small cards without the description. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .pickers { flex-wrap: nowrap; gap: 12px; }
+  .picker { padding: 8px; }
+  .picker h3 { margin: 0 0 6px; font-size: 15px; }
+  .card { padding: 6px; gap: 4px; }
+  .card .cd { display: none; }
+  .card .cn { font-size: 14px; text-align: center; }
+  .card img { max-height: 30vh; }
+  #select h2 { margin: 6px 0; font-size: 22px; }
+}
 
 /* ---------- VS screen ---------- */
 #vs {
@@ -169,6 +180,7 @@ kbd { display: inline-block; min-width: 24px; padding: 2px 6px; margin: 0 2px; b
 }
 #cutin.p2 .band { transform: rotate(6deg); flex-direction: row-reverse; padding-left: 0; padding-right: 10%; animation-name: bandInR; }
 #cutin.green .band { background: repeating-linear-gradient(90deg, #7dff1a 0 18px, #5fd810 18px 36px); }
+#cutin.blue .band { background: repeating-linear-gradient(90deg, #3da5ff 0 18px, #1e6fd9 18px 36px); }
 #cutin img { height: 165%; align-self: flex-start; margin-top: -2%; filter: drop-shadow(6px 6px 0 var(--ink)); }
 #cutin.p2 img { transform: scaleX(-1); }
 .cut-text { display: flex; flex-direction: column; }
