@@ -300,7 +300,7 @@ function rawPose(f, g, T) {
         if (f.char === 'genildo') return { ...CLIP, clip: 'Pistol_Idle', clipTime: (secs * 0.5) % 3.9, hand: 'gun', grip: true };
         // HGL shows off his screwdriver.
         if (f.char === 'hgl') return { ...CLIP, clip: 'box_01', clipTime: idleTime(T), hand: 'screwdriver' };
-        // Anderon makes the "on the phone" gesture (no phone in his hand).
+        // Anderson makes the "on the phone" gesture (no phone in his hand).
         if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 6.4 + 1.6 * (1 - Math.abs(((secs / 1.2) % 2) - 1)) };
         // Flash shows off with push-ups, then springs up into his stance.
         return { ...CLIP, clip: 'press-up', clipTime: Math.min(1.9, secs * 1.15) };
@@ -381,7 +381,7 @@ function rawPose(f, g, T) {
       if (f.char === 'genildo') return { ...CLIP, clip: 'Bboy_Uprock', clipTime: (t / 60) % 2.25, blend: 0.3 };
       // HGL sings his victory (animation from his model).
       if (f.char === 'hgl') return { ...CLIP, clip: 'sing_02', clipTime: (t / 60) % 15, blend: 0.3 };
-      // Anderon calls home to tell about the win.
+      // Anderson calls home to tell about the win.
       if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 3.6 + Math.min(11, t / 60), blend: 0.3 };
       return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };
     case 'lose':

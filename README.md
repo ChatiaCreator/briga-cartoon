@@ -1,6 +1,6 @@
 # Fight Friends
 
-Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderon Silva** e **HGL**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em três cenários: a **rua** ao pôr do sol, a **praia** e o **Pet Shop Canaã**.
+Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderson Silva** e **HGL**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em três cenários: a **rua** ao pôr do sol, a **praia** e o **Pet Shop Canaã**.
 
 **Jogar:** https://chatiacreator.github.io/briga-cartoon/
 
@@ -22,13 +22,13 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **Hotmonster:** arremessa um saco de ração em arco.
   - **Flash:** dá uma investida relâmpago.
   - **Genildo** (policial militar): saca a pistola e atira.
-  - **Anderon Silva:** **ARMADA**, chute giratório de capoeira que avança e derruba.
+  - **Anderson Silva:** **ARMADA**, chute giratório de capoeira que avança e derruba.
   - **HGL** (mecânico): **CARRINHO**, desliza por baixo dos golpes altos e dos tiros e derruba. Só é defendido agachado.
 - **Super:** precisa da barra cheia, que enche quando você bate e quando apanha.
   - **Hotmonster:** chuva de sacos de ração do céu.
   - **Flash:** bebe **GARRA Energy** e ganha +50% de dano e +20% de velocidade por 8 segundos.
   - **Genildo:** **TOLERÂNCIA ZERO**, uma rajada de 5 tiros.
-  - **Anderon Silva:** **LIGANDO PRA CASADA**, faz uma ligação e recupera vida. No começo ninguém acerta ele; depois, se apanhar, a ligação cai.
+  - **Anderson Silva:** **LIGANDO PRA CASADA**, faz uma ligação e recupera vida. No começo ninguém acerta ele; depois, se apanhar, a ligação cai.
   - **HGL:** **CHAVE DE FENDA**, arremessa a chave de fenda girando no inimigo e derruba.
 - **VOADORA:** corre e chuta voando. Acerta no alto, então só é defendida em pé.
 - **ESTRELA:** estrela com chute que derruba.
@@ -42,7 +42,7 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **Hotmonster, FÚRIA DO MONSTRO:** soco, soco, soco forte. O adversário quica no chão e dá para emendar o especial.
   - **Flash, UPPER RELÂMPAGO:** soco forte, soco forte (cotovelada e uppercut que lança). Depois, pule e chute no ar, ou use o especial.
   - **Genildo, ENQUADRO:** chute, chute, soco forte (joelhada, joelhada, uppercut que lança). Depois, o tiro do especial acerta no ar.
-  - **Anderon Silva, ARMADA DO ANDERON:** soco forte, chute forte (cotovelada e armada de capoeira que lança). Depois, pule e chute no ar.
+  - **Anderson Silva, ARMADA DO ANDERSON:** soco forte, chute forte (cotovelada e armada de capoeira que lança). Depois, pule e chute no ar.
   - **HGL, CABEÇADA ILEGAL:** chute, soco forte (cabeçada que lança). Depois, pule e acerte a bicicleta no ar.
 - **Contador de combo:** mostra os golpes e o dano total; combos grandes ganham "BOM!", "BRUTAL!" e "INSANO!".
 - **Partida:** melhor de 3 rounds, com 99 segundos por round.
@@ -120,6 +120,6 @@ Um lutador novo segue o mesmo caminho: o `.glb` vai para `tools/models_src/`, en
 
 ## Créditos
 
-- **Personagens:** Hotmonster, Flash, Genildo, Anderon Silva e HGL, do autor do jogo.
+- **Personagens:** Hotmonster, Flash, Genildo, Anderson Silva e HGL, do autor do jogo.
 - **GARRA Energy:** marca fictícia criada para o jogo.
 - **Bibliotecas:** three.js (MIT), PeerJS (MIT) e o decodificador do meshoptimizer (MIT). As licenças estão em `vendor/`.

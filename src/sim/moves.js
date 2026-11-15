@@ -95,11 +95,11 @@ CHARACTERS.genildo = {
 };
 
 CHARACTERS.anderon = {
-  name: 'Anderon Silva',
+  name: 'Anderson Silva',
   // Capoeira and boxing. His super is a phone call that heals him (if nobody hits him first).
   hp: 1000, walk: 40, back: 32, jumpVy: 200, jumpVx: 42, gravity: 11,
   model: 'assets/models/anderon.glb',
-  combo: 'ARMADA DO ANDERON',
+  combo: 'ARMADA DO ANDERSON',
   targets: [{ from: 'hp', minChain: 0, btn: 'HK', to: 'tc' }],
   moves: {
     ...normals,
