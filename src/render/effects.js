@@ -43,15 +43,6 @@ export class Effects {
     this.can.visible = false;
     scene.add(this.can);
 
-    // Anderon's phone: black body with a glowing screen (screen faces -Z of the phone).
-    this.phone = new THREE.Group();
-    const phBody = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.15, 0.014), new THREE.MeshToonMaterial({ color: 0x15151c }));
-    const phScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.064, 0.13), new THREE.MeshBasicMaterial({ color: 0x5fd0ff }));
-    phScreen.position.z = 0.0075;
-    this.phone.add(phBody, phScreen);
-    this.phone.visible = false;
-    scene.add(this.phone);
-
     // Genildo's pistol (barrel along +Z) and the bullets with a glowing tracer behind.
     const gunMat = new THREE.MeshToonMaterial({ color: 0x24242c });
     this.gun = new THREE.Group();
@@ -198,7 +189,6 @@ export class Effects {
     this.handBag.visible = false;
     this.can.visible = false;
     this.gun.visible = false;
-    this.phone.visible = false;
     for (let i = 0; i < chars.length; i++) {
       const what = poses[i]?.hand;
       if (!what) continue;
@@ -211,15 +201,6 @@ export class Effects {
       const hand = c.b.RightHand;
       const pos = hand.getWorldPosition(new THREE.Vector3());
       const q = hand.getWorldQuaternion(new THREE.Quaternion());
-      if (what === 'phone') {
-        // Lying in the palm along the fingers, screen against the palm (at the ear).
-        this.phone.visible = true;
-        this.phone.position.copy(pos);
-        this.phone.quaternion.copy(q);
-        this.phone.translateY(0.09);
-        this.phone.translateZ(0.025);
-        continue;
-      }
       const obj = what === 'can' ? this.can : this.handBag;
       obj.visible = true;
       obj.position.copy(pos);

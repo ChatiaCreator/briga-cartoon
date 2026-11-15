@@ -92,7 +92,7 @@ CHARACTERS.genildo = {
 
 CHARACTERS.anderon = {
   name: 'Anderon Silva',
-  // Capoeira and boxing. Can heal himself with a phone call (if nobody hits him first).
+  // Capoeira and boxing. His super is a phone call that heals him (if nobody hits him first).
   hp: 1000, walk: 40, back: 32, jumpVy: 200, jumpVx: 42, gravity: 11,
   model: 'assets/models/anderon.glb',
   combo: 'ARMADA DO ANDERON',
@@ -101,13 +101,13 @@ CHARACTERS.anderon = {
     ...normals,
     // Finisher of SOCO+, CHUTE+ (elbow, then a spinning "armada" kick that launches).
     tc: { rank: 2, startup: 10, active: 5, recovery: 20, dmg: 95, hitstun: 0, blockstun: 16, push: 160, height: 'mid', box: [100, 950, 900, 1750], launch: 160, jc: true },
-    // Special "LIGANDO PRA CASADA": takes out the phone and makes a call, healing a little
-    // every few frames. Getting hit hangs up (the heal stops).
-    special: { rank: 3, startup: 20, active: 0, recovery: 50, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid',
-      heal: { from: 20, to: 62, every: 6, amount: 18 } },
-    // Super "ARMADA FATAL": rushes in with a five-hit punch and elbow string.
-    super: { rank: 4, startup: 14, active: 44, recovery: 26, dmg: 55, hitstun: 26, blockstun: 16, push: 60, height: 'mid', chip: 8,
-      invuln: 20, box: [80, 900, 820, 1600], travel: [10, 56, 14], rehit: [23, 37, 45, 54] },
+    // Special "ARMADA": a capoeira spinning kick that travels forward and knocks down.
+    special: { rank: 3, startup: 14, active: 5, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 220, height: 'mid', chip: 10,
+      box: [100, 900, 900, 1700], travel: [0, 14, 40], kd: true },
+    // Super "LIGANDO PRA CASADA": talks on the phone (Mixamo "Talking On A Cell Phone") and
+    // heals a little every few frames. Untouchable at first; a hit later hangs up.
+    super: { rank: 4, startup: 24, active: 0, recovery: 96, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid',
+      invuln: 50, heal: { from: 24, to: 100, every: 6, amount: 24 } },
   },
 };
 

@@ -52,12 +52,10 @@ export class Cpu {
       this.plan([], back | (low ? DOWN : 0), react + 6);
       return;
     }
-    if (me.meter >= 1000 && (me.char === 'anderon' ? dist < 1300 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
+    if (me.meter >= 1000 && (me.char === 'anderon' ? me.hp < me.maxHp * 0.75 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
       this.plan([SUP, 0], 0, 20);
       return;
     }
-    // Anderon makes his healing call when he is hurt and the opponent is far away.
-    if (me.char === 'anderon' && dist > 2600 && me.hp < me.maxHp * 0.8 && r < 0.4) { this.plan([LP | HP, 0], 0, 70); return; }
     if (dist > 2400) {
       if (char.moves.special.projectile && r < 0.3) { this.plan([DOWN, DOWN | fwd, fwd, fwd | LP, 0], 0, 25); return; }
       if (me.char === 'flash' && dist < 3000 && r < 0.25) { this.plan([DOWN, DOWN | fwd, fwd, fwd | LP, 0], 0, 20); return; }
@@ -69,6 +67,7 @@ export class Cpu {
       if (r < 0.15) { this.plan([UP | fwd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, HK], 0, 25); return; }
       if (r < 0.25 && char.moves.special.projectile) { this.plan([DOWN, DOWN | fwd, fwd, fwd | HP, 0], 0, 20); return; }
       // VOADORA and ESTRELA travel forward, so they reach from mid range.
+      if (me.char === 'anderon' && dist < 1500 && r < 0.3) { this.plan([LP | HP, 0], 0, 30); return; } // ARMADA
       if (dist < 1900 && r < 0.4) { this.plan([r < 0.32 ? EX1 : EX2, 0], 0, 30); return; }
       this.plan([], fwd, react);
       return;

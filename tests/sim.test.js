@@ -308,33 +308,32 @@ test('juggles are limited: no hits left means attacks pass through', () => {
   assert.equal(d.hp, hp, 'shot passes through a fighter with no juggle hits left');
 });
 
-test('Anderon special: the phone call heals, a hit hangs up', () => {
+test('Anderon super LIGANDO PRA CASADA heals; a hit after the safe start hangs up', () => {
   const g = createGame(['anderon', 'flash']);
   toFight(g);
-  g.f[0].hp = 600;
-  step(g, [LP | HP, 0]);
-  assert.equal(g.f[0].mv, 'special');
-  run(g, 80);
-  assert.equal(g.f[0].hp, 600 + 8 * 18, 'eight heal ticks of 18');
-  // Interrupted: P2 dashes in and hits during the call.
+  g.f[0].hp = 500; g.f[0].meter = 1000;
+  step(g, [SUP, 0]);
+  assert.equal(g.f[0].mv, 'super');
+  assert.equal(g.f[0].meter, 0);
+  run(g, 200);
+  assert.equal(g.f[0].hp, 500 + 13 * 24, 'thirteen heal ticks of 24');
+  // Interrupted: P2 hits him after the untouchable part.
   const g2 = createGame(['anderon', 'flash']);
   toFight(g2); approach(g2, 700);
-  g2.f[0].hp = 600;
-  step(g2, [LP | HP, 0]);
-  run(g2, 22);
+  g2.f[0].hp = 500; g2.f[0].meter = 1000;
+  step(g2, [SUP, 0]);
+  run(g2, 45 + 55);
   step(g2, [0, HP]);
-  run(g2, 60);
-  assert.ok(g2.f[0].hp < 600 + 8 * 18 - 85, `hp ${g2.f[0].hp}`);
+  run(g2, 80);
+  assert.ok(g2.f[0].hp < 500 + 13 * 24 - 85, `hp ${g2.f[0].hp}`);
 });
 
-test('Anderon super ARMADA FATAL hits five times', () => {
+test('Anderon special ARMADA travels and knocks down', () => {
   const g = createGame(['anderon', 'genildo']);
-  toFight(g); approach(g, 700);
-  g.f[0].meter = 1000;
-  const hp = g.f[1].hp;
-  let hits = 0;
-  step(g, [SUP, 0]);
-  for (let i = 0; i < 140; i++) { step(g, [0, 0]); hits += g.events.filter((e) => e.t === 'hit' && e.by === 0).length; }
-  assert.equal(hits, 5);
-  assert.ok(hp - g.f[1].hp > 180, `dealt ${hp - g.f[1].hp}`);
+  toFight(g); approach(g, 1300);
+  step(g, [LP | HP, 0]);
+  assert.equal(g.f[0].mv, 'special');
+  let fell = false;
+  for (let i = 0; i < 50; i++) { step(g, [0, 0]); if (g.f[1].st === 'fall' || g.f[1].st === 'down') fell = true; }
+  assert.ok(fell);
 });

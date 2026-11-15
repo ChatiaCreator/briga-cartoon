@@ -22,12 +22,12 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **Hotmonster:** arremessa um saco de ração em arco.
   - **Flash:** dá uma investida relâmpago.
   - **Genildo** (policial militar): saca a pistola e atira.
-  - **Anderon Silva:** **LIGANDO PRA CASADA**, pega o celular, faz uma ligação e recupera vida. Se apanhar, a ligação cai.
+  - **Anderon Silva:** **ARMADA**, chute giratório de capoeira que avança e derruba.
 - **Super:** precisa da barra cheia, que enche quando você bate e quando apanha.
   - **Hotmonster:** chuva de sacos de ração do céu.
   - **Flash:** bebe **GARRA Energy** e ganha +50% de dano e +20% de velocidade por 8 segundos.
   - **Genildo:** **TOLERÂNCIA ZERO**, uma rajada de 5 tiros.
-  - **Anderon Silva:** **ARMADA FATAL**, avança com uma sequência de 5 socos e cotoveladas.
+  - **Anderon Silva:** **LIGANDO PRA CASADA**, faz uma ligação e recupera vida. No começo ninguém acerta ele; depois, se apanhar, a ligação cai.
 - **VOADORA:** corre e chuta voando. Acerta no alto, então só é defendida em pé.
 - **ESTRELA:** estrela com chute que derruba.
 - **ESQUIVA:** toque duas vezes para trás (no celular, puxe o direcional duas vezes). O lutador abaixa e escapa para trás, sem poder ser acertado no começo.

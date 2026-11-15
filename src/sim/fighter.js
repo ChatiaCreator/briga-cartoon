@@ -297,8 +297,6 @@ function stepAttack(f, dir, o, g) {
       g.events.push({ t: 'heal', f: f.id, amount });
     }
   }
-  // Multi-hit moves: the hit is re-armed at these frames.
-  if (m.rehit && m.rehit.includes(f.sf)) f.hit = false;
   if (m.buff && f.sf === m.startup - 12) {
     f.buff = m.buff;
     g.events.push({ t: 'buff', f: f.id });
