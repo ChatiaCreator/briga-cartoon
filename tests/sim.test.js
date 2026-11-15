@@ -253,3 +253,57 @@ test('ESQUIVA: double tap back slips back and a jab passes through', () => {
   assert.ok(x0 - g.f[0].x > 400, `dodge moved ${x0 - g.f[0].x} mm back`);
   assert.equal(g.f[0].st, 'idle');
 });
+
+// Presses `bits` once, then waits `wait` frames (inputs held in `hold` meanwhile).
+function seq(g, steps) {
+  for (const [bits, wait, hold = 0] of steps) { step(g, [bits, 0]); run(g, wait, () => [hold, 0]); }
+}
+const comboHits = (g) => g.f[1].combo;
+
+test('Hotmonster FÚRIA DO MONSTRO: SOCO, SOCO, SOCO+ smashes, bounces, special follows up', () => {
+  const g = createGame(['hotmonster', 'genildo']);
+  toFight(g); approach(g, 650);
+  const hp = g.f[1].hp, seen = new Set();
+  const watch = (bits) => { step(g, [bits, 0]); for (const e of g.events) seen.add(e.t); };
+  for (const [bits, wait] of [[LP, 7], [LP, 7], [HP, 14], [LP | HP, 70]]) {
+    watch(bits);
+    for (let i = 0; i < wait; i++) watch(0);
+  }
+  assert.ok(seen.has('target'), 'SOCO, SOCO, SOCO+ goes into the finisher');
+  assert.ok(seen.has('bounce'), 'the smash bounces off the ground');
+  assert.ok(hp - g.f[1].hp >= 230, `dealt ${hp - g.f[1].hp}`);
+});
+
+test('Flash UPPER RELÂMPAGO: SOCO+, SOCO+ launches, jump and air kick juggle', () => {
+  const g = createGame(['flash', 'genildo']);
+  toFight(g); approach(g, 650);
+  seq(g, [[HP, 18], [HP, 8]]);
+  assert.equal(g.f[0].mv, 'tc');
+  run(g, 10);
+  assert.equal(g.f[1].st, 'fall');
+  assert.equal(g.f[1].jug, 3);
+  const hp = g.f[1].hp;
+  run(g, 22, () => [UP | RIGHT, 0]);
+  assert.ok(g.f[0].st === 'air', 'jumped after the launch');
+  seq(g, [[HK, 40]]);
+  assert.ok(g.f[1].hp < hp, 'air kick juggles the falling opponent');
+});
+
+test('Genildo ENQUADRO: CHUTE, CHUTE, SOCO+ launches into a shot', () => {
+  const g = createGame(['genildo', 'flash']);
+  toFight(g); approach(g, 650);
+  const hp = g.f[1].hp;
+  seq(g, [[LK, 8], [LK, 8], [HP, 24], [LP | HP, 60]]);
+  assert.ok(hp - g.f[1].hp >= 220, `dealt ${hp - g.f[1].hp}`);
+});
+
+test('juggles are limited: no hits left means attacks pass through', () => {
+  const g = createGame(['genildo', 'flash']);
+  toFight(g);
+  const d = g.f[1];
+  Object.assign(d, { st: 'fall', y: 600, vy: 0, jug: 0 });
+  const hp = d.hp;
+  step(g, [LP | HP, 0]);
+  for (let i = 0; i < 40 && d.st === 'fall'; i++) { d.vy = 0; d.y = 600; step(g, [0, 0]); }
+  assert.equal(d.hp, hp, 'shot passes through a fighter with no juggle hits left');
+});

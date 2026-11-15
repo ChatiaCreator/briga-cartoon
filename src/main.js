@@ -38,9 +38,9 @@ function resolveStage(s) {
 }
 
 const DESCR = {
-  hotmonster: 'Especial: arremessa um saco de RAÇÃO. Super: chuva de ração do céu!',
-  flash: 'Especial: investida relâmpago. Super: bebe GARRA Energy (+50% dano, +20% velocidade).',
-  genildo: 'Policial militar. Especial: atira com a pistola. Super: rajada TOLERÂNCIA ZERO!',
+  hotmonster: 'Especial: arremessa um saco de RAÇÃO. Super: chuva de ração do céu! Combo: SOCO, SOCO, SOCO+ → ESPECIAL.',
+  flash: 'Especial: investida relâmpago. Super: bebe GARRA Energy (+50% dano, +20% velocidade). Combo: SOCO+, SOCO+ → pula e chuta.',
+  genildo: 'Policial militar. Especial: atira com a pistola. Super: rajada TOLERÂNCIA ZERO! Combo: CHUTE, CHUTE, SOCO+ → ESPECIAL.',
 };
 
 // ---------- Screens ----------
@@ -313,11 +313,14 @@ function handleEvents(events) {
         break;
       case 'fight': hud.flash('LUTA!', 800); announce('Luta!'); break;
       case 'hit':
-        sfx(ev.heavy ? 'heavy' : 'hit');
+        sfx(ev.heavy ? 'heavy' : 'hit', ev.combo);
+        if (ev.big && !ev.ko) sfx('launch');
         if (touch.enabled && ev.f === (m.mode === 'online' ? m.me : 0)) buzz(ev.heavy ? 60 : 25);
-        hud.combo(ev.by, ev.combo);
+        hud.combo(ev.by, ev.combo, ev.dmg);
         break;
       case 'block': sfx('block'); break;
+      case 'target': hud.flash(`${CHARACTERS[g.f[ev.f].char].combo}!`, 900, true); break;
+      case 'bounce': sfx('bounce'); break;
       case 'move': {
         const f = g.f[ev.f];
         if (ev.mv === 'super') showCutin(f);

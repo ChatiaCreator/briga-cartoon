@@ -20,6 +20,7 @@ export function createFighter(id, char, x) {
     hp: c.hp, maxHp: c.hp, meter: 0,
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
     combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, hitKind: 'head', hitRank: 1, chain: 0,
+    jug: 0, bounce: 0, // juggle hits left while falling; ground bounce pending
     hist: new Array(HIST).fill(5), prev: 0, press: [99, 99, 99, 99, 99, 99, 99],
   };
 }
@@ -29,7 +30,7 @@ export function resetFighterForRound(f, x) {
   Object.assign(f, {
     x, y: 0, vx: 0, vy: 0, pv: 0, facing: f.id === 0 ? 1 : -1, hp: c.hp,
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
-    combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0,
+    combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, jug: 0, bounce: 0, chain: 0,
   });
 }
 
@@ -116,11 +117,20 @@ function startMove(f, id, g) {
 }
 
 function toNeutral(f) {
-  f.st = 'idle'; f.sf = 0; f.mv = ''; f.vx = 0; f.combo = 0; f.guard = false;
+  f.st = 'idle'; f.sf = 0; f.mv = ''; f.vx = 0; f.combo = 0; f.guard = false; f.jug = 0; f.bounce = 0;
 }
 
+function startJump(f, dir) {
+  f.st = 'jumpsquat'; f.sf = 0; f.mv = ''; f.guard = false;
+  f.jumpDir = dir === 7 ? -f.facing : dir === 9 ? f.facing : 0;
+}
+
+const BTN = { LP, HP, LK, HK };
+
 function applyGravity(f) {
-  f.vy -= CHARACTERS[f.char].gravity;
+  // Launched fighters float a little (juggles are easier to follow up).
+  const gr = CHARACTERS[f.char].gravity;
+  f.vy -= f.st === 'fall' && f.jug > 0 ? Math.trunc((gr * 3) / 4) : gr;
   f.x += f.vx;
   f.y += f.vy;
 }
@@ -146,11 +156,7 @@ export function stepFighter(f, input, o, g) {
       if (f.st === 'land' && f.sf < 4) break;
       const mv = chooseMove(f, dir, false, 0);
       if (mv) { startMove(f, mv, g); break; }
-      if (dir >= 7) {
-        f.st = 'jumpsquat'; f.sf = 0; f.guard = false;
-        f.jumpDir = dir === 7 ? -f.facing : dir === 9 ? f.facing : 0;
-        break;
-      }
+      if (dir >= 7) { startJump(f, dir); break; }
       if (dir <= 3) {
         if (f.st !== 'crouch') { f.st = 'crouch'; f.sf = 0; }
         f.vx = 0;
@@ -199,7 +205,14 @@ export function stepFighter(f, input, o, g) {
       break;
     case 'fall':
       applyGravity(f);
+      // Smashed into the ground: bounces back up once and can be hit again.
+      if (f.y <= 0 && f.bounce > 0 && !f.ko) {
+        f.bounce = 0; f.y = 1; f.vy = 125; f.vx = Math.trunc(f.vx / 4); f.jug = 2; f.sf = 0;
+        g.events.push({ t: 'bounce', f: f.id, x: f.x });
+        break;
+      }
       if (f.y <= 0) {
+        f.jug = 0;
         f.y = 0; f.vx = 0; f.vy = 0;
         f.st = f.ko ? 'ko' : 'down'; f.sf = 0; f.inv = 70;
         g.events.push({ t: 'thud', f: f.id, x: f.x });
@@ -278,6 +291,19 @@ function stepAttack(f, dir, o, g) {
   if (m.buff && f.sf === m.startup - 12) {
     f.buff = m.buff;
     g.events.push({ t: 'buff', f: f.id });
+  }
+  if (f.hit && f.sf >= m.startup && f.sf < m.startup + m.active + 12) {
+    // The fighter's own sequence (target combo): goes straight into its finisher.
+    for (const t of CHARACTERS[f.char].targets || []) {
+      if (t.from === f.mv && f.chain >= t.minChain && buffered(f, BTN[t.btn])) {
+        consume(f, BTN[t.btn]);
+        startMove(f, t.to, g);
+        g.events.push({ t: 'target', f: f.id });
+        return;
+      }
+    }
+    // Launcher connected: hold up to jump after the opponent.
+    if (m.jc && dir >= 7 && o.st === 'fall' && o.jug > 0) { startJump(f, dir); return; }
   }
   // Combo cancel: once a move connected, a stronger move can interrupt it.
   if (f.hit && f.sf >= m.startup && f.sf < m.startup + m.active + 8) {

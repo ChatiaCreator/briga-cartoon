@@ -58,13 +58,19 @@ export class Hud {
     }
   }
 
-  combo(attacker, hits) {
+  // Combo counter: hits, a word for big combos and the total damage of the combo.
+  combo(attacker, hits, dmg = 0) {
+    this.comboDmg = this.comboDmg || [0, 0];
+    this.comboDmg[attacker] = hits <= 1 ? dmg : this.comboDmg[attacker] + dmg;
     if (hits < 2) return;
     const el = $(`combo${attacker + 1}`);
-    el.textContent = `${hits} HITS!`;
+    const word = hits >= 8 ? 'INSANO!' : hits >= 5 ? 'BRUTAL!' : hits >= 3 ? 'BOM!' : '';
+    el.innerHTML = `<b>${hits} HITS!</b><small>${word ? word + ' • ' : ''}${this.comboDmg[attacker]} de dano</small>`;
+    el.classList.toggle('big', hits >= 5);
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     el.classList.add('show');
     clearTimeout(this.comboTimers[attacker]);
-    this.comboTimers[attacker] = setTimeout(() => el.classList.remove('show'), 900);
+    this.comboTimers[attacker] = setTimeout(() => el.classList.remove('show'), 1300);
   }
 
   flash(text, ms = 1200, small = false) {

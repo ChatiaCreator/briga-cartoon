@@ -3,6 +3,8 @@
 // rank: 1 light, 2 heavy, 3 special, 4 super. A move that connected can be cancelled into
 // a move of equal (lights only) or higher rank.
 // height: 'mid' (any block), 'low' (crouch block only), 'high' (stand block only).
+// targets: each fighter's own button sequence. After `from` connects (hit or block) and was
+// repeated at least `minChain` times, pressing `btn` goes straight into the finisher `to`.
 
 const normals = {
   lp:  { rank: 1, startup: 4, active: 3, recovery: 7,  dmg: 40, hitstun: 14, blockstun: 10, push: 120, height: 'mid', box: [120, 1200, 680, 1500] },
@@ -10,7 +12,9 @@ const normals = {
   lk:  { rank: 1, startup: 5, active: 3, recovery: 10, dmg: 50, hitstun: 15, blockstun: 11, push: 140, height: 'mid', box: [150, 450, 780, 850] },
   hk:  { rank: 2, startup: 9, active: 4, recovery: 19, dmg: 95, hitstun: 21, blockstun: 16, push: 240, height: 'mid', box: [150, 900, 900, 1400] },
   clp: { rank: 1, startup: 4, active: 3, recovery: 7,  dmg: 35, hitstun: 13, blockstun: 9,  push: 110, height: 'mid', box: [120, 700, 680, 1000] },
-  chp: { rank: 2, startup: 6, active: 5, recovery: 18, dmg: 80, hitstun: 20, blockstun: 14, push: 160, height: 'mid', box: [80, 900, 620, 1800] },
+  // Crouching uppercut: launches the opponent into the air (launch = upward speed); hold up
+  // to jump after them (jc) and keep hitting while they fall.
+  chp: { rank: 2, startup: 6, active: 5, recovery: 18, dmg: 80, hitstun: 20, blockstun: 14, push: 160, height: 'mid', box: [80, 900, 620, 1800], launch: 150, jc: true },
   clk: { rank: 1, startup: 5, active: 3, recovery: 9,  dmg: 40, hitstun: 14, blockstun: 10, push: 120, height: 'low', box: [150, 0, 780, 300] },
   chk: { rank: 2, startup: 8, active: 4, recovery: 22, dmg: 80, hitstun: 0,  blockstun: 14, push: 180, height: 'low', box: [150, 0, 950, 320], kd: true },
   jlp: { rank: 1, startup: 5, active: 8, recovery: 0,  dmg: 50, hitstun: 16, blockstun: 11, push: 100, height: 'high', box: [80, 650, 620, 1100], air: true },
@@ -32,8 +36,13 @@ export const CHARACTERS = {
     name: 'Hotmonster',
     hp: 1000, walk: 38, back: 30, jumpVy: 200, jumpVx: 40, gravity: 11,
     model: 'assets/models/hotmonster.glb',
+    combo: 'FÚRIA DO MONSTRO',
+    targets: [{ from: 'lp', minChain: 1, btn: 'HP', to: 'tc' }],
     moves: {
       ...normals,
+      // Finisher of SOCO, SOCO, SOCO+: a lunging haymaker that smashes the opponent into the
+      // ground; they bounce back up (bounce) and can be hit again.
+      tc: { rank: 2, startup: 9, active: 4, recovery: 18, dmg: 110, hitstun: 0, blockstun: 16, push: 260, height: 'mid', box: [120, 1000, 900, 1550], travel: [0, 10, 30], kd: true, bounce: true },
       // Special: throws a bag of dog food in an arc.
       special: { rank: 3, startup: 16, active: 0, recovery: 26, dmg: 100, hitstun: 22, blockstun: 16, push: 220, height: 'mid', chip: 10,
         projectile: { at: 16, dx: 350, y: 1350, vx: 75, vy: 70, g: 5, kind: 'racao' } },
@@ -46,8 +55,12 @@ export const CHARACTERS = {
     name: 'Flash',
     hp: 950, walk: 48, back: 38, jumpVy: 210, jumpVx: 46, gravity: 11,
     model: 'assets/models/flash.glb',
+    combo: 'UPPER RELÂMPAGO',
+    targets: [{ from: 'hp', minChain: 0, btn: 'HP', to: 'tc' }],
     moves: {
       ...normals,
+      // Finisher of SOCO+, SOCO+ (elbow, then this): uppercut that launches.
+      tc: { rank: 2, startup: 7, active: 4, recovery: 20, dmg: 90, hitstun: 0, blockstun: 15, push: 120, height: 'mid', box: [80, 900, 650, 1850], launch: 175, jc: true },
       // Special: a fast shoulder dash.
       special: { rank: 3, startup: 8, active: 14, recovery: 16, dmg: 100, hitstun: 22, blockstun: 18, push: 250, height: 'mid', chip: 10,
         dash: 120, box: [60, 700, 620, 1550] },
@@ -62,8 +75,12 @@ CHARACTERS.genildo = {
   // Military police officer: sturdier and a bit slower than the others.
   hp: 1050, walk: 34, back: 28, jumpVy: 195, jumpVx: 38, gravity: 11,
   model: 'assets/models/genildo.glb',
+  combo: 'ENQUADRO',
+  targets: [{ from: 'lk', minChain: 1, btn: 'HP', to: 'tc' }],
   moves: {
     ...normals,
+    // Finisher of CHUTE, CHUTE, SOCO+ (two knees, then this): uppercut that launches.
+    tc: { rank: 2, startup: 8, active: 4, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 140, height: 'mid', box: [80, 900, 650, 1800], launch: 130, jc: true },
     // Special: draws the pistol and fires one fast, straight shot.
     special: { rank: 3, startup: 16, active: 0, recovery: 24, dmg: 80, hitstun: 20, blockstun: 14, push: 180, height: 'mid', chip: 8,
       projectile: { at: 16, dx: 520, y: 1330, vx: 160, vy: 0, g: 0, kind: 'bullet' } },

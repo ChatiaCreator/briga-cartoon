@@ -95,12 +95,13 @@ export class GameView {
     for (const ev of events) {
       if (ev.t === 'hit') {
         this.fx.hit(ev);
-        this.flash[ev.f] = ev.heavy ? 0.14 : 0.08;
-        this.arena.shake = Math.max(this.arena.shake, ev.ko ? 0.35 : ev.heavy ? 0.14 : 0.05);
-        this.arena.cheer(ev.ko ? 1.5 : ev.heavy ? 0.5 : 0.15);
+        this.flash[ev.f] = ev.big ? 0.2 : ev.heavy ? 0.14 : 0.08;
+        this.arena.shake = Math.max(this.arena.shake, ev.ko ? 0.35 : ev.big ? 0.26 : ev.heavy ? 0.14 : 0.05);
+        this.arena.cheer(ev.ko ? 1.5 : ev.big ? 1 : ev.heavy ? 0.5 : 0.15);
       } else if (ev.t === 'block') this.fx.block(ev);
       else if (ev.t === 'splash' && ev.kind !== 'bullet') this.fx.splash(ev.x, ev.air ? 1200 : 0);
       else if (ev.t === 'thud') { this.fx.dust(ev.x); this.arena.shake = Math.max(this.arena.shake, 0.1); }
+      else if (ev.t === 'bounce') { this.fx.dust(ev.x); this.fx.dust(ev.x); this.arena.shake = Math.max(this.arena.shake, 0.22); }
       else if (ev.t === 'shot') {
         // Muzzle flash at the gun (in front of the shooter's hands).
         const c = this.chars[ev.f];

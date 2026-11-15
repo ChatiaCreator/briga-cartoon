@@ -32,6 +32,12 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
 - **Sequência de socos:** apertando soco fraco seguido saem até 4 socos.
 - **Defesa:** segure para trás. Agachado, você também defende os golpes baixos (rasteira e chute baixo). Golpes no ar só são defendidos em pé.
 - **Combos:** um golpe que acerta pode ser cancelado num mais forte. Exemplo: soco fraco → soco forte → especial → super.
+- **Lançar:** `↓` + soco forte joga o adversário para cima. Segure `↑` para pular atrás dele e bater no ar (até 3 golpes antes de ele cair).
+- **Sequência de cada lutador:**
+  - **Hotmonster, FÚRIA DO MONSTRO:** soco, soco, soco forte. O adversário quica no chão e dá para emendar o especial.
+  - **Flash, UPPER RELÂMPAGO:** soco forte, soco forte (cotovelada e uppercut que lança). Depois, pule e chute no ar, ou use o especial.
+  - **Genildo, ENQUADRO:** chute, chute, soco forte (joelhada, joelhada, uppercut que lança). Depois, o tiro do especial acerta no ar.
+- **Contador de combo:** mostra os golpes e o dano total; combos grandes ganham "BOM!", "BRUTAL!" e "INSANO!".
 - **Partida:** melhor de 3 rounds, com 99 segundos por round.
 
 ## Online

@@ -113,6 +113,8 @@ function nextRound(g) {
 
 function hurtbox(f) {
   if (f.st === 'down' || f.st === 'rise' || f.st === 'ko') return null;
+  // Knocked into the air: only hittable while juggle hits are left.
+  if (f.st === 'fall' && f.jug <= 0) return null;
   const h = isCrouching(f) ? 1100 : f.y > 0 ? 1450 : 1750;
   return [f.x - 260, f.y, f.x + 260, f.y + h];
 }
@@ -202,13 +204,24 @@ function applyHit(g, { att, def, move, proj, x, y }) {
   def.hitKind = move.box && move.box[1] < 900 ? 'body' : 'head';
   def.hitRank = move.rank || 1;
   if (def.hp === 0) def.ko = true;
-  if (def.ko || move.kd || def.y > 0 || def.st === 'fall') {
-    def.st = 'fall'; def.vy = def.ko ? 130 : 110; def.vx = 35 * away; def.y = Math.max(1, def.y);
+  const juggled = def.st === 'fall';
+  let big = false;
+  if (move.launch && !def.ko && !juggled) {
+    // Launcher: up into the air, with three more hits allowed before landing.
+    def.st = 'fall'; def.vy = move.launch; def.vx = 16 * away; def.y = Math.max(1, def.y); def.jug = 3;
+    big = true;
+  } else if (juggled && !def.ko && def.jug > 0) {
+    // Juggle: every hit pops them up a little and uses one of the hits left.
+    def.jug--; def.vy = 95; def.vx = 20 * away;
+  } else if (def.ko || move.kd || def.y > 0 || juggled) {
+    def.st = 'fall'; def.vy = def.ko ? 130 : 110; def.vx = 35 * away; def.y = Math.max(1, def.y); def.jug = 0;
+    // Smash: flies back low and bounces off the ground (see stepFighter, 'fall').
+    if (move.bounce && !def.ko) { def.vx = 30 * away; def.vy = 80; def.bounce = 1; big = true; }
   } else {
     def.st = 'hit'; def.stun = move.hitstun;
   }
-  g.hitstop = def.ko ? 20 : move.rank >= 2 ? 9 : 7;
-  g.events.push({ t: 'hit', x, y, f: def.id, by: att.id, dmg, combo: def.combo, heavy: move.rank >= 2, ko: def.ko });
+  g.hitstop = def.ko ? 20 : big ? 13 : move.rank >= 2 ? 9 : 7;
+  g.events.push({ t: 'hit', x, y, f: def.id, by: att.id, dmg, combo: def.combo, heavy: move.rank >= 2, ko: def.ko, big, juggle: juggled });
 }
 
 function separate(g) {
@@ -264,7 +277,7 @@ export function checksum(g) {
   for (const f of g.f) {
     mix(f.x); mix(f.y); mix(f.vx); mix(f.vy); mix(f.pv); mix(f.facing); mix(f.hp); mix(f.meter);
     mix(ST.indexOf(f.st)); mix(f.sf); mix(f.mv.length ? f.mv.charCodeAt(0) * 256 + f.mv.charCodeAt(f.mv.length - 1) : 0);
-    mix(f.stun); mix(f.inv); mix(f.buff); mix(f.combo);
+    mix(f.stun); mix(f.inv); mix(f.buff); mix(f.combo); mix(f.jug); mix(f.bounce);
   }
   for (const p of g.proj) { mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); }
   return h >>> 0;

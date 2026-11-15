@@ -81,6 +81,15 @@ export class Cpu {
       [LP, DOWN, DOWN | fwd, fwd, fwd | LP],
       [HP], [HK], [DOWN | HP], [DOWN | HK], [LP], [LK],
     ];
+    // Each fighter's own sequence, and the crouching uppercut launcher with an air kick.
+    const z = (n, v = 0) => new Array(n).fill(v);
+    const own = {
+      hotmonster: [LP, ...z(7), LP, ...z(7), HP, ...z(14), LP | HP],
+      flash: [HP, ...z(18), HP, ...z(8), ...z(22, UP | fwd), 0, HK],
+      genildo: [LK, ...z(8), LK, ...z(8), HP, ...z(24), LP | HP],
+    }[me.char];
+    if (own) combos.push(own, own);
+    combos.push([LP, ...z(14), DOWN | HP, ...z(20, DOWN), ...z(16, UP | fwd), 0, HK]);
     if (r < 0.25 + lv * 0.5) {
       const c = combos[Math.floor(this.rnd() * combos.length)];
       this.plan(c, 0, 18 - Math.round(lv * 8));

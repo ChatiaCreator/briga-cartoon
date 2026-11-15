@@ -45,13 +45,17 @@ function burst(c, dur, vol, freq) {
   n.start();
 }
 
-export function sfx(name) {
+// k: how many hits into a combo; each hit sounds a little higher.
+export function sfx(name, k = 0) {
   if (muted) return;
   const c = ac();
   if (!c) return;
+  const up = 1 + 0.08 * Math.min(10, Math.max(0, k - 1));
   switch (name) {
-    case 'hit': burst(c, 0.12, 0.5, 2500); tone(c, 'sine', 160, 60, 0.12, 0.5); break;
-    case 'heavy': burst(c, 0.2, 0.7, 1800); tone(c, 'sine', 120, 40, 0.22, 0.8); break;
+    case 'hit': burst(c, 0.12, 0.5, 2500 * up); tone(c, 'sine', 160 * up, 60 * up, 0.12, 0.5); break;
+    case 'heavy': burst(c, 0.2, 0.7, 1800 * up); tone(c, 'sine', 120 * up, 40 * up, 0.22, 0.8); break;
+    case 'launch': tone(c, 'triangle', 220, 1100, 0.35, 0.25); burst(c, 0.25, 0.25, 1500); break;
+    case 'bounce': tone(c, 'sine', 140, 40, 0.3, 0.8); burst(c, 0.25, 0.5, 900); break;
     case 'block': tone(c, 'square', 900, 500, 0.06, 0.12); burst(c, 0.05, 0.2, 5000); break;
     case 'whoosh': burst(c, 0.1, 0.12, 900); break;
     case 'throw': tone(c, 'triangle', 300, 700, 0.15, 0.2); break;

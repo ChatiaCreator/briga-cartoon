@@ -104,6 +104,7 @@ const CLIP_ATTACKS = {
     hk: ['Martelo_2', 0.1, 0.45, 0.62, 1.3],
     hp: [UJ, 1.7, 1.98, 2.06, 2.45, 0, false, TRAVEL],    // long straight from "Uppercut Jab"
     chp: UPPERCUT,
+    tc: ['Boxing', 0.2, 0.6, 0.72, 1.5, 0, false, TRAVEL],  // FÚRIA DO MONSTRO: lunging haymaker
   },
   flash: {
     ...MIXAMO_ATTACKS,
@@ -111,6 +112,7 @@ const CLIP_ATTACKS = {
     // "Elbow Uppercut Combo": the elbow is his strong punch, the uppercut his crouching one.
     hp: [EUC, 0.35, 0.7, 0.8, 1.05, 0, false, TRAVEL],
     chp: [EUC, 1.0, 1.33, 1.43, 1.9, 0, false, TRAVEL],
+    tc: [EUC, 0.95, 1.33, 1.43, 1.9, 0, false, TRAVEL],   // UPPER RELÂMPAGO: the uppercut after the elbow
   },
   genildo: {
     ...MIXAMO_ATTACKS,
@@ -119,6 +121,7 @@ const CLIP_ATTACKS = {
     lk2: [KJU, 1.95, 2.15, 2.25, 2.45, 0, false, TRAVEL],
     hp: [KJU, 3.15, 3.55, 3.66, 4.25, 0, false, TRAVEL],
     chp: UPPERCUT,
+    tc: [KJU, 3.1, 3.55, 3.66, 4.25, 0, false, TRAVEL],   // ENQUADRO: the uppercut after the knees
   },
 };
 
