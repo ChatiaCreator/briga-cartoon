@@ -37,7 +37,7 @@ let attract = null;      // background scene behind the menus
 let match = null;        // the running fight
 let session = null;      // online session
 const sel = { mode: 'local', chars: ['hotmonster', 'flash'], stage: 'street' };
-export const STAGES = ['street', 'beach'];
+export const STAGES = ['street', 'beach', 'petshop'];
 // "random" is picked when the match starts (by the host, online).
 function resolveStage(s) {
   return STAGES.includes(s) ? s : STAGES[Math.floor(Math.random() * STAGES.length)];

@@ -1,6 +1,6 @@
 # Fight Friends
 
-Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderon Silva** e **HGL**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em dois cenários: a **rua** ao pôr do sol e a **praia**.
+Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderon Silva** e **HGL**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em três cenários: a **rua** ao pôr do sol, a **praia** e o **Pet Shop Canaã**.
 
 **Jogar:** https://chatiacreator.github.io/briga-cartoon/
 
