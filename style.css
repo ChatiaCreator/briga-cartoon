@@ -28,7 +28,7 @@ html, body {
   background: radial-gradient(circle at 50% 30%, rgba(215, 56, 94, 0.85), rgba(43, 16, 85, 0.96) 70%);
 }
 .screen.overlay { background: rgba(20, 10, 35, 0.78); }
-h1.logo { margin: 0; display: flex; flex-direction: column; align-items: center; line-height: 0.9; transform: rotate(-4deg); }
+h1.logo { margin: 0 0 22px; display: flex; flex-direction: column; align-items: center; line-height: 0.9; transform: rotate(-4deg); }
 h1.logo span {
   font-size: clamp(48px, 12vw, 110px); color: var(--yellow);
   -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill;

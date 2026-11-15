@@ -1,4 +1,4 @@
-# Briga Cartoon
+# Fight Friends
 
 Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash** e **Genildo**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador.
 

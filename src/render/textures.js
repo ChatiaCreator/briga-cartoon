@@ -46,7 +46,7 @@ export function groundTexture() {
     g.fillStyle = '#ffd23f';
     g.fillRect(0, h * 0.12, w, 10);
     g.fillRect(0, h * 0.88, w, 10);
-    // Spray-painted "BRIGA!" logo in the middle of the street.
+    // Spray-painted "FIGHT!" logo in the middle of the street.
     g.save();
     g.translate(w / 2, h / 2); g.scale(1, 0.62); g.rotate(-0.04);
     g.globalAlpha = 0.55;
@@ -59,8 +59,8 @@ export function groundTexture() {
     g.lineWidth = 14; g.strokeStyle = '#ffd23f'; g.stroke();
     g.font = 'bold 150px Impact, Arial Black, sans-serif';
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.lineWidth = 16; g.strokeStyle = '#1b1b1b'; g.strokeText('BRIGA!', 0, 6);
-    g.fillStyle = '#fff'; g.fillText('BRIGA!', 0, 6);
+    g.lineWidth = 16; g.strokeStyle = '#1b1b1b'; g.strokeText('FIGHT!', 0, 6);
+    g.fillStyle = '#fff'; g.fillText('FIGHT!', 0, 6);
     g.restore();
     // Manhole covers.
     for (const x of [w * 0.2, w * 0.82]) {
