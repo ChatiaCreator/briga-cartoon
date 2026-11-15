@@ -4,27 +4,68 @@
 // in model units (the models are 1 unit tall).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 export const HEIGHT = 1.8; // metres on screen
 const IN_PLACE = new Set(['run', 'Short_Step_Forward']);
 
 const loader = new GLTFLoader();
+loader.setMeshoptDecoder(MeshoptDecoder); // models are compressed (tools/optimize/build.mjs)
 const bufferCache = new Map();
+const progress = new Map(); // url -> [bytes loaded, bytes total]
 
-export async function loadGLTF(url) {
+// Downloads a file once (later calls share it), recording progress for loading bars.
+function download(url) {
   if (!bufferCache.has(url)) {
     // Hosts that can't serve .glb get a base64 copy (see the "briga-b64" meta tag).
     const b64 = !!document.querySelector('meta[name="briga-b64"]');
+    progress.set(url, [0, 0]);
     bufferCache.set(url, fetch(b64 ? `${url}.b64.txt` : url).then(async (r) => {
       if (!r.ok) throw new Error(`Não foi possível carregar ${url} (${r.status})`);
-      if (!b64) return r.arrayBuffer();
-      const bin = atob((await r.text()).trim());
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      return bytes.buffer;
+      const total = Number(r.headers.get('content-length')) || 0;
+      let bytes;
+      if (r.body && r.body.getReader) {
+        const reader = r.body.getReader(), parts = [];
+        let got = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          parts.push(value); got += value.length;
+          progress.set(url, [got, Math.max(total, got)]);
+        }
+        bytes = new Uint8Array(got);
+        let o = 0;
+        for (const p of parts) { bytes.set(p, o); o += p.length; }
+      } else {
+        bytes = new Uint8Array(await r.arrayBuffer());
+      }
+      progress.set(url, [bytes.length, bytes.length]);
+      if (!b64) return bytes.buffer;
+      const bin = atob(new TextDecoder().decode(bytes).trim());
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out.buffer;
     }));
   }
-  const buf = await bufferCache.get(url);
+  return bufferCache.get(url);
+}
+
+// Starts downloading a model in the background (e.g. when its card is picked).
+export function prefetch(url) { download(url).catch(() => {}); }
+
+// 0..1 for a set of files (files not started yet count as 0).
+export function downloadProgress(urls) {
+  let got = 0, total = 0;
+  for (const u of urls) {
+    const [g, t] = progress.get(u) || [0, 0];
+    const est = t || 1_000_000;
+    got += Math.min(g, est); total += est;
+  }
+  return total ? got / total : 1;
+}
+
+export async function loadGLTF(url) {
+  const buf = await download(url);
   // Parse a fresh copy each time so two fighters can use the same character.
   return loader.parseAsync(buf.slice(0), '');
 }

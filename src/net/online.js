@@ -3,7 +3,7 @@
 import { delayFor } from './rollback.js';
 
 const PREFIX = 'briga-cartoon-v1-';
-export const NET_VERSION = 4; // 4: HGL
+export const NET_VERSION = 5; // 5: compressed models, new delay table
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function makeCode() {
@@ -107,6 +107,7 @@ export class OnlineSession {
           return;
         }
         this.remoteChar = msg.char;
+        this.h.peerChar?.(msg.char); // lets the game start downloading that fighter
         if (this.isHost) this.measure(0);
         return;
       case 'ping':

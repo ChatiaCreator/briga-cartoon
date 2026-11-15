@@ -199,7 +199,7 @@ function specialPose(f, m) {
   if (f.char === 'anderon' && f.mv === 'super') {
     // Mixamo "Talking On A Cell Phone": hand up to the ear, a bit of the talk, then lowers it.
     const k = (a, b, x) => a + (b - a) * clamp01(x);
-    const time = t < 24 ? k(0, 4.2, t / 24) : t < 104 ? k(4.2, 7.6, (t - 24) / 80) : k(34.5, 36.5, (t - 104) / 16);
+    const time = t < 24 ? k(0, 4.2, t / 24) : t < 104 ? k(4.2, 7.6, (t - 24) / 80) : k(8.0, 10.0, (t - 104) / 16); // 8-10 s = 34.5-36.5 s of the original (see tools/optimize SPLICE)
     return { ...CLIP, clip: 'Talking_On_A_Cell_Phone', clipTime: time, lockXZ: true, blend: 0.12 };
   }
   if (f.char === 'hotmonster' && f.mv === 'special') {

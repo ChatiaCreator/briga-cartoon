@@ -1,9 +1,9 @@
 // Menus, match lifecycle and the main loop (fixed 60 Hz simulation, render every frame).
 import * as THREE from 'three';
 import { createRenderer } from './render/scene.js';
-import { GameView, canImage, sharedClips, isFinalKO } from './render/view.js';
+import { GameView, canImage, sharedClips, fighterClips, matchFiles, isFinalKO } from './render/view.js';
 import { initTouch, buzz, goFullscreen, isTouchDevice, setVibration, isVibration } from './touch.js';
-import { Character, loadGLTF } from './render/character.js';
+import { Character, loadGLTF, prefetch, downloadProgress } from './render/character.js';
 import { poseFor } from './render/poses.js';
 import { createGame, step, checksum } from './sim/game.js';
 import { createFighter } from './sim/fighter.js';
@@ -33,7 +33,6 @@ $('optFull').onclick = () => {
 };
 document.addEventListener('fullscreenchange', () => renderOptions());
 
-let attract = null;      // background scene behind the menus
 let match = null;        // the running fight
 let session = null;      // online session
 const sel = { mode: 'local', chars: ['hotmonster', 'flash'], stage: 'street' };
@@ -72,6 +71,7 @@ function openSelect(mode) {
   $('stageHint').classList.toggle('hidden', !solo);
   renderCards();
   renderStages();
+  for (const c of sel.chars) prefetch(CHARACTERS[c].model); // start downloading the picked fighters
   show('select');
 }
 
@@ -85,7 +85,7 @@ function renderCards() {
       b.className = 'card' + (sel.chars[p] === id ? ' on' : '');
       b.setAttribute('aria-label', c.name);
       b.innerHTML = `<img alt="" src="${portraits[id] || ''}"><span class="cn">${c.name}</span>`;
-      b.onclick = () => { sel.chars[p] = id; sfx('block'); renderCards(); };
+      b.onclick = () => { sel.chars[p] = id; prefetch(CHARACTERS[id].model); sfx('block'); renderCards(); };
       box.appendChild(b);
     }
     // The chosen fighter's name and moves under the cards.
@@ -187,6 +187,7 @@ function newSession() {
       if (error) { netStatus(error, true); $('hostBtn').disabled = false; $('joinBtn').disabled = false; }
       else if (text) netStatus(text);
     },
+    peerChar: (c) => { if (CHARACTERS[c]) prefetch(CHARACTERS[c].model); },
     start: (info) => startMatch('online', info.chars, { me: info.me, delay: info.delay, stage: info.stage, matchNo: info.matchNo }),
     message: (msg) => {
       if (msg.t === 'rematch' && match?.ended) endMsg('Seu amigo quer revanche!');
@@ -233,12 +234,46 @@ $('onlineBack').onclick = () => {
   show('menu');
 };
 
+// ---------- Loading bar (downloading the fighters of a match) ----------
+function showLoading(files) {
+  let el = $('loadbar');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loadbar';
+    el.innerHTML = '<img src="assets/ui/logo.webp" alt=""><div class="lb-bar"><i></i></div><b>Carregando lutadores… 0%</b>';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('hidden');
+  const fill = el.querySelector('i'), txt = el.querySelector('b');
+  const tick = () => {
+    const k = downloadProgress(files);
+    fill.style.width = `${Math.round(k * 100)}%`;
+    txt.textContent = k >= 1 ? 'Preparando a luta…' : `Carregando lutadores… ${Math.round(k * 100)}%`;
+  };
+  tick();
+  const timer = setInterval(tick, 100);
+  return { done() { clearInterval(timer); el.classList.add('hidden'); } };
+}
+
 // ---------- Match ----------
 async function startMatch(mode, chars, opts = {}) {
   hideScreens();
-  $('loading').textContent = 'Carregando luta…';
   if (match) disposeMatch();
-  const view = await GameView.create(chars, STAGES.includes(opts.stage) ? opts.stage : 'street');
+  // Only these two fighters (and the animations) are downloaded; a bar shows the progress.
+  const files = matchFiles(chars);
+  const bar = showLoading(files);
+  let view;
+  try {
+    view = await GameView.create(chars, STAGES.includes(opts.stage) ? opts.stage : 'street');
+  } catch (e) {
+    bar.done();
+    console.error(e);
+    show('menu');
+    $('loading').textContent = `Erro ao carregar: ${e.message}`;
+    return;
+  }
+  bar.done();
+  if (perf.noShadow) view.arena.sun.castShadow = false;
   view.arena.resize(innerWidth, innerHeight);
   const game = createGame(chars);
   const me = opts.me ?? 0;
@@ -325,13 +360,15 @@ function tick() {
     m.game = lock.game;
     if (res === 'stall') {
       m.stall++;
+      if (lock.frame > 60) m.frozenFrames = (m.frozenFrames || 0) + 1; // not while both sides line up
       if (m.stall === 45) hud.net('Conexão lenta… esperando o outro jogador', true);
-      if (m.stall > 60 * 12) { session?.close(); endMatch(); openOnline(); netStatus('A conexão travou. Tentem de novo.', true); }
+      // More patience at the start (the other side may still be downloading its fighters).
+      if (m.stall > 60 * (m.frame < 120 ? 40 : 12)) { session?.close(); endMatch(); openOnline(); netStatus('A conexão travou. Tentem de novo.', true); }
       return false;
     }
     if (res === 'wait') return false; // the other side is behind: let it catch up
-    if (m.stall >= 45) hud.net(netLabel());
     m.stall = 0;
+    if (lock.frame % 60 === 0) hud.net(netLabel()); // refresh the meter every second
     m.frame = lock.frame;
     if (lock.desync != null) {
       session?.close(); endMatch(); openOnline();
@@ -350,9 +387,17 @@ function tick() {
   return true;
 }
 
+// Connection meter in the HUD: ping, input delay, how often the game corrected a guess and
+// how much it had to freeze, plus a quality word. Tap/click it for nothing; it just informs.
 function netLabel() {
-  const ping = session?.rtt ? ` • ping ${Math.round(session.rtt)} ms` : '';
-  return `online${ping}`;
+  const m = match, L = m?.lock;
+  const ping = session?.rtt ? Math.round(session.rtt) : null;
+  if (!L) return 'online';
+  const secs = Math.max(1, L.frame / 60);
+  const rb = (L.rollbacks / secs).toFixed(1);
+  const frozen = m.frozenFrames ? ((100 * m.frozenFrames) / Math.max(1, L.frame + m.frozenFrames)).toFixed(1) : '0';
+  const q = ping == null ? '' : ping < 90 && frozen < 1 ? ' • 🟢 ótima' : ping < 180 && frozen < 3 ? ' • 🟡 boa' : ' • 🔴 fraca';
+  return `online${ping != null ? ` • ping ${ping} ms` : ''} • atraso ${L.delay} • correções ${rb}/s • travou ${frozen}%${q}`;
 }
 
 const nameOf = (g, i) => CHARACTERS[g.f[i].char].name.toUpperCase();
@@ -495,14 +540,29 @@ window.addEventListener('blur', () => { if (match && match.mode !== 'online') op
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
   match?.view.arena.resize(innerWidth, innerHeight);
-  attract?.view.arena.resize(innerWidth, innerHeight);
 }
 window.addEventListener('resize', resize);
 
 let last = performance.now();
+// Automatic light mode: if a fight runs below ~42 fps, lower the resolution step by step and
+// then turn off the shadows.
+const perf = { t: 0, n: 0, noShadow: false };
+function watchPerformance(dt) {
+  if (!match || match.paused || document.hidden) { perf.t = 0; perf.n = 0; return; }
+  perf.t += dt; perf.n++;
+  if (perf.n < 120) return;
+  const slow = perf.t / perf.n > 1 / 42;
+  perf.t = 0; perf.n = 0;
+  if (!slow) return;
+  const pr = renderer.getPixelRatio();
+  if (pr > 1.01) { renderer.setPixelRatio(Math.max(1, pr - 0.5)); resize(); }
+  else if (!perf.noShadow) { perf.noShadow = true; match.view.arena.sun.castShadow = false; }
+}
+
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  watchPerformance(dt);
   if (match) {
     const m = match;
     if (!m.paused && !m.hold) {
@@ -525,9 +585,6 @@ function frame(now) {
       updateCutin(m.game);
       hud.update(m.game);
     }
-  } else if (attract && $('menu').classList.contains('hidden')) {
-    // The main menu has its own painted background; the 3D street shows behind the others.
-    attract.view.render(renderer, attract.game, dt);
   }
   requestAnimationFrame(frame);
 }
@@ -557,15 +614,13 @@ async function makePortraits() {
   const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   r.setSize(size, size, false);
   r.outputColorSpace = THREE.SRGBColorSpace;
-  const shared = await sharedClips();
   for (const id of Object.keys(CHARACTERS)) {
     if (portraits[id]) continue;
     const scene = new THREE.Scene();
     scene.add(new THREE.HemisphereLight(0xffffff, 0x664466, 2.2));
     const d = new THREE.DirectionalLight(0xffffff, 2); d.position.set(2, 3, 4); scene.add(d);
     const gltf = await loadGLTF(CHARACTERS[id].model);
-    const own = new Set(gltf.animations.map((a) => a.name));
-    const c = new Character(gltf, { extraClips: shared.filter((a) => !own.has(a.name)) });
+    const c = new Character(gltf, { extraClips: await fighterClips(id) });
     c.root.rotation.y = 0.55;
     scene.add(c.root);
     c.root.updateMatrixWorld(true);
@@ -591,10 +646,9 @@ async function boot() {
   requestAnimationFrame(frame);
   try {
     await canImage();
-    const view = await GameView.create(['hotmonster', 'flash']);
-    view.arena.resize(innerWidth, innerHeight);
-    attract = { view, game: createGame(['hotmonster', 'flash']) };
     await makePortraits();
+    // The animations are needed by every match: start downloading them right away.
+    sharedClips().catch(() => {});
     $('loading').textContent = '';
   } catch (e) {
     console.error(e);

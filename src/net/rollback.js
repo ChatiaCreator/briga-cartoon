@@ -10,7 +10,7 @@
 // clocks in step: the one running ahead pauses for a frame now and then.
 import { step, checksum } from '../sim/game.js';
 
-export const MAX_ROLLBACK = 12;   // frames we may run ahead of the last confirmed remote input
+export const MAX_ROLLBACK = 14;   // frames we may run ahead of the last confirmed remote input
 const KEEP = 90;                  // saved states / inputs kept behind the confirmed frame
 
 const clone = typeof structuredClone === 'function'
@@ -174,5 +174,5 @@ export class Rollback {
 // Input delay for a measured round trip: enough to hide part of the latency without
 // making the controls feel slow; rollback hides the rest.
 export function delayFor(rttMs) {
-  return rttMs < 90 ? 2 : rttMs < 180 ? 3 : rttMs < 300 ? 4 : 5;
+  return rttMs < 90 ? 2 : rttMs < 180 ? 3 : rttMs < 240 ? 4 : rttMs < 320 ? 5 : 6;
 }

@@ -95,7 +95,9 @@ src/render/
   scene.js, effects.js    arena, câmera, explosões "POW!", ração, lata, aura
 src/net/                  rollback (online, igual jogos de luta profissionais) e salas PeerJS
 src/cpu.js                inteligência do computador
-assets/models/            hotmonster.glb, flash.glb, genildo.glb, mixamo_anims.glb (animações do Mixamo convertidas)
+assets/models/            os lutadores e anims.glb (todas as animações), comprimidos para o jogo abrir rápido
+tools/models_src/         os modelos originais e as animações convertidas, sem compressão
+tools/optimize/           gera assets/models/ a partir de tools/models_src/
 tools/mixamo/             conversor de animações do Mixamo (.fbx) para os lutadores
 assets/can/garra.svg      rótulo da lata GARRA Energy
 vendor/                   three.js 0.170.0 e PeerJS 1.5.4 (cópias locais)
@@ -103,7 +105,7 @@ vendor/                   three.js 0.170.0 e PeerJS 1.5.4 (cópias locais)
 
 ## Animações
 
-Os golpes, o andar, o pulo, a defesa e o levantar vêm de animações do [Mixamo](https://www.mixamo.com/). As reações a golpes, as quedas, as entradas e as comemorações vêm dos próprios modelos. O que não tem animação (agachar e golpes agachados) é feito no código, com IK.
+Os golpes, o andar, o pulo, a defesa, o agachar e o levantar vêm de animações do [Mixamo](https://www.mixamo.com/). As reações a golpes, as quedas, as entradas e as comemorações vêm dos próprios modelos.
 
 Os ossos do Mixamo têm os mesmos nomes dos ossos dos modelos, mas ficam virados de outro jeito. Por isso as animações passam por um conversor. Para adicionar uma animação nova:
 
@@ -111,9 +113,12 @@ Os ossos do Mixamo têm os mesmos nomes dos ossos dos modelos, mas ficam virados
 2. Coloque o arquivo em `tools/mixamo/in/`.
 3. Com o servidor local rodando (`python3 -m http.server 8765`), rode `node tools/mixamo/convert.cjs`. Ele precisa do Playwright.
 4. Ligue a animação (o nome do arquivo, sem `.fbx`) ao golpe ou estado em `src/render/poses.js`.
+5. Gere os arquivos leves do jogo: `cd tools/optimize && npm install && node build.mjs`. Só entram as animações que o código usa.
+
+Um lutador novo segue o mesmo caminho: o `.glb` vai para `tools/models_src/`, entra na lista `FIGHTERS` de `tools/optimize/build.mjs` e em `src/sim/moves.js`.
 
 ## Créditos
 
 - **Personagens:** Hotmonster, Flash, Genildo, Anderon Silva e HGL, do autor do jogo.
 - **GARRA Energy:** marca fictícia criada para o jogo.
-- **Bibliotecas:** three.js (MIT) e PeerJS (MIT). As licenças estão em `vendor/`.
+- **Bibliotecas:** three.js (MIT), PeerJS (MIT) e o decodificador do meshoptimizer (MIT). As licenças estão em `vendor/`.

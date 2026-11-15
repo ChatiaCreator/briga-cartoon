@@ -23,39 +23,55 @@ export function canImage() {
   return canImgPromise;
 }
 
-// Every animation from every model. Both characters use the Mixamo skeleton, so a clip
-// made on one plays on the other.
+// All animations live in one compressed file (tools/optimize/build.mjs): each model's own clips
+// as "<model>:<clip>" and the Mixamo ones as "mixamo:<clip>". Every fighter uses the Mixamo
+// skeleton, so a clip made on one plays on the others. Its bare node tree is Hotmonster's
+// skeleton, the reference rig the clips were made for.
+export const ANIMS_URL = 'assets/models/anims.glb';
+const ORDER = ['hotmonster', 'flash', 'anderon', 'hgl', 'mixamo']; // first one wins for shared clips
 let sharedPromise = null;
 export function sharedClips() {
   if (!sharedPromise) sharedPromise = loadShared();
   return sharedPromise;
 }
-// Older clips the current models no longer carry (Flash's dash, Hotmonster's intro), and the
-// Mixamo animations converted with tools/mixamo/convert.cjs.
-const EXTRA_ANIMS = ['assets/models/extra_anims.glb', 'assets/models/mixamo_anims.glb'];
 async function loadShared() {
-  const all = new Map();
-  setReferenceRig((await loadGLTF(CHARACTERS.hotmonster.model)).scene);
-  for (const url of [...Object.values(CHARACTERS).map((c) => c.model), ...EXTRA_ANIMS]) {
-    for (const a of (await loadGLTF(url)).animations) if (!all.has(a.name)) all.set(a.name, a);
+  const gltf = await loadGLTF(ANIMS_URL);
+  setReferenceRig(gltf.scene);
+  const own = {}, shared = new Map();
+  const named = (clip, name) => { const c = clip.clone(); c.name = name; return c; };
+  const byPrefix = (pre) => gltf.animations.filter((a) => a.name.startsWith(pre + ':'));
+  for (const pre of ORDER) {
+    own[pre] = [];
+    for (const a of byPrefix(pre)) {
+      const name = a.name.slice(pre.length + 1);
+      own[pre].push(named(a, name));
+      if (!shared.has(name)) shared.set(name, named(a, name));
+    }
   }
-  return [...all.values()];
+  return { own, shared: [...shared.values()] };
 }
 
-export async function preloadModels() {
-  await Promise.all(Object.values(CHARACTERS).map((c) => loadGLTF(c.model)));
+// The clips a fighter plays: its own model's first, then the shared ones.
+export async function fighterClips(char) {
+  const { own, shared } = await sharedClips();
+  const mine = own[char] || [];
+  const names = new Set(mine.map((a) => a.name));
+  return [...mine, ...shared.filter((a) => !names.has(a.name))];
+}
+
+// Files a match needs (for the loading bar).
+export function matchFiles(chars) {
+  return [ANIMS_URL, ...new Set(chars.map((c) => CHARACTERS[c].model))];
 }
 
 export class GameView {
   static async create(chars, stage = 'street') {
     const canImg = await canImage();
-    const shared = await sharedClips();
+    const [g0, g1] = await Promise.all(chars.map((c) => loadGLTF(CHARACTERS[c].model)));
     const fighters = [];
     for (let i = 0; i < 2; i++) {
-      const gltf = await loadGLTF(CHARACTERS[chars[i]].model);
-      const own = new Set(gltf.animations.map((a) => a.name));
       const tint = i === 1 && chars[0] === chars[1] ? 0x9fc6ff : null; // mirror match: tint P2
-      fighters.push(new Character(gltf, { tint, extraClips: shared.filter((a) => !own.has(a.name)) }));
+      fighters.push(new Character(i ? g1 : g0, { tint, extraClips: await fighterClips(chars[i]) }));
     }
     return new GameView(fighters, canImg, stage);
   }

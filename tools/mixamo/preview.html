@@ -7,14 +7,14 @@ import * as THREE from 'three';
 import { Character, loadGLTF } from '../../src/render/character.js';
 const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 r.setSize(1560, 460); document.body.appendChild(r.domElement);
-const anims = (await loadGLTF('../../assets/models/mixamo_anims.glb')).animations;
+const anims = (await loadGLTF('../models_src/mixamo_anims.glb')).animations;
 window.strip = async (model, clip, n = 12, side = false, t0 = 0, t1 = null) => {
   const sc = new THREE.Scene(); sc.background = new THREE.Color(0xdddddd);
   sc.add(new THREE.HemisphereLight(0xffffff, 0x666666, 2.5));
   const cam = new THREE.OrthographicCamera(-n * 0.65, n * 0.65, 1.9, -1.9, 0.1, 100); cam.position.set(0, 0.2, 20);
   let dur = 0;
   for (let i = 0; i < n; i++) {
-    const c = new Character(await loadGLTF('../../assets/models/' + model), { extraClips: anims });
+    const c = new Character(await loadGLTF('../models_src/' + model), { extraClips: anims });
     dur = c.clips[clip].duration; const tt = t1 ?? dur;
     c.root.position.set((i - (n - 1) / 2) * 1.3, -1.6, 0);
     c.root.rotation.y = side ? Math.PI / 2 : 0;
@@ -31,8 +31,8 @@ import * as THREE from 'three';
 import { Character, loadGLTF } from '../../src/render/character.js';
 // Numbers per time step: hips height/forward, the furthest-forward hand and foot, hips facing.
 window.probe = async (clip, step = 0.1) => {
-  const anims = (await loadGLTF('../../assets/models/mixamo_anims.glb')).animations;
-  const c = new Character(await loadGLTF('../../assets/models/hotmonster.glb'), { extraClips: anims });
+  const anims = (await loadGLTF('../models_src/mixamo_anims.glb')).animations;
+  const c = new Character(await loadGLTF('../models_src/hotmonster.glb'), { extraClips: anims });
   const d = c.clips[clip].duration, out = [];
   const P = (n) => c.model.worldToLocal(c.b[n].getWorldPosition(new THREE.Vector3()));
   for (let t = 0; t <= d + 1e-6; t += step) {

@@ -1,4 +1,4 @@
-// Converts Mixamo .fbx animations (downloaded "Without Skin") into assets/models/mixamo_anims.glb,
+// Converts Mixamo .fbx animations (downloaded "Without Skin") into tools/models_src/mixamo_anims.glb (then run tools/optimize/build.mjs),
 // retargeted to the fighters' skeleton. Usage: node tools/mixamo/convert.cjs  (needs the local
 // server on :8765 and Playwright). Clip names come from the file names in tools/mixamo/in/.
 const fs = require('fs');
@@ -6,7 +6,7 @@ const path = require('path');
 const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '../..');
 const IN = path.join(__dirname, 'in');
-const OUT = path.join(ROOT, 'assets/models/mixamo_anims.glb');
+const OUT = path.join(ROOT, 'tools/models_src/mixamo_anims.glb');
 
 function readGlbJson(file) {
   const b = fs.readFileSync(file);
@@ -29,7 +29,7 @@ function readGlbJson(file) {
   await b.close();
 
   // GLB with the fighters' bare node tree and one animation per clip.
-  const src = readGlbJson(path.join(ROOT, 'assets/models/hotmonster.glb'));
+  const src = readGlbJson(path.join(ROOT, 'tools/models_src/hotmonster.glb'));
   const nodes = src.nodes.map((n) => { const m = { ...n }; delete m.mesh; delete m.skin; return m; });
   const clean = (n) => (n || '').replace(/^mixamorig[:_]?/, '');
   const index = new Map(nodes.map((n, i) => [clean(n.name), i]));

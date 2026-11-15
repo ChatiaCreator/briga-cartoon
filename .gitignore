@@ -3,3 +3,4 @@ node_modules/
 *.log
 _strips/
 briga-cartoon-site.zip
+tools/optimize/node_modules/
