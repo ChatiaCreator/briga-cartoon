@@ -464,15 +464,26 @@ export class Character {
       // Arms come from the clip.
     } else {
       const lh = P.lh, rh = P.rh;
+      // Hand targets are offsets from the shoulders: their rest position moved with the hips,
+      // or (P.armsFromShoulder) where the clip put them, for clips that lower the body a lot.
+      let sl, sr;
+      if (P.armsFromShoulder) {
+        this.root.updateMatrixWorld(true);
+        sl = this.model.worldToLocal(this.b.LeftArm.getWorldPosition(new THREE.Vector3()));
+        sr = this.model.worldToLocal(this.b.RightArm.getWorldPosition(new THREE.Vector3()));
+      } else {
+        sl = { x: rp.LeftArm.x + hip[0], y: rp.LeftArm.y + hip[1], z: rp.LeftArm.z + hip[2] };
+        sr = { x: rp.RightArm.x + hip[0], y: rp.RightArm.y + hip[1], z: rp.RightArm.z + hip[2] };
+      }
       twoBoneIK(this.b.LeftArm, this.b.LeftForeArm, this.b.LeftHand,
-        this.mw(rp.LeftArm.x + hip[0] + lh[0], rp.LeftArm.y + hip[1] + lh[1], rp.LeftArm.z + hip[2] + lh[2]),
-        this.mdir(0.5, -1, -0.6));
+        this.mw(sl.x + lh[0], sl.y + lh[1], sl.z + lh[2]), this.mdir(0.5, -1, -0.6));
       twoBoneIK(this.b.RightArm, this.b.RightForeArm, this.b.RightHand,
-        this.mw(rp.RightArm.x + hip[0] + rh[0], rp.RightArm.y + hip[1] + rh[1], rp.RightArm.z + hip[2] + rh[2]),
-        this.mdir(-0.5, -1, -0.6));
+        this.mw(sr.x + rh[0], sr.y + rh[1], sr.z + rh[2]), this.mdir(-0.5, -1, -0.6));
     }
 
     if (P.grip) this.gripPistol();
+    // Closed fists for procedural guards (the clip's own fingers are left open).
+    if (P.fists) { this.root.updateMatrixWorld(true); this.curlFingers('Left', 1.4); this.curlFingers('Right', 1.4); }
 
     if (!P.clip || P.legsIK) {
       const lf = P.lf, rf = P.rf;

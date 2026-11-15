@@ -43,15 +43,17 @@ const CLIP = { ...STANCE, hip: [0, 0, 0], spine: [0, 0, 0], head: [0, 0, 0] };
 // standing blend seamlessly), feet planted where the clip has them and moved by IK.
 const LOCO = { ...CLIP, clip: 'box_01', legsIK: true, lf: [0, 0, 0], rf: [0, 0, 0], toe: [0, 0] };
 const CROUCH = withP(STANCE, { hip: [0, -0.17, -0.03], spine: [0.22, 0, 0], lh: [0, -0.12, 0.02], rh: [0, -0.12, 0.02], lf: [0.02, 0, 0.03], rf: [-0.02, 0, -0.04] });
-const LOCO_CROUCH = withP(LOCO, { hip: [0, -0.17, -0.02], spine: [0.25, 0, 0], head: [-0.15, 0, 0] });
-const GUARD_ARMS = { armsIK: true, lh: [-0.06, 0.14, 0.13], rh: [0.04, 0.13, 0.14] };
-const CROUCH_GUARD = { ...withP(LOCO_CROUCH, { spine: [0.05, 0.1, 0], head: [0.1, 0, 0] }), ...GUARD_ARMS,
-  lh: [-0.06, 0.0, 0.14], rh: [0.04, -0.01, 0.15] };
+// Crouch from Mixamo "Crouching" (settled on one knee, after 2.2 s), with the guard held up
+// by arm IK anchored at the clip's shoulders and the head up, looking at the opponent.
+const KNEEL = { ...CLIP, clip: 'Crouching', clipTime: 2.6, armsIK: true, armsFromShoulder: true, fists: true,
+  spine: [-0.14, 0, 0], head: [-0.3, 0, 0], lh: [-0.03, -0.08, 0.2], rh: [0.05, -0.09, 0.17] };
+const KNEEL_GUARD = { ...KNEEL, spine: [-0.08, 0.12, 0], lh: [-0.06, -0.04, 0.19], rh: [0.03, -0.06, 0.2] };
+const kneelTime = (T) => 2.9 + 0.6 * Math.sin(T * Math.PI / 1.7);
 const AIR = withP(STANCE, { hip: [0, 0.06, 0], lf: [0, 0.16, 0.08], rf: [0, 0.24, 0.02], spine: [0.1, 0, 0] });
 
 // Procedural attack poses: W = wind-up, S = strike. Deltas on top of the base pose.
 const ATTACKS = {
-  clp: { base: CROUCH, W: { rh: [0, 0, -0.04] }, S: { lh: [-0.02, 0.0, 0.25], spine: [0, -0.3, 0] } },
+  clp: { base: KNEEL, W: { rh: [0, 0, -0.04] }, S: { lh: [0.02, -0.02, 0.3], spine: [0, -0.35, 0] } },
   chp: { base: CROUCH, W: { rh: [0.02, -0.1, -0.02], hip: [0, -0.02, 0] }, S: { rh: [-0.06, 0.38, 0.12], hip: [0, 0.14, 0.02], spine: [-0.2, 0.5, 0], head: [-0.3, 0, 0] } },
   lk: { base: STANCE, W: { lf: [0, 0.18, 0.02] }, S: { lf: [-0.02, 0.24, 0.36], spine: [-0.18, 0, 0], hip: [0, 0, -0.04] } },
   hk: { base: STANCE, W: { rf: [0.04, 0.25, 0.05], spine: [0, 0.3, 0] }, S: { rf: [0.05, 0.56, 0.48], spine: [-0.35, 0.8, 0.15], hipRot: [0, 0.7, 0], hip: [0, 0.02, -0.04], lh: [0.08, -0.02, -0.08], rh: [-0.04, -0.12, -0.05] } },
@@ -233,7 +235,7 @@ function rawPose(f, g, T) {
       return { ...CLIP, clip: 'Short_Step_Forward', clipTime: (u - Math.floor(u)) * 0.99 };
     }
     case 'crouch':
-      return f.guard ? { ...CROUCH_GUARD, clipTime: idleTime(T) } : { ...LOCO_CROUCH, clipTime: idleTime(T) };
+      return { ...(f.guard ? KNEEL_GUARD : KNEEL), clipTime: kneelTime(T) };
     case 'air': {
       // Mixamo "Jumping" airborne part (0.55-1.05 s) following the real jump arc, with the
       // clip's own height taken out. Forward jumps add a cartoon somersault.
@@ -250,7 +252,7 @@ function rawPose(f, g, T) {
       return attackPose(f, m, T);
     }
     case 'block': {
-      if (f.guardLow) return { ...CROUCH_GUARD, clipTime: idleTime(T) };
+      if (f.guardLow) return { ...KNEEL_GUARD, clipTime: kneelTime(T) };
       // Mixamo "Center Block": arms snap up and the body rocks back under the impact.
       const k = clamp01(t / Math.max(1, t + f.stun));
       return { ...CLIP, clip: 'Center_Block', clipTime: 0.2 + k * 0.6 };
