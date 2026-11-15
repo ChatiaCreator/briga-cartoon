@@ -144,7 +144,14 @@ export class GameView {
       c.root.rotation.y = this.yaw[i];
       // Animation time runs between sim frames too (except while the hit-stop freezes it).
       const sub = g.hitstop > 0 || !prev ? 0 : frac;
-      const view = { ...f, x: x * 1000, sf: f.sf + sub };
+      // Leaving a crouch (render only): play the stand-up for a moment.
+      const low = f.st === 'crouch' || (f.st === 'block' && f.guardLow) || (f.st === 'attack' && f.mv[0] === 'c');
+      this.standT ||= [null, null]; this.wasLow ||= [false, false];
+      if (low) this.standT[i] = null;
+      else if (this.wasLow[i] && (f.st === 'idle' || f.st === 'walk')) this.standT[i] = 0;
+      else if (this.standT[i] != null) this.standT[i] = f.st === 'idle' || f.st === 'walk' ? this.standT[i] + dt : null;
+      this.wasLow[i] = low;
+      const view = { ...f, x: x * 1000, sf: f.sf + sub, standT: this.standT[i] };
       const P = poseFor(view, g, this.T + i * 0.37);
       poses.push(P);
       c.root.updateMatrixWorld(true);

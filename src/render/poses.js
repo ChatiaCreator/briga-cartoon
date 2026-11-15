@@ -43,12 +43,12 @@ const CLIP = { ...STANCE, hip: [0, 0, 0], spine: [0, 0, 0], head: [0, 0, 0] };
 // standing blend seamlessly), feet planted where the clip has them and moved by IK.
 const LOCO = { ...CLIP, clip: 'box_01', legsIK: true, lf: [0, 0, 0], rf: [0, 0, 0], toe: [0, 0] };
 const CROUCH = withP(STANCE, { hip: [0, -0.17, -0.03], spine: [0.22, 0, 0], lh: [0, -0.12, 0.02], rh: [0, -0.12, 0.02], lf: [0.02, 0, 0.03], rf: [-0.02, 0, -0.04] });
-// Crouch from Mixamo "Crouching" (settled on one knee, after 2.2 s), with the guard held up
-// by arm IK anchored at the clip's shoulders and the head up, looking at the opponent.
-const KNEEL = { ...CLIP, clip: 'Crouching', clipTime: 2.6, armsIK: true, armsFromShoulder: true, fists: true,
-  spine: [-0.14, 0, 0], head: [-0.3, 0, 0], lh: [-0.03, -0.08, 0.2], rh: [0.05, -0.09, 0.17] };
-const KNEEL_GUARD = { ...KNEEL, spine: [-0.08, 0.12, 0], lh: [-0.06, -0.04, 0.19], rh: [0.03, -0.06, 0.2] };
-const kneelTime = (T) => 2.9 + 0.6 * Math.sin(T * Math.PI / 1.7);
+// Crouch from Mixamo "Crouch Idle" (low squat), with the guard held up by arm IK anchored at
+// the clip's shoulders and the head up, looking at the opponent.
+const KNEEL = { ...CLIP, clip: 'Crouch_Idle', clipTime: 0.5, armsIK: true, armsFromShoulder: true, fists: true,
+  spine: [-0.14, 0, 0], head: [-0.3, 0, 0], lh: [-0.03, 0.03, 0.13], rh: [0.05, 0.01, 0.11] };
+const KNEEL_GUARD = { ...KNEEL, spine: [-0.08, 0.12, 0], lh: [-0.06, 0.05, 0.17], rh: [0.03, 0.03, 0.16] };
+const kneelTime = (T) => T % 1.66;
 const AIR = withP(STANCE, { hip: [0, 0.06, 0], lf: [0, 0.16, 0.08], rf: [0, 0.24, 0.02], spine: [0.1, 0, 0] });
 
 // Procedural attack poses: W = wind-up, S = strike. Deltas on top of the base pose.
@@ -236,6 +236,19 @@ function specialPose(f, m) {
   return STANCE;
 }
 
+// Fighting stance of each fighter: [clip, loop length (s), speed]. Others use box_01.
+const IDLES = {
+  hotmonster: ['Boxing_2', 2.18],
+  flash: ['Bouncing_Fight_Idle', 2.95],
+  hgl: ['Bouncing_Fight_Idle', 2.95, 0.9],
+  anderon: ['Idle', 3.55, 0.9],
+};
+
+export const STAND_TIME = 0.28; // seconds the stand-up from a crouch takes
+function standPose(t) {
+  return { ...KNEEL, clip: 'Crouch_To_Stand', clipTime: 0.6 + 0.65 * clamp01(t / STAND_TIME), blend: 0.06, key: 'stand' };
+}
+
 function idleTime(T) {
   // Sway through the boxing stance part of box_01 (no punches between 1.0 and 2.2 s),
   // easing at both ends instead of bouncing.
@@ -257,7 +270,7 @@ export function poseFor(f, g, T) {
   else if (f.st === 'idle' && g && g.phase === 'intro') key = 'intro';
   // Getting up from the intro push-ups takes a moment longer.
   const blend = f.st === 'idle' && g && g.phase === 'fight' && g.phaseF < 30 ? 0.35 : BLEND[f.st];
-  return { ...p, key, blend: p.blend ?? blend ?? 0.1, t: f.sf };
+  return { ...p, key: p.key || key, blend: p.blend ?? blend ?? 0.1, t: f.sf };
 }
 
 function rawPose(f, g, T) {
@@ -280,10 +293,14 @@ function rawPose(f, g, T) {
         // Flash shows off with push-ups, then springs up into his stance.
         return { ...CLIP, clip: 'press-up', clipTime: Math.min(1.9, secs * 1.15) };
       }
-      if (f.char === 'anderon') return { ...CLIP, clip: 'Idle', clipTime: (T * 0.9) % 3.55 };
+      // Getting up from a crouch: Mixamo "Crouch To Stand" (the rising part), guard kept up.
+      if (f.standT != null && f.standT < STAND_TIME) return standPose(f.standT);
+      const idle = IDLES[f.char];
+      if (idle) return { ...CLIP, clip: idle[0], clipTime: (T * (idle[2] || 1)) % idle[1] };
       return { ...CLIP, clip: 'box_01', clipTime: idleTime(T) };
     }
     case 'walk': {
+      if (f.standT != null && f.standT < STAND_TIME) return standPose(f.standT);
       // Mixamo "Short Step Forward", looped in place and driven by the distance walked
       // (one cycle = 0.56 m), so the feet stay planted; walking back plays it in reverse.
       const u = ((f.x / 1000) * f.facing) / 0.56;
