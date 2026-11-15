@@ -78,12 +78,57 @@ export function sfx(name, k = 0) {
   }
 }
 
-// Short announcer lines with the browser's speech engine, if available.
-export function announce(text) {
-  if (muted || !voice || !window.speechSynthesis) return;
+// ---------- Announcer ----------
+// Recorded lines (assets/voice/<key>.mp3, listed in assets/voice/voices.json) are played when
+// present; otherwise the device's speech engine says the text with the chosen voice.
+const STYLES = [
+  { name: 'Locutor', pitch: 0.7, rate: 1.0 },
+  { name: 'Grave', pitch: 0.35, rate: 0.9 },
+  { name: 'Animado', pitch: 1.15, rate: 1.2 },
+];
+let voicePick = 0;            // index into voiceOptions()
+let recorded = new Set();     // keys that have a recorded file
+const clips = new Map();
+
+export function loadRecordedVoices() {
+  fetch('assets/voice/voices.json').then((r) => (r.ok ? r.json() : [])).then((list) => {
+    recorded = new Set(Array.isArray(list) ? list : []);
+  }).catch(() => {});
+}
+
+// Every choice the device offers: each Portuguese voice (or the default one) in each style.
+export function voiceOptions() {
+  const all = window.speechSynthesis?.getVoices?.() || [];
+  let pt = all.filter((v) => /^pt/i.test(v.lang));
+  pt.sort((a, b) => (/BR/i.test(b.lang) ? 1 : 0) - (/BR/i.test(a.lang) ? 1 : 0));
+  if (!pt.length) pt = [null];
+  const out = [];
+  for (const v of pt.slice(0, 4)) for (const st of STYLES) out.push({ voice: v, ...st });
+  if (recorded.size) out.unshift({ recorded: true, name: 'Gravada' });
+  return out;
+}
+export function setVoicePick(i) { voicePick = i; }
+export function getVoicePick() { return voicePick; }
+if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = () => {};
+
+export function announce(text, key = null) {
+  if (muted || !voice) return;
+  const opts = voiceOptions();
+  const pick = opts[Math.min(voicePick, opts.length - 1)] || opts[0];
+  // A recorded line, if the player recorded this one.
+  if (key && recorded.has(key) && (pick?.recorded || !window.speechSynthesis)) {
+    let a = clips.get(key);
+    if (!a) { a = new Audio(`assets/voice/${key}.mp3`); clips.set(key, a); }
+    try { a.currentTime = 0; a.play().catch(() => {}); } catch { /* not playable */ }
+    return;
+  }
+  if (!window.speechSynthesis) return;
   try {
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'pt-BR'; u.rate = 1.05; u.pitch = 0.8; u.volume = 0.9;
+    const st = pick && !pick.recorded ? pick : { ...STYLES[0], voice: null };
+    u.lang = st.voice?.lang || 'pt-BR';
+    if (st.voice) u.voice = st.voice;
+    u.rate = st.rate; u.pitch = st.pitch; u.volume = 0.95;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   } catch { /* speech not available */ }

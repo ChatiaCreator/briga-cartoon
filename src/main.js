@@ -13,7 +13,7 @@ import { Cpu } from './cpu.js';
 import { Rollback } from './net/rollback.js';
 import { OnlineSession, normalizeCode } from './net/online.js';
 import { Hud } from './ui.js';
-import { sfx, announce, unlockAudio, setMuted, isMuted, setVoice, isVoice } from './audio.js';
+import { sfx, announce, unlockAudio, setMuted, isMuted, setVoice, isVoice, voiceOptions, setVoicePick, getVoicePick, loadRecordedVoices } from './audio.js';
 
 const STEP = 1 / 60;
 const $ = (id) => document.getElementById(id);
@@ -114,13 +114,14 @@ document.addEventListener('click', (e) => {
 // ---------- Options (sound, announcer, vibration), remembered in this browser ----------
 const PREFS_KEY = 'fightfriends-prefs';
 function savePrefs() {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ muted: isMuted(), voice: isVoice(), vibe: isVibration() })); } catch { /* storage blocked */ }
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ muted: isMuted(), voice: isVoice(), vibe: isVibration(), voicePick: getVoicePick() })); } catch { /* storage blocked */ }
 }
 try {
   const p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
   if (typeof p.muted === 'boolean') setMuted(p.muted);
   if (typeof p.voice === 'boolean') setVoice(p.voice);
   if (typeof p.vibe === 'boolean') setVibration(p.vibe);
+  if (Number.isInteger(p.voicePick)) setVoicePick(p.voicePick);
 } catch { /* storage blocked */ }
 function renderOptions() {
   const set = (id, on, yes, no) => {
@@ -128,7 +129,9 @@ function renderOptions() {
     $(id).querySelector('b').textContent = on ? yes : no;
   };
   set('optSound', !isMuted(), 'ligado', 'desligado');
-  set('optVoice', isVoice(), 'ligado', 'desligado');
+  const vo = voiceOptions(), vp = Math.min(getVoicePick(), vo.length - 1);
+  set('optVoice', isVoice(), vo.length > 1 ? `voz ${vp + 1}` : 'ligado', 'desligado');
+  $('optVoice').title = isVoice() ? `${vo[vp]?.name || ''}${vo[vp]?.voice ? ' • ' + vo[vp].voice.name : ''}` : '';
   set('optVibe', isVibration(), 'ligada', 'desligada');
   set('optFull', !!document.fullscreenElement, 'ligada', canFull ? 'desligada' : 'indisponível');
   $('mute').classList.toggle('off', isMuted());
@@ -137,7 +140,17 @@ function renderOptions() {
 const toggleSound = () => { setMuted(!isMuted()); savePrefs(); renderOptions(); if (!isMuted()) sfx('block'); };
 $('mute').onclick = toggleSound;
 $('optSound').onclick = toggleSound;
-$('optVoice').onclick = () => { setVoice(!isVoice()); savePrefs(); renderOptions(); if (isVoice()) announce('Luta!'); };
+// LOCUTOR cycles: off → voice 1 → voice 2 → … → off, and says a sample line.
+$('optVoice').onclick = () => {
+  const n = voiceOptions().length;
+  if (!isVoice()) { setVoice(true); setVoicePick(0); }
+  else if (getVoicePick() + 1 < n) setVoicePick(getVoicePick() + 1);
+  else setVoice(false);
+  savePrefs(); renderOptions();
+  if (isVoice()) announce('Round 1. Luta!', 'luta');
+};
+loadRecordedVoices();
+if (window.speechSynthesis) window.speechSynthesis.addEventListener?.('voiceschanged', () => renderOptions());
 $('optVibe').onclick = () => { setVibration(!isVibration()); savePrefs(); renderOptions(); buzz(40); };
 renderOptions();
 
@@ -257,7 +270,7 @@ function showVersus(m) {
   // Restart the CSS animations.
   for (const el of vs.querySelectorAll('.vs-side, .vs-mid')) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
   sfx('heavy');
-  announce(`${CHARACTERS[g.f[0].char].name} contra ${CHARACTERS[g.f[1].char].name}!`);
+  announce(`${CHARACTERS[g.f[0].char].name} contra ${CHARACTERS[g.f[1].char].name}!`, `vs-${g.f[0].char}-${g.f[1].char}`);
   setTimeout(() => {
     if (window.__keepVs) return; // automated screenshots
     vs.classList.add('hidden');
@@ -352,9 +365,9 @@ function handleEvents(events) {
       case 'round':
         hud.flash(g.round === 5 ? 'ROUND FINAL' : `ROUND ${ev.round}`, 1400, false, 'round');
         sfx('bell');
-        announce(`Round ${ev.round}`);
+        announce(g.round === 5 ? 'Round final' : `Round ${ev.round}`, g.round === 5 ? 'round-final' : `round${ev.round}`);
         break;
-      case 'fight': hud.flash('FIGHT!', 900, false, 'fight'); announce('Luta!'); break;
+      case 'fight': hud.flash('FIGHT!', 900, false, 'fight'); announce('Luta!', 'luta'); break;
       case 'hit':
         sfx(ev.heavy ? 'heavy' : 'hit', ev.combo);
         if (ev.big && !ev.ko) sfx('launch');
@@ -368,9 +381,9 @@ function handleEvents(events) {
         const f = g.f[ev.f];
         if (ev.mv === 'super') showCutin(f);
         if (f.char === 'flash' && ev.mv === 'super') sfx('glug');
-        else if (f.char === 'anderon' && ev.mv === 'super') { sfx('ring'); announce('Ligando pra casada!'); }
-        else if (f.char === 'hgl' && ev.mv === 'super') { sfx('power'); setTimeout(() => sfx('spin'), 500); announce('Chave de fenda!'); }
-        else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!'); }
+        else if (f.char === 'anderon' && ev.mv === 'super') { sfx('ring'); announce('Ligando pra casada!', 'super-anderon'); }
+        else if (f.char === 'hgl' && ev.mv === 'super') { sfx('power'); setTimeout(() => sfx('spin'), 500); announce('Chave de fenda!', 'super-hgl'); }
+        else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!', `super-${f.char}`); }
         else if (f.char === 'hotmonster' && ev.mv === 'special') setTimeout(() => sfx('throw'), 200);
         else sfx('whoosh');
         break;
@@ -380,9 +393,9 @@ function handleEvents(events) {
       case 'shot': sfx('shot'); break;
       case 'heal': sfx('heal'); break;
       case 'thud': sfx('thud'); break;
-      case 'timeover': hud.flash('TEMPO!', 1500); announce('Tempo!'); break;
+      case 'timeover': hud.flash('TEMPO!', 1500); announce('Tempo!', 'tempo'); break;
       case 'ko':
-        if (g.timer > 0) { hud.flash('K.O.!', 1500, false, 'fight'); sfx('ko'); announce('Nocaute!'); }
+        if (g.timer > 0) { hud.flash('K.O.!', 1500, false, 'fight'); sfx('ko'); announce('Nocaute!', 'nocaute'); }
         break;
       case 'roundEnd':
         hud.flash(g.roundWinner === 2 ? 'EMPATE' : `${nameOf(g, g.roundWinner)} VENCE!`, 1800, true);
@@ -391,7 +404,7 @@ function handleEvents(events) {
         const w = g.matchWinner;
         const text = w === 2 ? 'EMPATE!' : `${nameOf(g, w)} VENCEU!`;
         hud.flash(text, 0, true);
-        announce(w === 2 ? 'Empate!' : `${CHARACTERS[g.f[w].char].name} venceu!`);
+        announce(w === 2 ? 'Empate!' : `${CHARACTERS[g.f[w].char].name} venceu!`, w === 2 ? 'empate' : `venceu-${g.f[w].char}`);
         m.ended = true;
         setTimeout(() => { if (match === m) openEndMenu(text); }, 2600);
         break;
