@@ -631,7 +631,7 @@ button.sbtn:active { transform: skewX(-14deg) translate(3px, 3px); }
   display: flex; align-items: center; justify-content: center; padding: 0 32% 0 4%; border-radius: 99px; font-family: 'Luckiest Guy', var(--font);
   background: linear-gradient(#5cff4a, #19b21a 55%, #0d8a12); border: 0.25cqw solid #0a3d10;
   box-shadow: 0 0 0 0.2cqw #b8f5a8, 0 0 1.2cqw rgba(60, 255, 60, 0.55);
-  font-weight: normal; font-size: 1.6cqw; text-transform: uppercase; white-space: nowrap; color: #fff; text-shadow: 0.15cqw 0.15cqw 0 #0a3d10;
+  font-weight: normal; font-size: 1.4cqw; text-transform: uppercase; white-space: nowrap; color: #fff; text-shadow: 0.15cqw 0.15cqw 0 #0a3d10;
   transition: background 0.15s;
 }
 .artscr .opt b::after {
@@ -772,3 +772,19 @@ button.sbtn:active { transform: skewX(-14deg) translate(3px, 3px); }
 .lb-bar { width: min(520px, 80vw); height: 26px; transform: skewX(-14deg); border: 4px solid #170c2b; border-radius: 6px; background: #120824; box-shadow: 0 0 0 3px #e9eaf7, 0 0 24px rgba(255, 170, 0, 0.5); overflow: hidden; }
 .lb-bar i { display: block; height: 100%; width: 0; background: linear-gradient(#fff36b, #ffd000 45%, #ff9d00); transition: width 0.15s; }
 #loadbar b { font-weight: normal; font-size: clamp(18px, 3.4vh, 30px); color: #fff; text-shadow: 2px 2px 0 #170c2b; }
+/* Options: QUALIDADE button next to VOLTAR (not part of the painted art) */
+.artscr button.ov.qbtn {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.6em; padding: 0 1.2cqw 0 1.6cqw;
+  transform: skewX(-14deg); border: 0.3cqw solid #170c2b; border-radius: 0.6cqw;
+  background: linear-gradient(#5b2bb8, #2c0f6e); box-shadow: 0 0 0 0.25cqw #c9b6ff, 0.4cqw 0.4cqw 0 0.25cqw #170c2b, 0 0 1.4cqw rgba(170, 90, 255, 0.6);
+  color: #fff; font-family: 'Luckiest Guy', var(--font); font-size: 1.7cqw;
+}
+.artscr .qbtn > * { transform: skewX(14deg); }
+.artscr .qbtn .lbl { display: inline; text-shadow: 0.15cqw 0.15cqw 0 #170c2b; }
+.artscr .qbtn b { font-weight: normal; padding: 0.15em 0.7em 0.05em; border-radius: 99px; background: linear-gradient(#ffe14a, #ff9d00); color: #170c2b; font-size: 0.85em; }
+.artscr .qbtn.high b { background: linear-gradient(#5cff4a, #19b21a); color: #fff; text-shadow: 0.1cqw 0.1cqw 0 #0a3d10; }
+.artscr .qbtn:hover { filter: brightness(1.12); }
+@media (max-aspect-ratio: 5/4) {
+  .artscr button.ov.qbtn { transform: none; font-size: 5vw; padding: 0.4em 1em; border-width: 4px; border-radius: 8px; }
+  .artscr .qbtn > * { transform: none; }
+}

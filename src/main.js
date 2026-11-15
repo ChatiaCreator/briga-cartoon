@@ -112,9 +112,10 @@ document.addEventListener('click', (e) => {
 });
 
 // ---------- Options (sound, announcer, vibration), remembered in this browser ----------
+let quality = 'auto'; // 'auto' (adapts to the device) or 'alta' (always full resolution and shadows)
 const PREFS_KEY = 'fightfriends-prefs';
 function savePrefs() {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ muted: isMuted(), voice: isVoice(), vibe: isVibration(), voicePick: getVoicePick() })); } catch { /* storage blocked */ }
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ muted: isMuted(), voice: isVoice(), vibe: isVibration(), voicePick: getVoicePick(), quality })); } catch { /* storage blocked */ }
 }
 try {
   const p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
@@ -122,6 +123,7 @@ try {
   if (typeof p.voice === 'boolean') setVoice(p.voice);
   if (typeof p.vibe === 'boolean') setVibration(p.vibe);
   if (Number.isInteger(p.voicePick)) setVoicePick(p.voicePick);
+  if (p.quality === 'alta') quality = 'alta';
 } catch { /* storage blocked */ }
 function renderOptions() {
   const set = (id, on, yes, no) => {
@@ -134,6 +136,8 @@ function renderOptions() {
   $('optVoice').title = isVoice() ? `${vo[vp]?.name || ''}${vo[vp]?.voice ? ' • ' + vo[vp].voice.name : ''}` : '';
   set('optVibe', isVibration(), 'ligada', 'desligada');
   set('optFull', !!document.fullscreenElement, 'ligada', canFull ? 'desligada' : 'indisponível');
+  $('optQuality').querySelector('b').textContent = quality === 'alta' ? 'alta' : 'automática';
+  $('optQuality').classList.toggle('high', quality === 'alta');
   $('mute').classList.toggle('off', isMuted());
   $('mute').setAttribute('aria-label', isMuted() ? 'Som desligado' : 'Som ligado');
 }
@@ -150,6 +154,7 @@ $('optVoice').onclick = () => {
   if (isVoice()) announce('Round 1. Luta!', 'luta');
 };
 loadRecordedVoices();
+$('optQuality').onclick = () => { quality = quality === 'alta' ? 'auto' : 'alta'; savePrefs(); renderOptions(); applyQuality(); sfx('block'); };
 if (window.speechSynthesis) window.speechSynthesis.addEventListener?.('voiceschanged', () => renderOptions());
 $('optVibe').onclick = () => { setVibration(!isVibration()); savePrefs(); renderOptions(); buzz(40); };
 renderOptions();
@@ -547,8 +552,15 @@ let last = performance.now();
 // Automatic light mode: if a fight runs below ~42 fps, lower the resolution step by step and
 // then turn off the shadows.
 const perf = { t: 0, n: 0, noShadow: false };
+function applyQuality() {
+  const touchDev = matchMedia?.('(pointer: coarse)').matches;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality === 'alta' || !touchDev ? 2 : 1.5));
+  perf.noShadow = false; perf.t = 0; perf.n = 0;
+  if (match) match.view.arena.sun.castShadow = true;
+  resize();
+}
 function watchPerformance(dt) {
-  if (!match || match.paused || document.hidden) { perf.t = 0; perf.n = 0; return; }
+  if (quality === 'alta' || !match || match.paused || document.hidden) { perf.t = 0; perf.n = 0; return; }
   perf.t += dt; perf.n++;
   if (perf.n < 120) return;
   const slow = perf.t / perf.n > 1 / 42;
@@ -636,7 +648,7 @@ async function makePortraits() {
 }
 
 async function boot() {
-  resize();
+  applyQuality();
   // Hosts without WebRTC (e.g. a claude.ai preview) can't play online.
   if (document.querySelector('meta[name="briga-no-online"]')) {
     const b = document.querySelector('[data-go="online"]');
