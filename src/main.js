@@ -21,7 +21,7 @@ const renderer = createRenderer($('stage'));
 const hud = new Hud();
 attachKeyboard();
 const touch = initTouch({ onPause: () => openPause() });
-const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'LIGANDO PRA CASADA!', hgl: 'CHAVE DE FENDA!' };
+const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'LIGANDO PRA CASADA!', hgl: 'CHAVE DE FENDA!', davidson: 'BASEADO GIGANTE!' };
 const canFull = !!document.documentElement.requestFullscreen;
 if (canFull) {
   $('fullBtn').classList.remove('hidden');
@@ -47,6 +47,7 @@ const DESCR = {
   flash: 'Especial: investida relâmpago. Super: bebe GARRA Energy (+50% dano, +20% velocidade). Combo: SOCO+, SOCO+ → pula e chuta.',
   genildo: 'Policial militar. Especial: atira com a pistola. Super: rajada TOLERÂNCIA ZERO! Combo: CHUTE, CHUTE, SOCO+ → ESPECIAL.',
   hgl: 'Mecânico. Especial: CARRINHO, desliza por baixo dos golpes altos e derruba. Super: CHAVE DE FENDA, arremessa a chave no inimigo! Combo: CHUTE, SOCO+.',
+  davidson: 'Capoeirista. Especial: CHAPA GIRATÓRIA, chute giratório que avança e derruba. Super: BASEADO GIGANTE, fuma e recupera vida (se não apanhar). Combo: CHUTE, CHUTE+.',
   anderon: 'Capoeira e boxe. Especial: ARMADA, chute giratório que avança e derruba. Super: LIGANDO PRA CASADA, recupera vida (se não apanhar). Combo: SOCO+, CHUTE+.',
 };
 
@@ -432,6 +433,7 @@ function handleEvents(events) {
         if (ev.mv === 'super') showCutin(f);
         if (f.char === 'flash' && ev.mv === 'super') { announce('Garra Energy!', 'super-flash'); setTimeout(() => sfx('glug'), 900); }
         else if (f.char === 'anderon' && ev.mv === 'super') { sfx('ring'); announce('Ligando pra casada!', 'super-anderon'); }
+        else if (f.char === 'davidson' && ev.mv === 'super') { sfx('power'); announce('Baseado gigante!', 'super-davidson'); }
         else if (f.char === 'hgl' && ev.mv === 'super') { sfx('power'); setTimeout(() => sfx('spin'), 500); announce('Chave de fenda!', 'super-hgl'); }
         else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!', `super-${f.char}`); }
         else if (f.char === 'hotmonster' && ev.mv === 'special') setTimeout(() => sfx('throw'), 200);

@@ -43,6 +43,18 @@ export class Effects {
     this.can.visible = false;
     scene.add(this.can);
 
+    // Davidson's huge joint (along +X of the hand), with a glowing tip.
+    this.joint = new THREE.Group();
+    const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.012, 0.26, 10), new THREE.MeshToonMaterial({ color: 0xf2eee0 }));
+    paper.rotation.z = Math.PI / 2;
+    const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.023, 0.023, 0.02, 10), new THREE.MeshBasicMaterial({ color: 0xff7a1a }));
+    tip.rotation.z = Math.PI / 2; tip.position.x = 0.14;
+    this.joint.add(paper, tip);
+    this.joint.userData.tip = tip;
+    this.joint.visible = false;
+    scene.add(this.joint);
+    this.smokeTex = glowTexture('rgba(225,232,225,0.42)');
+
     // HGL's screwdriver (along +Y: red and yellow handle, steel shaft and tip).
     this.makeScrewdriver = () => {
       const g = new THREE.Group();
@@ -113,6 +125,14 @@ export class Effects {
     for (let i = 0; i < 6; i++) {
       this.sprite(this.glowSpark || (this.glowSpark = glowTexture('rgba(255,230,140,0.95)')), pos.clone(), 0.14, 0.35,
         { vel: new THREE.Vector3((Math.random() - 0.5) * 4, Math.random() * 3, 0) });
+    }
+  }
+
+  // A big puff of smoke out of the mouth.
+  puff(pos) {
+    for (let i = 0; i < 4; i++) {
+      this.sprite(this.smokeTex, pos.clone().add(new THREE.Vector3(0.12 + (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.08, 0.15)), 0.22, 1.5,
+        { grow: 2.2, vel: new THREE.Vector3((Math.random() - 0.3) * 0.5, 0.35 + Math.random() * 0.3, 0) });
     }
   }
 
@@ -223,6 +243,7 @@ export class Effects {
     this.can.visible = false;
     this.gun.visible = false;
     this.screwdriver.visible = false;
+    this.joint.visible = false;
     for (let i = 0; i < chars.length; i++) {
       const what = poses[i]?.hand;
       if (!what) continue;
@@ -235,6 +256,19 @@ export class Effects {
       const hand = c.b.RightHand;
       const pos = hand.getWorldPosition(new THREE.Vector3());
       const q = hand.getWorldQuaternion(new THREE.Quaternion());
+      if (what === 'joint') {
+        // Between the fingers, sticking out to the side; smoke rises from the tip.
+        this.joint.visible = true;
+        this.joint.position.copy(pos);
+        this.joint.quaternion.copy(q);
+        this.joint.translateY(0.08);
+        this.joint.translateX(-0.06);
+        if (Math.random() < 0.2) {
+          const tp = this.joint.userData.tip.getWorldPosition(new THREE.Vector3());
+          this.sprite(this.smokeTex, tp, 0.12, 1.2, { grow: 2.2, vel: new THREE.Vector3((Math.random() - 0.5) * 0.15, 0.45, 0) });
+        }
+        continue;
+      }
       if (what === 'screwdriver') {
         // Held by the handle, along the fingers.
         this.screwdriver.visible = true;

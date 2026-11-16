@@ -59,7 +59,7 @@ export class Cpu {
       this.plan([], back | (low ? DOWN : 0), react + 6);
       return;
     }
-    if (me.meter >= 1000 && (me.char === 'anderon' ? me.hp < me.maxHp * 0.75 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
+    if (me.meter >= 1000 && (me.char === 'anderon' || me.char === 'davidson' ? me.hp < me.maxHp * 0.75 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
       this.plan([SUP, 0], 0, 20);
       return;
     }
@@ -74,6 +74,7 @@ export class Cpu {
       if (r < 0.15) { this.plan([UP | fwd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, HK], 0, 25); return; }
       if (r < 0.25 && char.moves.special.projectile) { this.plan([DOWN, DOWN | fwd, fwd, fwd | HP, 0], 0, 20); return; }
       // VOADORA and ESTRELA travel forward, so they reach from mid range.
+      if (me.char === 'davidson' && dist < 1500 && r < 0.3) { this.plan([LP | HP, 0], 0, 35); return; } // CHAPA
       if (me.char === 'hgl' && dist < 1700 && r < 0.3) { this.plan([LP | HP, 0], 0, 35); return; } // CARRINHO
       if (me.char === 'anderon' && dist < 1500 && r < 0.3) { this.plan([LP | HP, 0], 0, 30); return; } // ARMADA
       if (dist < 1900 && r < 0.4) { this.plan([r < 0.32 ? EX1 : EX2, 0], 0, 30); return; }
@@ -98,6 +99,7 @@ export class Cpu {
       genildo: [LK, ...z(8), LK, ...z(8), HP, ...z(24), LP | HP],
       anderon: [HP, ...z(16), HK, ...z(14), ...z(16, UP | fwd), 0, HK],
       hgl: [LK, ...z(8), HP, ...z(16), ...z(16, UP | fwd), 0, HK],
+      davidson: [LK, ...z(10), HK, ...z(16), ...z(16, UP | fwd), 0, HK],
     }[me.char];
     if (own) combos.push(own, own);
     // AGARRÃO when right next to the opponent (and they are not jumping).

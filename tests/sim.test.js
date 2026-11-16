@@ -415,3 +415,19 @@ test('AGARRÃO: too far away it whiffs and leaves the thrower open', () => {
   step(g2, [RIGHT | HP, 0]);
   assert.notEqual(g2.f[1].st, 'thrown', 'airborne opponents cannot be grabbed');
 });
+
+test('Davidson super BASEADO GIGANTE heals; special CHAPA GIRATÓRIA knocks down', () => {
+  const g = createGame(['davidson', 'flash']);
+  toFight(g);
+  g.f[0].hp = 500; g.f[0].meter = 1000;
+  step(g, [SUP, 0]);
+  assert.equal(g.f[0].mv, 'super');
+  run(g, 200);
+  assert.equal(g.f[0].hp, 500 + 16 * 20);
+  const g2 = createGame(['davidson', 'genildo']);
+  toFight(g2); approach(g2, 1300);
+  step(g2, [LP | HP, 0]);
+  let fell = false;
+  for (let i = 0; i < 50; i++) { step(g2, [0, 0]); if (['fall', 'down'].includes(g2.f[1].st)) fell = true; }
+  assert.ok(fell);
+});

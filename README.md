@@ -1,6 +1,6 @@
 # Fight Friends
 
-Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderson Silva** e **HGL**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em três cenários: a **rua** ao pôr do sol, a **praia**, o **Pet Shop Canaã**, o **Marco Zero** e **Brasília**.
+Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderson Silva**, **HGL** e **Davidson**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em três cenários: a **rua** ao pôr do sol, a **praia**, o **Pet Shop Canaã**, o **Marco Zero** e **Brasília**.
 
 **Jogar:** https://chatiacreator.github.io/briga-cartoon/
 
@@ -120,6 +120,6 @@ Um lutador novo segue o mesmo caminho: o `.glb` vai para `tools/models_src/`, en
 
 ## Créditos
 
-- **Personagens:** Hotmonster, Flash, Genildo, Anderson Silva e HGL, do autor do jogo.
+- **Personagens:** Hotmonster, Flash, Genildo, Anderson Silva, HGL e Davidson, do autor do jogo.
 - **GARRA Energy:** marca fictícia criada para o jogo.
 - **Bibliotecas:** three.js (MIT), PeerJS (MIT) e o decodificador do meshoptimizer (MIT). As licenças estão em `vendor/`.

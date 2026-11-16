@@ -123,6 +123,13 @@ const CLIP_ATTACKS = {
     special: ['Running_Slide', 0.05, 0.3, 0.75, 1.3, 0, false, TRAVEL],   // CARRINHO
     dodge: ['Long_Right_Side_Step', 0.05, 0.4, 0.4, 0.8, 0, false, TRAVEL],
   },
+  davidson: {
+    ...MIXAMO_ATTACKS,
+    lk: ['Pontera', 0.2, 0.52, 0.68, 1.05, 0, false, TRAVEL],           // ponteira (front kick)
+    hk: ['Chapa_Giratoria', 1.2, 1.76, 1.92, 2.3, 0, false, TRAVEL],    // chapa giratória
+    tc: ['Chapa_Giratoria', 1.0, 1.76, 1.92, 2.3, 0, false, TRAVEL],
+    special: ['Chapa_Giratoria', 0.9, 1.76, 1.92, 2.3, 0, false, TRAVEL],
+  },
   anderon: {
     ...MIXAMO_ATTACKS,
     // Mixamo "Punching" opens the jab string, then the hooks of "Punch To Elbow Combo".
@@ -188,6 +195,13 @@ function specialPose(f, m) {
   }
   if (f.char === 'anderon' && f.mv === 'special') return attackPose(f, m, 0); // ARMADA
   if (f.char === 'hgl' && f.mv === 'special') return attackPose(f, m, 0); // CARRINHO
+  if (f.char === 'davidson' && f.mv === 'special') return attackPose(f, m, 0); // CHAPA GIRATÓRIA
+  if (f.char === 'davidson' && f.mv === 'super') {
+    // Mixamo "Smoking": lights up (1-3.5 s), two long drags (3.5-8.5 s), then lowers the hand.
+    const k = (a, b, x) => a + (b - a) * clamp01(x);
+    const time = t < 30 ? k(1.0, 3.5, t / 30) : t < 110 ? k(3.5, 8.6, (t - 30) / 80) : k(8.6, 9.2, (t - 110) / 16);
+    return { ...CLIP, clip: 'Smoking', clipTime: time, lockXZ: true, hand: 'joint', blend: 0.12 };
+  }
   if (f.char === 'hgl' && f.mv === 'super') {
     // The baseball pitch from his model: wind-up, release at 1.84 s (the frame the
     // screwdriver leaves his hand), follow-through.
@@ -236,12 +250,13 @@ function specialPose(f, m) {
   return STANCE;
 }
 
-// Fighting stance of each fighter: [clip, loop length (s), speed]. Others use box_01.
+// Fighting stance of each fighter: [clip, loop length (s), speed, keep hips on the spot]. Others use box_01.
 const IDLES = {
   hotmonster: ['Boxing_2', 2.18],
   flash: ['Bouncing_Fight_Idle', 2.95],
   hgl: ['Bouncing_Fight_Idle', 2.95, 0.9],
   anderon: ['Idle', 3.55, 0.9],
+  davidson: ['Capoeira', 3.4, 1, true], // the ginga sways sideways: keep the body on its spot
 };
 
 export const STAND_TIME = 0.28; // seconds the stand-up from a crouch takes
@@ -298,6 +313,8 @@ function rawPose(f, g, T) {
         if (f.char === 'hotmonster') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.7) };
         // Genildo draws on his opponent: "Parado!"
         if (f.char === 'genildo') return { ...CLIP, clip: 'Pistol_Idle', clipTime: (secs * 0.5) % 3.9, hand: 'gun', grip: true };
+        // Davidson does the capoeira ginga.
+        if (f.char === 'davidson') return { ...CLIP, clip: 'Capoeira', clipTime: (secs * 1.1) % 3.4, lockXZ: true };
         // HGL shows off his screwdriver.
         if (f.char === 'hgl') return { ...CLIP, clip: 'box_01', clipTime: idleTime(T), hand: 'screwdriver' };
         // Anderson makes the "on the phone" gesture (no phone in his hand).
@@ -308,7 +325,7 @@ function rawPose(f, g, T) {
       // Getting up from a crouch: Mixamo "Crouch To Stand" (the rising part), guard kept up.
       if (f.standT != null && f.standT < STAND_TIME) return standPose(f.standT);
       const idle = IDLES[f.char];
-      if (idle) return { ...CLIP, clip: idle[0], clipTime: (T * (idle[2] || 1)) % idle[1] };
+      if (idle) return { ...CLIP, clip: idle[0], clipTime: (T * (idle[2] || 1)) % idle[1], lockXZ: !!idle[3] };
       return { ...CLIP, clip: 'box_01', clipTime: idleTime(T) };
     }
     case 'walk': {
@@ -379,6 +396,8 @@ function rawPose(f, g, T) {
       if (f.char === 'hotmonster') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
       // Genildo celebrates with a b-boy uprock (Mixamo "Bboy Uprock", looped).
       if (f.char === 'genildo') return { ...CLIP, clip: 'Bboy_Uprock', clipTime: (t / 60) % 2.25, blend: 0.3 };
+      // Davidson celebrates with a relaxed smoke.
+      if (f.char === 'davidson') return { ...CLIP, clip: 'Smoking', clipTime: 3.5 + ((t / 60) % 5), hand: 'joint', blend: 0.3 };
       // HGL sings his victory (animation from his model).
       if (f.char === 'hgl') return { ...CLIP, clip: 'sing_02', clipTime: (t / 60) % 15, blend: 0.3 };
       // Anderson calls home to tell about the win.

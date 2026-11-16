@@ -15,7 +15,7 @@ import sharp from 'sharp';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const SRC = path.join(ROOT, 'tools/models_src');
 const OUT = path.join(ROOT, 'assets/models');
-const FIGHTERS = ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl'];
+const FIGHTERS = ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson'];
 
 await MeshoptEncoder.ready; await MeshoptDecoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
@@ -55,7 +55,7 @@ const code = ['poses.js', 'character.js', 'view.js'].map((f) => fs.readFileSync(
 const used = (name) => code.includes(`'${name}'`) || code.includes(`"${name}"`);
 // Long clips cut down to the parts the game plays: windows [from, to] (s) laid end to end with
 // a 0.1 s gap. Keep src/render/poses.js in step with the new times.
-const SPLICE = { Talking_On_A_Cell_Phone: [[0, 7.8], [34.4, 36.6]] };
+const SPLICE = { Talking_On_A_Cell_Phone: [[0, 7.8], [34.4, 36.6]], Smoking: [[0, 9.3]] };
 function splice(times, values, size, windows) {
   const t = [], v = [];
   let offset = 0;
@@ -77,7 +77,7 @@ for (const a of root.listAnimations()) {
   for (const ch of a.listChannels()) if (!keepChannel(ch.getTargetNode(), ch.getTargetPath())) ch.dispose();
 }
 
-const sources = [['flash', 'flash'], ['anderon', 'anderon'], ['hgl', 'hgl'], ['extra_anims', 'mixamo'], ['mixamo_anims', 'mixamo']];
+const sources = [['flash', 'flash'], ['anderon', 'anderon'], ['hgl', 'hgl'], ['davidson', 'davidson'], ['extra_anims', 'mixamo'], ['mixamo_anims', 'mixamo']];
 for (const [file, prefix] of sources) {
   const doc = await io.read(path.join(SRC, `${file}.glb`));
   for (const a of doc.getRoot().listAnimations()) {

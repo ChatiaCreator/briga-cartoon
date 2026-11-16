@@ -8,7 +8,7 @@ import { shadowTexture, loadImage } from './textures.js';
 import { CHARACTERS } from '../sim/moves.js';
 
 const FACE_ANGLE = 1.15; // radians: side-on, turned a little towards the camera
-const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e, hgl: 0xff9a2e };
+const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e, hgl: 0xff9a2e, davidson: 0x5fd35f };
 const LIMBS = ['LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'];
 
 // The K.O. that ends the match: played in slow motion with the camera zoomed in.
@@ -28,7 +28,7 @@ export function canImage() {
 // skeleton, so a clip made on one plays on the others. Its bare node tree is Hotmonster's
 // skeleton, the reference rig the clips were made for.
 export const ANIMS_URL = 'assets/models/anims.glb';
-const ORDER = ['hotmonster', 'flash', 'anderon', 'hgl', 'mixamo']; // first one wins for shared clips
+const ORDER = ['hotmonster', 'flash', 'anderon', 'hgl', 'davidson', 'mixamo']; // first one wins for shared clips
 let sharedPromise = null;
 export function sharedClips() {
   if (!sharedPromise) sharedPromise = loadShared();
@@ -129,6 +129,8 @@ export class GameView {
       } else if (ev.t === 'land') this.fx.dust(this.lastState?.f[ev.f].x ?? 0);
       else if (ev.t === 'heal') {
         const c = this.chars[ev.f];
+        // Davidson exhales a cloud now and then while smoking.
+        if (this.lastState?.f[ev.f].char === 'davidson' && Math.random() < 0.4) this.fx.puff(c.b.Head.getWorldPosition(new THREE.Vector3()));
         this.fx.heal(c.b.Head.getWorldPosition(new THREE.Vector3()), ev.amount);
         this.flash[ev.f] = 0;
       }

@@ -136,6 +136,27 @@ CHARACTERS.hgl = {
   },
 };
 
+CHARACTERS.davidson = {
+  name: 'Davidson',
+  // Capoeira. His super is smoking a huge joint, which heals him (if nobody hits him first).
+  hp: 1000, walk: 40, back: 32, jumpVy: 205, jumpVx: 44, gravity: 11,
+  model: 'assets/models/davidson.glb',
+  combo: 'GINGA DO DAVIDSON',
+  targets: [{ from: 'lk', minChain: 0, btn: 'HK', to: 'tc' }],
+  moves: {
+    ...normals,
+    // Finisher of CHUTE, CHUTE+ (ponteira, then a spinning "chapa" that launches).
+    tc: { rank: 2, startup: 11, active: 5, recovery: 20, dmg: 95, hitstun: 0, blockstun: 16, push: 150, height: 'mid', box: [100, 900, 900, 1700], launch: 155, jc: true },
+    // Special "CHAPA GIRATÓRIA": a spinning capoeira kick that travels and knocks down.
+    special: { rank: 3, startup: 15, active: 5, recovery: 22, dmg: 105, hitstun: 0, blockstun: 16, push: 230, height: 'mid', chip: 10,
+      box: [100, 800, 950, 1700], travel: [0, 15, 42], kd: true },
+    // Super "BASEADO GIGANTE": lights up a huge joint and heals while smoking it.
+    // Untouchable at first; a hit later puts it out.
+    super: { rank: 4, startup: 30, active: 0, recovery: 96, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid',
+      invuln: 50, heal: { from: 30, to: 120, every: 6, amount: 20 } },
+  },
+};
+
 export const BUFF_DMG = 150;   // percent
 export const BUFF_SPEED = 120; // percent
 
