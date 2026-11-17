@@ -43,17 +43,27 @@ export class Effects {
     this.can.visible = false;
     scene.add(this.can);
 
-    // Davidson's huge joint (along +X of the hand), with a glowing tip.
+    // Davidson's huge joint (along +Y: filter at 0, lit end at the top), the lighter flame and
+    // the glow of the tip while he drags.
     this.joint = new THREE.Group();
-    const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.012, 0.26, 10), new THREE.MeshToonMaterial({ color: 0xf2eee0 }));
-    paper.rotation.z = Math.PI / 2;
-    const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.023, 0.023, 0.02, 10), new THREE.MeshBasicMaterial({ color: 0xff7a1a }));
-    tip.rotation.z = Math.PI / 2; tip.position.x = 0.14;
-    this.joint.add(paper, tip);
+    const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.013, 0.27, 10), new THREE.MeshToonMaterial({ color: 0xf4f0e2 }));
+    paper.position.y = 0.135;
+    const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.035, 10), new THREE.MeshToonMaterial({ color: 0xd9b07a }));
+    filter.position.y = 0.0175;
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.026, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff6a1a }));
+    tip.position.y = 0.275; tip.scale.y = 0.5;
+    this.joint.add(paper, filter, tip);
     this.joint.userData.tip = tip;
     this.joint.visible = false;
     scene.add(this.joint);
-    this.smokeTex = glowTexture('rgba(225,232,225,0.42)');
+    this.smokeTex = glowTexture('rgba(225,236,222,0.5)');
+    this.emberGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture('rgba(255,120,30,0.95)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    this.emberGlow.visible = false;
+    scene.add(this.emberGlow);
+    this.lighter = new THREE.Sprite(new THREE.SpriteMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 92, 2, 32, 80, 40); gr.addColorStop(0, '#fff8c0'); gr.addColorStop(0.35, '#ffb020'); gr.addColorStop(1, 'rgba(255,60,0,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(32, 6); g.quadraticCurveTo(62, 80, 32, 122); g.quadraticCurveTo(2, 80, 32, 6); g.fill(); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })(), transparent: true, depthWrite: false }));
+    this.lighter.center.set(0.5, 0.05);
+    this.lighter.visible = false;
+    scene.add(this.lighter);
 
     // HGL's screwdriver (along +Y: red and yellow handle, steel shaft and tip).
     this.makeScrewdriver = () => {
@@ -125,14 +135,6 @@ export class Effects {
     for (let i = 0; i < 6; i++) {
       this.sprite(this.glowSpark || (this.glowSpark = glowTexture('rgba(255,230,140,0.95)')), pos.clone(), 0.14, 0.35,
         { vel: new THREE.Vector3((Math.random() - 0.5) * 4, Math.random() * 3, 0) });
-    }
-  }
-
-  // A big puff of smoke out of the mouth.
-  puff(pos) {
-    for (let i = 0; i < 4; i++) {
-      this.sprite(this.smokeTex, pos.clone().add(new THREE.Vector3(0.12 + (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.08, 0.15)), 0.22, 1.5,
-        { grow: 2.2, vel: new THREE.Vector3((Math.random() - 0.3) * 0.5, 0.35 + Math.random() * 0.3, 0) });
     }
   }
 
@@ -244,6 +246,8 @@ export class Effects {
     this.gun.visible = false;
     this.screwdriver.visible = false;
     this.joint.visible = false;
+    this.emberGlow.visible = false;
+    this.lighter.visible = false;
     for (let i = 0; i < chars.length; i++) {
       const what = poses[i]?.hand;
       if (!what) continue;
@@ -257,15 +261,36 @@ export class Effects {
       const pos = hand.getWorldPosition(new THREE.Vector3());
       const q = hand.getWorldQuaternion(new THREE.Quaternion());
       if (what === 'joint') {
-        // Between the fingers, sticking out to the side; smoke rises from the tip.
+        const pinch = new THREE.Vector3(), dir = new THREE.Vector3();
+        if (!c.jointTransform(pinch, dir)) continue;
+        // Filter between the fingertips, lit end out of the back of the hand.
         this.joint.visible = true;
-        this.joint.position.copy(pos);
-        this.joint.quaternion.copy(q);
-        this.joint.translateY(0.08);
-        this.joint.translateX(-0.06);
-        if (Math.random() < 0.2) {
-          const tp = this.joint.userData.tip.getWorldPosition(new THREE.Vector3());
-          this.sprite(this.smokeTex, tp, 0.12, 1.2, { grow: 2.2, vel: new THREE.Vector3((Math.random() - 0.5) * 0.15, 0.45, 0) });
+        this.joint.position.copy(pinch).addScaledVector(dir, -0.03);
+        this.joint.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+        const tp = this.joint.userData.tip.getWorldPosition(new THREE.Vector3());
+        const mode = poses[i].smoke || 'hold';
+        const T = performance.now() / 1000;
+        // Ember: small while held, big and bright during a drag.
+        const drag = mode === 'drag';
+        this.emberGlow.visible = mode !== 'light' || T % 0.2 < 0.1;
+        this.emberGlow.position.copy(tp);
+        this.emberGlow.scale.setScalar(drag ? 0.22 + Math.sin(T * 18) * 0.03 : 0.1);
+        this.joint.userData.tip.material.color.setHex(drag ? 0xffd040 : 0xff6a1a);
+        if (mode === 'light') {
+          // The lighter's flame licking the tip.
+          this.lighter.visible = true;
+          this.lighter.position.copy(tp).add(new THREE.Vector3(0, -0.07, 0.02));
+          this.lighter.scale.set(0.07, 0.14 * (0.85 + Math.sin(T * 30) * 0.15), 1);
+        }
+        // A thin trail from the tip; a big cloud out of the mouth when he blows.
+        if (Math.random() < (drag ? 0.5 : 0.25)) {
+          this.sprite(this.smokeTex, tp, 0.1, 1.4, { grow: 2.4, vel: new THREE.Vector3((Math.random() - 0.5) * 0.12, 0.42, 0) });
+        }
+        if (mode === 'blow' && Math.random() < 0.55) {
+          const mouth = c.b.Head.getWorldPosition(new THREE.Vector3());
+          const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(c.model.getWorldQuaternion(new THREE.Quaternion()));
+          mouth.addScaledVector(fwd, 0.14).y -= 0.05;
+          this.sprite(this.smokeTex, mouth, 0.16, 2.0, { grow: 4.5, vel: fwd.multiplyScalar(0.55).add(new THREE.Vector3((Math.random() - 0.5) * 0.15, 0.22, 0)) });
         }
         continue;
       }

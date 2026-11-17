@@ -129,8 +129,6 @@ export class GameView {
       } else if (ev.t === 'land') this.fx.dust(this.lastState?.f[ev.f].x ?? 0);
       else if (ev.t === 'heal') {
         const c = this.chars[ev.f];
-        // Davidson exhales a cloud now and then while smoking.
-        if (this.lastState?.f[ev.f].char === 'davidson' && Math.random() < 0.4) this.fx.puff(c.b.Head.getWorldPosition(new THREE.Vector3()));
         this.fx.heal(c.b.Head.getWorldPosition(new THREE.Vector3()), ev.amount);
         this.flash[ev.f] = 0;
       }
@@ -184,7 +182,9 @@ export class GameView {
       sh.position.set(x, 0.012, 0);
       const k = Math.max(0.3, 1 - y / 2.5);
       sh.scale.set(k, k, k);
-      this.auras[i].update(f.buff > 0, x, y, this.T, f.buff < 90 ? (f.buff % 20 < 10 ? 0.4 : 1) : 1);
+      // Flash's GARRA buff, and Davidson's chill while his super heals him.
+      const chill = f.char === 'davidson' && f.st === 'attack' && f.mv === 'super' && f.sf >= 30;
+      this.auras[i].update(f.buff > 0 || chill, x, y, this.T, chill ? 0.7 : f.buff < 90 ? (f.buff % 20 < 10 ? 0.4 : 1) : 1);
       this.updateTrail(i, f, c);
       this.flash[i] = Math.max(0, this.flash[i] - dt);
       c.setFlash(this.flash[i] > 0 ? 1 : 0);

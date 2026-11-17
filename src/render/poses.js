@@ -200,7 +200,10 @@ function specialPose(f, m) {
     // Mixamo "Smoking": lights up (1-3.5 s), two long drags (3.5-8.5 s), then lowers the hand.
     const k = (a, b, x) => a + (b - a) * clamp01(x);
     const time = t < 30 ? k(1.0, 3.5, t / 30) : t < 110 ? k(3.5, 8.6, (t - 30) / 80) : k(8.6, 9.2, (t - 110) / 16);
-    return { ...CLIP, clip: 'Smoking', clipTime: time, lockXZ: true, hand: 'joint', blend: 0.12 };
+    // What the joint does at this point: lighter flame, a drag (glowing tip), blowing smoke.
+    const smoke = time >= 1.4 && time < 3.4 ? 'light' : (time >= 3.5 && time < 4.3) || (time >= 6.0 && time < 7.7) ? 'drag'
+      : (time >= 4.4 && time < 5.8) || time >= 7.9 ? 'blow' : 'hold';
+    return { ...CLIP, clip: 'Smoking', clipTime: time, lockXZ: true, hand: 'joint', smoke, blend: 0.12 };
   }
   if (f.char === 'hgl' && f.mv === 'super') {
     // The baseball pitch from his model: wind-up, release at 1.84 s (the frame the
@@ -397,7 +400,10 @@ function rawPose(f, g, T) {
       // Genildo celebrates with a b-boy uprock (Mixamo "Bboy Uprock", looped).
       if (f.char === 'genildo') return { ...CLIP, clip: 'Bboy_Uprock', clipTime: (t / 60) % 2.25, blend: 0.3 };
       // Davidson celebrates with a relaxed smoke.
-      if (f.char === 'davidson') return { ...CLIP, clip: 'Smoking', clipTime: 3.5 + ((t / 60) % 5), hand: 'joint', blend: 0.3 };
+      if (f.char === 'davidson') {
+        const ct = 3.5 + ((t / 60) % 5);
+        return { ...CLIP, clip: 'Smoking', clipTime: ct, hand: 'joint', smoke: ct < 4.3 || (ct >= 6 && ct < 7.7) ? 'drag' : 'blow', blend: 0.3 };
+      }
       // HGL sings his victory (animation from his model).
       if (f.char === 'hgl') return { ...CLIP, clip: 'sing_02', clipTime: (t / 60) % 15, blend: 0.3 };
       // Anderson calls home to tell about the win.

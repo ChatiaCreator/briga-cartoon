@@ -421,6 +421,20 @@ export class Character {
     }
   }
 
+  // A joint pinched at the right fingertips: returns the pinch point and the direction it sticks
+  // out (out of the back of the hand, so with the hand at the mouth the filter is on the lips).
+  jointTransform(pinch, dir) {
+    const R = this.handRest.Right;
+    if (!R) return false;
+    const hand = this.b.RightHand;
+    const hq = hand.getWorldQuaternion(new THREE.Quaternion());
+    dir.copy(R.palmLocal).applyQuaternion(hq).normalize().negate();
+    const m1 = this._mid1 ||= this.bones.find((b) => /RightHandIndex2$/.test(b.name));
+    if (m1) m1.getWorldPosition(pinch);
+    else hand.getWorldPosition(pinch);
+    return true;
+  }
+
   // Where the pistol sits in the right hand (world space), or null.
   pistolTransform(pos, quat) {
     if (!this.handRest.Right) return false;

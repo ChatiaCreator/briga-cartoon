@@ -616,6 +616,7 @@ const PORTRAIT_FILES = {
   genildo: 'assets/portraits/genildo.webp',
   anderon: 'assets/portraits/anderon.webp',
   hgl: 'assets/portraits/hgl.webp',
+  davidson: 'assets/portraits/davidson.webp',
 };
 
 async function makePortraits() {
