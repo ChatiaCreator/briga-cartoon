@@ -26,11 +26,19 @@ function readGlbJson(file) {
   const clips = [];
   for (const [f, map] of files) {
     const r = await p.evaluate(([u, m]) => window.convert(u, 30, m), [f, map]);
-    clips.push({ name: path.basename(f).replace(/\.fbx$/i, ''), ...r });
+    clips.push({ name: path.basename(f).replace(/\.fbx$/i, ''), map, ...r });
     console.log(f, r.duration.toFixed(2) + 's', Object.keys(r.rot).length, 'bones');
   }
   await b.close();
 
+  // Mixamo clips go to mixamo_anims.glb (in the repository); clips from licensed packs whose
+  // raw data may not be redistributed (Motifect) go to motifect_anims.glb, kept out of git.
+  writeGlb(OUT, clips.filter((c) => !c.map));
+  const lic = clips.filter((c) => c.map === 'motifect');
+  if (lic.length) writeGlb(path.join(ROOT, 'tools/models_src/motifect_anims.glb'), lic);
+})();
+
+function writeGlb(out, list) {
   // GLB with the fighters' bare node tree and one animation per clip.
   const src = readGlbJson(path.join(ROOT, 'tools/models_src/hotmonster.glb'));
   const nodes = src.nodes.map((n) => { const m = { ...n }; delete m.mesh; delete m.skin; return m; });
@@ -45,7 +53,7 @@ function readGlbJson(file) {
     if (minmax) { a.min = [Math.min(...arr)]; a.max = [Math.max(...arr)]; }
     accessors.push(a); return accessors.length - 1;
   };
-  const animations = clips.map((c) => {
+  const animations = list.map((c) => {
     const input = add(c.times, 'SCALAR', true);
     const samplers = [], channels = [];
     for (const [bone, vals] of Object.entries(c.rot)) {
@@ -62,6 +70,6 @@ function readGlbJson(file) {
   const bin = Buffer.concat(chunks);
   const head = Buffer.alloc(12); head.write('glTF', 0); head.writeUInt32LE(2, 4); head.writeUInt32LE(12 + 8 + js.length + 8 + bin.length, 8);
   const ch = (len, type) => { const h = Buffer.alloc(8); h.writeUInt32LE(len, 0); h.write(type, 4); return h; };
-  fs.writeFileSync(OUT, Buffer.concat([head, ch(js.length, 'JSON'), js, ch(bin.length, 'BIN\0'), bin]));
-  console.log('wrote', OUT, fs.statSync(OUT).size, 'bytes,', animations.length, 'clips');
-})();
+  fs.writeFileSync(out, Buffer.concat([head, ch(js.length, 'JSON'), js, ch(bin.length, 'BIN\0'), bin]));
+  console.log('wrote', out, fs.statSync(out).size, 'bytes,', animations.length, 'clips');
+}

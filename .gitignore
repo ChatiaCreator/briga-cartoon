@@ -7,3 +7,4 @@ tools/optimize/node_modules/
 
 # Motifect pack: licensed for use in the game, raw files may not be redistributed
 tools/mixamo/in_motifect/
+tools/models_src/motifect_anims.glb

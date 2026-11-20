@@ -78,6 +78,8 @@ for (const a of root.listAnimations()) {
 }
 
 const sources = [['flash', 'flash'], ['anderon', 'anderon'], ['hgl', 'hgl'], ['davidson', 'davidson'], ['extra_anims', 'mixamo'], ['mixamo_anims', 'mixamo']];
+// Licensed pack clips (not in git): included when the file is present.
+if (fs.existsSync(path.join(SRC, 'motifect_anims.glb'))) sources.push(['motifect_anims', 'mixamo']);
 for (const [file, prefix] of sources) {
   const doc = await io.read(path.join(SRC, `${file}.glb`));
   for (const a of doc.getRoot().listAnimations()) {
