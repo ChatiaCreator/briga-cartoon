@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { createGame, step, checksum } from '../src/sim/game.js';
 import { LP, HP, LK, HK, SUP, EX1, EX2, LEFT, RIGHT, DOWN, UP } from '../src/sim/bits.js';
 import * as moves from '../src/sim/moves.js';
+import { RULES } from '../src/sim/fighter.js';
+
+// AGARRÃO is switched off in the game for now; its tests switch it on while they run.
+function throwsOn(t) { RULES.throws = true; t.after(() => { RULES.throws = false; }); }
 
 function run(g, frames, fn) {
   for (let i = 0; i < frames; i++) step(g, fn ? fn(g.frame, g) : [0, 0]);
@@ -118,13 +122,24 @@ test('Hotmonster super rains bags on the opponent', () => {
   assert.ok(hp - g.f[1].hp >= 200, `rain dealt ${hp - g.f[1].hp}`);
 });
 
-test('sweep knocks down', () => {
+test('crouching CHUTE+ is a strong low kick (the spinning sweep is off for now)', () => {
   const g = createGame(['hotmonster', 'flash']);
   toFight(g); approach(g);
+  const hp = g.f[1].hp;
   step(g, [DOWN | HK, 0]);
   let fell = false;
   for (let i = 0; i < 40; i++) { step(g, [DOWN, 0]); if (g.f[1].st === 'fall' || g.f[1].st === 'down') fell = true; }
-  assert.ok(fell);
+  assert.ok(g.f[1].hp < hp, 'it hits');
+  assert.ok(!fell, 'it does not knock down');
+});
+
+test('AGARRÃO is off: forward + SOCO+ up close is a normal strong punch', () => {
+  const g = createGame(['hotmonster', 'flash']);
+  toFight(g); approach(g, 600);
+  step(g, [RIGHT | HP, 0]);
+  assert.equal(g.f[0].mv, 'hp');
+  run(g, 8);
+  assert.notEqual(g.f[1].st, 'thrown');
 });
 
 test('jumping works and lands', () => {
@@ -374,7 +389,8 @@ test('HGL special CARRINHO slides under a bullet and must be blocked low', () =>
   assert.ok(g2.f[1].hp < hp2, 'standing block should not stop the slide');
 });
 
-test('AGARRÃO: forward + SOCO+ up close throws the opponent behind and knocks down', () => {
+test('AGARRÃO: forward + SOCO+ up close throws the opponent behind and knocks down', (t) => {
+  throwsOn(t);
   const g = createGame(['hotmonster', 'flash']);
   toFight(g); approach(g, 600);
   const hp = g.f[1].hp, x0 = g.f[0].x;
@@ -391,7 +407,8 @@ test('AGARRÃO: forward + SOCO+ up close throws the opponent behind and knocks d
   assert.equal(g.f[0].facing, -1, 'the thrower turns to face the opponent');
 });
 
-test('AGARRÃO: blocking does not stop it, pressing SOCO+ right away escapes', () => {
+test('AGARRÃO: blocking does not stop it, pressing SOCO+ right away escapes', (t) => {
+  throwsOn(t);
   const g = createGame(['hotmonster', 'flash']);
   toFight(g); approach(g, 600);
   const hp = g.f[1].hp;
@@ -405,7 +422,8 @@ test('AGARRÃO: blocking does not stop it, pressing SOCO+ right away escapes', (
   assert.ok(g.f[1].x - g.f[0].x >= 500, 'pushed apart');
 });
 
-test('Each fighter has their own AGARRÃO: dumped in front (BAIANA) or struck into the air (CLINCH)', () => {
+test('Each fighter has their own AGARRÃO: dumped in front (BAIANA) or struck into the air (CLINCH)', (t) => {
+  throwsOn(t);
   // Anderson: double-leg takedown, the opponent goes down in front of him.
   const g = createGame(['anderon', 'flash']);
   toFight(g); approach(g, 600);
@@ -442,7 +460,8 @@ test('Each fighter has their own AGARRÃO: dumped in front (BAIANA) or struck in
   assert.ok(k.f[1].ko, 'the uppercut finishes');
 });
 
-test('AGARRÃO: too far away it whiffs and leaves the thrower open', () => {
+test('AGARRÃO: too far away it whiffs and leaves the thrower open', (t) => {
+  throwsOn(t);
   const g = createGame(['hotmonster', 'flash']);
   toFight(g); approach(g, 1500);
   step(g, [RIGHT | HP, 0]);

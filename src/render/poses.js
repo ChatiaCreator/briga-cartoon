@@ -76,6 +76,7 @@ const CROUCH_UPPER = { crouchUpper: true };
 // leg IK (reach, model units); the sweep also turns the body a full circle on the floor.
 const LOW = { crouchKick: { reach: 0.27, lean: -0.04 } };
 const SWEEP = { crouchKick: { reach: 0.3, lean: -0.08, spin: Math.PI * 2 } };
+const LOW_FAR = { crouchKick: { reach: 0.31, lean: -0.07 } };
 const MIXAMO_ATTACKS = {
   // Jab string from "Quad Punch": pressing LP again chains to the next of its four punches.
   lp: ['Quad_Punch', 0.36, 0.5, 0.56, 0.66],
@@ -95,7 +96,7 @@ const MIXAMO_ATTACKS = {
   clp: ['Punching', 0.2, 0.4, 0.46, 0.7, 0, false, CROUCH_UPPER],
   clp2: ['Quad_Punch', 0.58, 0.7, 0.75, 0.86, 0, false, CROUCH_UPPER],
   clk: ['Crouch_Idle', 0.5, 0.5, 0.5, 0.5, 0, false, LOW],
-  chk: ['Crouch_Idle', 0.5, 0.5, 0.5, 0.5, 0, false, SWEEP],
+  chk: ['Crouch_Idle', 0.5, 0.5, 0.5, 0.5, 0, false, LOW_FAR], // (SWEEP: the spinning sweep, off for now)
   // ESQUIVA: the deep duck from Mixamo "Dodging" (the game slides the fighter back).
   dodge: ['Dodging', 0.05, 0.55, 0.55, 0.75, 0, false, TRAVEL],
   // Air kicks: only the airborne part, with the clip's own travel and height taken out.

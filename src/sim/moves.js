@@ -16,7 +16,9 @@ const normals = {
   // to jump after them (jc) and keep hitting while they fall.
   chp: { rank: 2, startup: 6, active: 5, recovery: 18, dmg: 80, hitstun: 20, blockstun: 14, push: 160, height: 'mid', box: [80, 900, 620, 1800], launch: 150, jc: true },
   clk: { rank: 1, startup: 5, active: 3, recovery: 9,  dmg: 40, hitstun: 14, blockstun: 10, push: 120, height: 'low', box: [150, 0, 780, 300] },
-  chk: { rank: 2, startup: 8, active: 4, recovery: 22, dmg: 80, hitstun: 0,  blockstun: 14, push: 180, height: 'low', box: [150, 0, 950, 320], kd: true },
+  // Strong low kick. (The spinning sweep that knocked down is off until it has a better
+  // animation: { startup: 8, active: 4, recovery: 22, dmg: 80, hitstun: 0, push: 180, box: [150, 0, 950, 320], kd: true }.)
+  chk: { rank: 2, startup: 7, active: 4, recovery: 16, dmg: 60, hitstun: 18, blockstun: 12, push: 170, height: 'low', box: [150, 0, 880, 300] },
   jlp: { rank: 1, startup: 5, active: 8, recovery: 0,  dmg: 50, hitstun: 16, blockstun: 11, push: 100, height: 'high', box: [80, 650, 620, 1100], air: true },
   jhp: { rank: 2, startup: 7, active: 6, recovery: 0,  dmg: 80, hitstun: 19, blockstun: 14, push: 140, height: 'high', box: [80, 550, 680, 1100], air: true },
   jlk: { rank: 1, startup: 5, active: 10, recovery: 0, dmg: 50, hitstun: 16, blockstun: 11, push: 100, height: 'high', box: [100, 150, 700, 650], air: true },

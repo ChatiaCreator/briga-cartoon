@@ -9,6 +9,8 @@ export const MAX_DIST = 5600;      // farthest the two fighters may be apart
 export const BODY_W = 520;         // push-box width
 export const BUFFER = 5;           // frames a button press stays buffered
 export const METER_MAX = 1000;
+// AGARRÃO is off until it has better animations (all its code stays; tests switch it on).
+export const RULES = { throws: false };
 export const SUPER_FREEZE = 45; // frames everything stops while a super starts
 
 const NEUTRAL = new Set(['idle', 'walk', 'crouch', 'land']);
@@ -220,7 +222,7 @@ export function stepFighter(f, input, o, g) {
     case 'idle': case 'walk': case 'crouch': case 'land': {
       if (f.st === 'land' && f.sf < 4) break;
       // AGARRÃO: forward or back + SOCO+ right next to an opponent who can be grabbed.
-      if ((dir === 6 || dir === 4) && buffered(f, HP) && canGrab(f, o)) { consume(f, HP); startMove(f, 'throw', g); break; }
+      if (RULES.throws && (dir === 6 || dir === 4) && buffered(f, HP) && canGrab(f, o)) { consume(f, HP); startMove(f, 'throw', g); break; }
       const mv = chooseMove(f, dir, false, 0);
       if (mv) { startMove(f, mv, g); break; }
       if (dir >= 7) { startJump(f, dir); break; }

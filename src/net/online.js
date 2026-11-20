@@ -3,7 +3,7 @@
 import { delayFor } from './rollback.js';
 
 const PREFIX = 'briga-cartoon-v1-';
-export const NET_VERSION = 8; // 8: each fighter's own AGARRÃO
+export const NET_VERSION = 9; // 9: AGARRÃO and the spinning sweep off
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function makeCode() {

@@ -2,6 +2,7 @@
 // Runs only on the local machine (never online), so it may use its own random numbers.
 import { UP, DOWN, LEFT, RIGHT, LP, HP, LK, HK, SUP, EX1, EX2 } from './sim/bits.js';
 import { CHARACTERS } from './sim/moves.js';
+import { RULES } from './sim/fighter.js';
 
 export class Cpu {
   constructor(index, level = 0.6) {
@@ -109,10 +110,10 @@ export class Cpu {
       const first = Array(Math.max(1, t2.minChain + 1)).fill(0).flatMap(() => [B[t2.from.toUpperCase()], ...z(8)]);
       combos.push([...first, B[t2.btn]]);
     }
-    // Low game: crouching jab into the sweep.
+    // Low game: crouching jab into the strong low kick.
     combos.push([DOWN | LP, ...z(8, DOWN), DOWN | HK, ...z(6, DOWN)]);
     // AGARRÃO when right next to the opponent (and they are not jumping).
-    if (dist < 700 && o.y === 0) combos.push([fwd | HP], [fwd | HP]);
+    if (RULES.throws && dist < 700 && o.y === 0) combos.push([fwd | HP], [fwd | HP]);
     combos.push([LP, ...z(14), DOWN | HP, ...z(20, DOWN), ...z(16, UP | fwd), 0, HK]);
     if (r < 0.25 + lv * 0.5) {
       const c = combos[Math.floor(this.rnd() * combos.length)];
