@@ -327,6 +327,46 @@ function throwClipTime(sf, m) {
   return THROW_GRAB + ((sf - m.startup) / 60) * 1.6;
 }
 
+// Each fighter's own AGARRÃO (single clips, see moves.js): the thrower's clip and its times
+// (reach: while reaching; hit: at the slam or strike; end: at the end of the move; stand: gets
+// up from the floor afterwards) and the opponent's reaction while held (held: [clip, from, to],
+// pulse: doubles over again at each blow; fall: frames before the slam they start falling).
+const GRABS = {
+  flash: { clip: 'MA_Wrestling_Single_Leg_Takedown', reach: [0.6, 0.95], hit: 2.1, end: 3.4, held: ['hit_to_body_02', 0.15, 0.7], fall: 24 },
+  genildo: { clip: KJU, reach: [0.6, 1.04], hit: 3.58, end: 4.15, held: ['hit_to_stomach', 0.1, 0.4], pulse: true },
+  anderon: { clip: 'MA_Wrestling_Double_Leg_Takedown', reach: [0.3, 0.55], hit: 0.95, end: 0.95, stand: true, held: ['hit_to_body_02', 0.15, 0.45], fall: 26 },
+  hgl: { clip: 'Illegal_Headbutt', reach: [0.2, 0.55], hit: 0.88, end: 1.45, held: ['hit_to_body_01', 0.1, 0.35] },
+  davidson: { clip: 'MA_Judo_Hip_Throw', reach: [0.6, 1.0], hit: 2.4, end: 3.3, held: ['hit_to_body_02', 0.15, 0.7], fall: 30 },
+};
+function grabberPose(f, m, G) {
+  const t = m.throw, k = f.sf - m.startup;
+  let time;
+  if (k < 0) time = lerp(G.reach[0], G.reach[1], f.sf / m.startup);
+  else if (!f.grab) time = lerp(G.reach[1], G.reach[0], clamp01(k / m.recovery)); // whiffed
+  else if (k < t.land) time = lerp(G.reach[1], G.hit, k / t.land);
+  else {
+    const r = clamp01((k - t.land) / t.after);
+    // Back up from the floor after a takedown.
+    if (G.stand && r > 0.35) return { ...KNEEL, clip: 'Crouch_To_Stand', clipTime: 0.6 + 0.65 * ease((r - 0.35) / 0.65), blend: 0.12, key: 'grabstand' };
+    time = lerp(G.hit, G.end, r);
+  }
+  return { ...CLIP, clip: G.clip, clipTime: time, lockXZ: true, blend: 0.06 };
+}
+function grabbedPose(f, o) {
+  const m = CHARACTERS[o.char].moves.throw, t = m.throw, G = GRABS[o.char];
+  const k = Math.max(0, o.sf - m.startup);
+  if (G.fall && k >= t.land - G.fall) {
+    // Thrown down: the knockdown fall, landing on the slam (then the game's 'down' takes over).
+    return { ...CLIP, clip: 'fall', clipTime: lerp(0.3, 1.7, clamp01((k - (t.land - G.fall)) / G.fall)), blend: 0.08, key: 'thrown:fall' };
+  }
+  const [clip, a, b] = G.held;
+  if (G.pulse && t.hits) {
+    const last = t.hits.map(([at]) => at).filter((at) => at <= k).pop();
+    if (last != null) return { ...CLIP, clip, clipTime: Math.min(b + 0.4, a + (k - last) / 40), blend: 0.04, key: 'thrown:' + last };
+  }
+  return { ...CLIP, clip, clipTime: lerp(a, b, clamp01(k / t.land)), blend: 0.08 };
+}
+
 function idleTime(T) {
   // Sway through the boxing stance part of box_01 (no punches between 1.0 and 2.2 s),
   // easing at both ends instead of bouncing.
@@ -399,13 +439,16 @@ function rawPose(f, g, T) {
         body: [flip ? k * Math.PI * 2 : 0, 0, 0, 0, 0.9] };
     }
     case 'thrown': {
-      // Played on the thrower's spot and timeline (see view.js), with the paired victim clip.
       const o = g?.f[1 - f.id];
+      if (o && o.mv === 'throw' && GRABS[o.char]) return grabbedPose(f, o);
+      // Shoulder throw: played on the thrower's spot and timeline (see view.js), with the
+      // paired victim clip.
       const at = o && o.mv === 'throw' ? throwClipTime(o.sf, CHARACTERS[o.char].moves.throw) : THROW_GRAB;
       return { ...THROWN, clipTime: at, blend: 0.06 };
     }
     case 'attack': {
       const m = CHARACTERS[f.char].moves[f.mv];
+      if (f.mv === 'throw' && GRABS[f.char]) return grabberPose(f, m, GRABS[f.char]);
       if (f.mv === 'throw') {
         const t = throwClipTime(f.sf, m);
         // Reaching (before the grab) stays on the spot; after it, the paired clip.

@@ -128,31 +128,58 @@ function canGrab(f, o) {
   return Math.abs(o.x - f.x) <= CHARACTERS[f.char].moves.throw.throw.range;
 }
 
-// The throw: reach (startup), grab if the opponent is still there, carry over the shoulder and
-// slam them down behind. A whiff leaves the thrower open for the move's recovery.
+// The throw: reach (startup), grab if the opponent is still there, then each fighter's own
+// finish (moves.js, normals.throw): carried over the shoulder and slammed down behind, dumped
+// on the floor in front, or struck into the air. A whiff leaves the thrower open.
 function stepThrow(f, m, o, g) {
   const t = m.throw;
+  const clampX = (x) => Math.max(-WALL, Math.min(WALL, x));
   if (f.sf === m.startup) {
     if (canGrab(f, o)) {
       f.grab = 1; f.inv = t.land + t.after;
       o.st = 'thrown'; o.sf = 0; o.mv = ''; o.vx = 0; o.pv = 0; o.guard = false; o.combo = 0;
-      g.events.push({ t: 'grab', f: f.id, x: (f.x + o.x) >> 1 });
+      if (t.kind !== 'behind') {
+        // Held at arm's length, facing the thrower (the animations are lined up for this).
+        // Against a wall the thrower steps back instead.
+        o.x = clampX(f.x + f.facing * t.hold);
+        f.x = o.x - f.facing * t.hold;
+        o.facing = -f.facing;
+      }
+      g.events.push({ t: 'grab', f: f.id, x: (f.x + o.x) >> 1, name: t.name });
     } else f.grab = 0;
   }
+  const scaled = (d) => (f.buff > 0 ? Math.trunc((d * 150) / 100) : d);
+  // Blows landed while holding (knees in the clinch). They never finish the opponent.
+  if (f.grab && t.hits && o.st === 'thrown') {
+    t.hits.forEach(([at, d], k) => {
+      if (f.sf !== m.startup + at) return;
+      const dmg = scaled(d);
+      o.hp = Math.max(1, o.hp - dmg);
+      f.meter = Math.min(METER_MAX, f.meter + Math.trunc(d / 2));
+      g.hitstop = 6;
+      g.events.push({ t: 'hit', x: o.x, y: 1000, f: o.id, by: f.id, dmg, combo: k + 1, heavy: false });
+    });
+  }
   if (f.grab && f.sf === m.startup + t.land && o.st === 'thrown') {
-    // Slam: damage, the opponent lies behind the thrower, facing them.
-    let dmg = m.dmg;
-    if (f.buff > 0) dmg = Math.trunc((dmg * 150) / 100);
+    const dmg = scaled(m.dmg);
     o.hp = Math.max(0, o.hp - dmg);
     f.meter = Math.min(METER_MAX, f.meter + Math.trunc(m.dmg / 2));
     o.meter = Math.min(METER_MAX, o.meter + Math.trunc(m.dmg / 4));
-    o.x = Math.max(-WALL, Math.min(WALL, f.x - f.facing * t.back));
-    o.facing = f.facing; o.y = 0; o.vy = 0; o.sf = 0; o.inv = t.inv;
-    o.st = o.hp === 0 ? 'ko' : 'down';
     if (o.hp === 0) o.ko = true;
+    o.vy = 0; o.sf = 0; o.inv = t.inv; o.jug = 0; o.bounce = 0;
     g.hitstop = 10;
-    g.events.push({ t: 'hit', x: o.x, y: 300, f: o.id, by: f.id, dmg, combo: 1, heavy: true, ko: o.ko, big: true, slam: true });
-    g.events.push({ t: 'thud', f: o.id, x: o.x });
+    const combo = (t.hits ? t.hits.length : 0) + 1;
+    if (t.kind === 'launch') {
+      // Struck into the air: falls (state 'fall') and lands on the floor further away.
+      o.st = 'fall'; o.y = 1; o.vy = t.launch[0]; o.vx = f.facing * t.launch[1]; o.facing = -f.facing;
+      g.events.push({ t: 'hit', x: o.x, y: 1300, f: o.id, by: f.id, dmg, combo, heavy: true, ko: o.ko, big: true });
+    } else {
+      // Slammed down: lies behind the thrower (shoulder throw) or in front, facing them.
+      if (t.kind === 'behind') { o.x = clampX(f.x - f.facing * t.back); o.facing = f.facing; }
+      o.y = 0; o.st = o.hp === 0 ? 'ko' : 'down';
+      g.events.push({ t: 'hit', x: o.x, y: 300, f: o.id, by: f.id, dmg, combo, heavy: true, ko: o.ko, big: true, slam: true });
+      g.events.push({ t: 'thud', f: o.id, x: o.x });
+    }
   }
   const total = m.startup + (f.grab ? t.land + t.after : m.recovery);
   if (f.sf >= total) { f.grab = 0; toNeutral(f); }

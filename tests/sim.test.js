@@ -405,6 +405,43 @@ test('AGARRÃO: blocking does not stop it, pressing SOCO+ right away escapes', (
   assert.ok(g.f[1].x - g.f[0].x >= 500, 'pushed apart');
 });
 
+test('Each fighter has their own AGARRÃO: dumped in front (BAIANA) or struck into the air (CLINCH)', () => {
+  // Anderson: double-leg takedown, the opponent goes down in front of him.
+  const g = createGame(['anderon', 'flash']);
+  toFight(g); approach(g, 600);
+  const hp = g.f[1].hp;
+  step(g, [RIGHT | HP, 0]);
+  run(g, 8);
+  assert.equal(g.f[1].st, 'thrown');
+  assert.equal(g.f[1].x - g.f[0].x, moves.CHARACTERS.anderon.moves.throw.throw.hold, 'held at arm\'s length');
+  run(g, 40);
+  assert.equal(g.f[1].hp, hp - 130);
+  assert.ok(g.f[1].x > g.f[0].x, 'stays in front of the thrower');
+  assert.ok(['down', 'rise'].includes(g.f[1].st), g.f[1].st);
+  // Genildo: clinch, two knees (they cannot finish), then the uppercut launches.
+  const g2 = createGame(['genildo', 'hotmonster']);
+  toFight(g2); approach(g2, 600);
+  const hp2 = g2.f[1].hp;
+  step(g2, [RIGHT | HP, 0]);
+  run(g2, 50);
+  assert.equal(g2.f[1].st, 'thrown');
+  assert.equal(g2.f[1].hp, hp2 - 60, 'two knees landed');
+  run(g2, 60); // the knees' hit-stop holds the clock a little
+  assert.equal(g2.f[1].hp, hp2 - 130);
+  assert.ok(['fall', 'down'].includes(g2.f[1].st), g2.f[1].st);
+  run(g2, 60);
+  assert.equal(g2.f[0].st, 'idle');
+  assert.ok(['down', 'rise', 'idle'].includes(g2.f[1].st), g2.f[1].st);
+  const k = createGame(['genildo', 'hotmonster']);
+  toFight(k); approach(k, 600);
+  k.f[1].hp = 40;
+  step(k, [RIGHT | HP, 0]);
+  run(k, 50);
+  assert.equal(k.f[1].hp, 1, 'the knees leave them at 1');
+  run(k, 120);
+  assert.ok(k.f[1].ko, 'the uppercut finishes');
+});
+
 test('AGARRÃO: too far away it whiffs and leaves the thrower open', () => {
   const g = createGame(['hotmonster', 'flash']);
   toFight(g); approach(g, 1500);

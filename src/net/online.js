@@ -3,7 +3,7 @@
 import { delayFor } from './rollback.js';
 
 const PREFIX = 'briga-cartoon-v1-';
-export const NET_VERSION = 7; // 7: Davidson
+export const NET_VERSION = 8; // 8: each fighter's own AGARRÃO
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function makeCode() {

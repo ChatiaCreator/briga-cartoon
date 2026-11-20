@@ -150,7 +150,7 @@ export class GameView {
       const f = g.f[i];
       const c = this.chars[i];
       // Being thrown: drawn on the thrower's spot (the paired clip places the body).
-      const thrown = f.st === 'thrown';
+      const thrown = f.st === 'thrown' && CHARACTERS[g.f[1 - i].char].moves.throw.throw.kind === 'behind';
       const [x, y] = pos[thrown ? 1 - i : i];
       c.root.position.set(x, y, 0);
       (this.posX ||= [0, 0])[i] = x;

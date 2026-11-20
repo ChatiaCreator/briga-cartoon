@@ -26,10 +26,17 @@ const normals = {
   fk:  { rank: 2, startup: 18, active: 6, recovery: 16, dmg: 90, hitstun: 22, blockstun: 16, push: 220, height: 'high', box: [150, 900, 950, 1650], travel: [2, 24, 50] },
   // ESTRELA: cartwheel into a kick that knocks down.
   cw:  { rank: 2, startup: 20, active: 6, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 200, height: 'mid', box: [100, 700, 900, 1550], travel: [0, 22, 34], kd: true },
-  // AGARRÃO (forward or back + SOCO+ next to the opponent): shoulder throw. Can't be blocked;
-  // the one grabbed escapes by pressing SOCO+ right away. The opponent lands behind the thrower.
+  // AGARRÃO (forward or back + SOCO+ next to the opponent). Can't be blocked; the one grabbed
+  // escapes by pressing SOCO+ right away. Each fighter has their own (see grab() below); this
+  // default is the shoulder throw: the opponent lands behind the thrower.
+  //   kind 'behind': carried over the shoulder, lands `back` mm behind.
+  //   kind 'front':  held `hold` mm in front, then dumped on the floor there (the fall
+  //                  animation carries the body back).
+  //   kind 'launch': held `hold` mm in front, then struck into the air (launch = [up, away]).
+  //   land: frames from the grab to the slam; after: frames the thrower needs afterwards;
+  //   hits: [[frame after the grab, damage], ...] blows landed while holding (they can't KO).
   throw: { rank: 0, startup: 5, active: 0, recovery: 24, dmg: 130, hitstun: 0, blockstun: 0, push: 0, height: 'mid',
-    throw: { range: 760, land: 60, after: 28, back: 1300, tech: 10, inv: 70 } },
+    throw: { kind: 'behind', name: 'ARREMESSO', range: 760, land: 60, after: 28, back: 1300, tech: 10, inv: 70 } },
   // ESQUIVA (tap back twice): ducks and slips back, untouchable for the first 14 frames.
   // No hitbox (it never becomes active); punishable at the end.
   dodge: { rank: 0, startup: 22, active: 0, recovery: 6, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid', invuln: 14, travel: [1, 15, -46] },
@@ -37,6 +44,9 @@ const normals = {
 
 // Second signature string of each fighter: a heavy kick (from the Motifect martial arts pack)
 // that knocks down. Tuned per fighter below.
+// A fighter's own AGARRÃO: the default throw with other numbers (see normals.throw).
+const grab = (dmg, t) => ({ ...normals.throw, dmg, throw: { ...normals.throw.throw, ...t } });
+
 const tc2 = (extra = {}) => ({ rank: 2, startup: 12, active: 4, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 240,
   height: 'mid', box: [100, 700, 950, 1600], kd: true, ...extra });
 
@@ -77,6 +87,8 @@ export const CHARACTERS = {
         dash: 120, box: [60, 700, 620, 1550] },
       // Super: drinks a can of GARRA Energy. +50% damage and +20% speed for 8 seconds.
       super: { rank: 4, startup: 55, active: 0, recovery: 0, dmg: 0, invuln: 55, buff: 480 },
+      // AGARRÃO "DERRUBADA": catches a leg and dumps the opponent on the floor.
+      throw: grab(130, { kind: 'front', name: 'DERRUBADA', hold: 660, land: 50, after: 34 }),
     },
   },
 };
@@ -99,6 +111,8 @@ CHARACTERS.genildo = {
     // Super "TOLERÂNCIA ZERO": a burst of five shots.
     super: { rank: 4, startup: 22, active: 0, recovery: 30, dmg: 55, hitstun: 22, blockstun: 12, push: 100, height: 'mid', chip: 8,
       invuln: 30, burst: { frames: [22, 29, 36, 43, 50], ys: [1330, 1250, 1380, 1290, 1340], dx: 520, vx: 170, kind: 'bullet' } },
+    // AGARRÃO "CLINCH": muay thai clinch, two knees and an uppercut that launches.
+    throw: grab(70, { kind: 'launch', name: 'CLINCH', hold: 640, land: 84, after: 22, hits: [[19, 30], [37, 30]], launch: [95, 25] }),
   },
 };
 
@@ -121,6 +135,8 @@ CHARACTERS.anderon = {
     // heals a little every few frames. Untouchable at first; a hit later hangs up.
     super: { rank: 4, startup: 24, active: 0, recovery: 96, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid',
       invuln: 50, heal: { from: 24, to: 100, every: 6, amount: 24 } },
+    // AGARRÃO "BAIANA": MMA double-leg takedown, shoots in and slams the opponent down.
+    throw: grab(130, { kind: 'front', name: 'BAIANA', hold: 660, land: 32, after: 46 }),
   },
 };
 
@@ -143,6 +159,8 @@ CHARACTERS.hgl = {
     // Super "CHAVE DE FENDA": winds up like a baseball pitch and throws his screwdriver.
     super: { rank: 4, startup: 30, active: 0, recovery: 34, dmg: 230, hitstun: 0, blockstun: 20, push: 220, height: 'mid', chip: 20, kd: true,
       invuln: 30, projectile: { at: 30, dx: 450, y: 1400, vx: 150, vy: 0, g: 0, kind: 'screwdriver' } },
+    // AGARRÃO "CABEÇADA": grabs the collar and headbutts the opponent away.
+    throw: grab(120, { kind: 'launch', name: 'CABEÇADA', hold: 620, land: 26, after: 28, launch: [70, 40] }),
   },
 };
 
@@ -165,6 +183,8 @@ CHARACTERS.davidson = {
     // Untouchable at first; a hit later puts it out.
     super: { rank: 4, startup: 30, active: 0, recovery: 96, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid',
       invuln: 50, heal: { from: 30, to: 120, every: 6, amount: 20 } },
+    // AGARRÃO "VINGATIVA": capoeira hip throw, the opponent goes down in front of him.
+    throw: grab(130, { kind: 'front', name: 'VINGATIVA', hold: 620, land: 60, after: 30 }),
   },
 };
 

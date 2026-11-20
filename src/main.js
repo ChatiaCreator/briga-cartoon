@@ -444,7 +444,7 @@ function handleEvents(events) {
       case 'splash': if (ev.kind === 'racao') sfx('splash'); else if (ev.kind === 'screwdriver') sfx('clank'); break;
       case 'shot': sfx('shot'); break;
       case 'heal': sfx('heal'); break;
-      case 'grab': sfx('whoosh'); sfx('block'); break;
+      case 'grab': sfx('whoosh'); sfx('block'); if (ev.name) hud.flash(`${ev.name}!`, 900, true); break;
       case 'tech': sfx('block'); hud.flash('ESCAPOU!', 900, true); break;
       case 'thud': sfx('thud'); break;
       case 'timeover': hud.flash('TEMPO!', 1500); announce('Tempo!', 'tempo'); break;
