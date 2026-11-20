@@ -10,6 +10,7 @@ import { createFighter } from './sim/fighter.js';
 import { CHARACTERS } from './sim/moves.js';
 import { readInput, attachKeyboard } from './input.js';
 import { Cpu } from './cpu.js';
+import { Training } from './training.js';
 import { Rollback } from './net/rollback.js';
 import { OnlineSession, normalizeCode } from './net/online.js';
 import { Hud } from './ui.js';
@@ -66,9 +67,9 @@ function openSelect(mode) {
   document.querySelector('#select .vs-badge').classList.toggle('hidden', solo);
   $('cpuLevelRow').classList.toggle('hidden', mode !== 'cpu');
   $('selLabel0').textContent = mode === 'local' ? 'Jogador 1' : 'Você';
-  $('selLabel1').textContent = mode === 'cpu' ? 'Computador' : 'Jogador 2';
+  $('selLabel1').textContent = mode === 'cpu' ? 'Computador' : mode === 'train' ? 'Boneco de treino' : 'Jogador 2';
   $('selTitle').textContent = solo ? 'Escolha seu lutador' : 'Escolha os lutadores';
-  $('fightTxt').textContent = solo ? 'CONTINUAR ▶' : 'LUTAR!';
+  $('fightTxt').textContent = solo ? 'CONTINUAR ▶' : mode === 'train' ? 'TREINAR!' : 'LUTAR!';
   $('stageHint').classList.toggle('hidden', !solo);
   renderCards();
   renderStages();
@@ -282,11 +283,14 @@ async function startMatch(mode, chars, opts = {}) {
   if (perf.noShadow) view.arena.sun.castShadow = false;
   view.arena.resize(innerWidth, innerHeight);
   const game = createGame(chars);
+  if (mode === 'train') game.training = true; // offline only: no clock, no knockouts
   const me = opts.me ?? 0;
-  const tags = mode === 'local' ? ['P1', 'P2'] : mode === 'cpu' ? ['VOCÊ', 'CPU'] : me === 0 ? ['VOCÊ', 'AMIGO'] : ['AMIGO', 'VOCÊ'];
+  const tags = mode === 'local' ? ['P1', 'P2'] : mode === 'cpu' ? ['VOCÊ', 'CPU'] : mode === 'train' ? ['VOCÊ', 'TREINO']
+    : me === 0 ? ['VOCÊ', 'AMIGO'] : ['AMIGO', 'VOCÊ'];
   match = {
     mode, chars, opts, game, view, me, paused: false, ended: false, acc: 0,
     cpu: mode === 'cpu' ? new Cpu(1, opts.cpuLevel ?? 0.6) : null,
+    training: mode === 'train' ? new Training(new Cpu(1, 0.5)) : null,
     lock: null, frame: 0, stall: 0, hold: true,
   };
   hud.setup(game, tags, chars.map((c) => portraits[c]));
@@ -355,6 +359,7 @@ function endMatch() {
   $('cutin').classList.add('hidden');
   $('pause').classList.add('hidden');
   $('victory').classList.add('hidden');
+  $('trainPanel').classList.add('hidden');
 }
 
 function tick() {
@@ -383,9 +388,11 @@ function tick() {
     }
   } else {
     let p1 = m.mode === 'local' ? readInput('p1') : readInput('solo');
-    let p2 = m.mode === 'local' ? readInput('p2') : m.cpu.input(g);
+    let p2 = m.mode === 'local' ? readInput('p2') : m.training ? m.training.input(g) : m.cpu.input(g);
     if (window.__inputOverride) [p1, p2] = window.__inputOverride(g, p1, p2); // automated tests
+    m.training?.before(g);
     step(g, [p1, p2]);
+    m.training?.after(g);
     m.frame++;
     if (window.__pauseAtFrame && g.frame >= window.__pauseAtFrame) { m.paused = true; window.__pauseAtFrame = 0; }
   }
@@ -414,6 +421,7 @@ function handleEvents(events) {
   for (const ev of events) {
     switch (ev.t) {
       case 'round':
+        if (m.training) { hud.flash('TREINO', 1400, false, 'round'); sfx('bell'); break; }
         hud.flash(g.round === 5 ? 'ROUND FINAL' : `ROUND ${ev.round}`, 1400, false, 'round');
         sfx('bell');
         announce(g.round === 5 ? 'Round final' : `Round ${ev.round}`, g.round === 5 ? 'round-final' : `round${ev.round}`);
@@ -538,6 +546,7 @@ $('winRematch').onclick = rematch;
 $('winMenu').onclick = () => $('quitBtn').onclick();
 
 window.addEventListener('keydown', (e) => {
+  if (match?.training && !match.paused && match.training.key(e.code)) { sfx('block'); return; }
   if (e.code !== 'Escape' || !match) return;
   if (!$('victory').classList.contains('hidden')) return;
   if ($('pause').classList.contains('hidden')) openPause();

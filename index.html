@@ -58,6 +58,11 @@
     <div class="combo p2" id="combo2"></div>
     <div class="banner" id="banner"></div>
     <div class="netinfo" id="netinfo"></div>
+    <div class="trainpanel hidden" id="trainPanel">
+      <div class="tstats" id="trainStats"></div>
+      <div class="tbtns"><button id="trainDummy"></button><button id="trainSuper"></button><button id="trainReset">↺ Posição</button></div>
+      <small class="tkeys">Teclas 1, 2 e 3</small>
+    </div>
   </div>
 
   <!-- "HOTMONSTER VS FLASH" before each match -->
@@ -100,6 +105,7 @@
       <button data-go="online" class="mbtn m-yellow"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17"/><ellipse cx="24" cy="24" rx="7.5" ry="17"/><path d="M8 18h32M8 30h32M24 7v34"/></svg></span><span class="mt"><b>JOGAR ONLINE</b><small>COM UM AMIGO</small></span></button>
       <button data-go="local" class="mbtn m-blue"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 15h20c6 0 9 5 10 12 1 6-1 9-4 9-3 0-5-3-8-6H16c-3 3-5 6-8 6-3 0-5-3-4-9 1-7 4-12 10-12z"/><path d="M15 21v8M11 25h8"/><circle cx="32" cy="22" r="1.6" class="dot"/><circle cx="36" cy="26" r="1.6" class="dot"/></svg></span><span class="mt"><b>2 JOGADORES</b><small>MESMO PC</small></span></button>
       <button data-go="cpu" class="mbtn m-red"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="15" width="30" height="22" rx="6"/><circle cx="18" cy="25" r="3" class="dot"/><circle cx="30" cy="25" r="3" class="dot"/><path d="M19 32h10M24 15V9"/><circle cx="24" cy="7" r="2.4"/><path d="M9 24H5M39 24h4"/></svg></span><span class="mt"><b>CONTRA O COMPUTADOR</b></span></button>
+      <button data-go="train" class="mbtn m-green"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="10"/><circle cx="24" cy="24" r="3" class="dot"/><path d="M24 3v8M24 37v8M3 24h8M37 24h8"/></svg></span><span class="mt"><b>TREINO</b><small>PRATIQUE COMBOS</small></span></button>
       <button data-go="controls" class="mbtn m-purple"><span class="mi"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="13" width="40" height="23" rx="4"/><path d="M10 20h2M16 20h2M22 20h2M28 20h2M34 20h4M10 26h2M16 26h2M22 26h2M28 26h2M34 26h4M15 31h18"/></svg></span><span class="mt"><b>CONTROLES</b></span></button>
     </nav>
     <button class="pillbtn corner-bl" data-go="options"><span><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="6"/><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M10.6 37.4l4.2-4.2M33.2 14.8l4.2-4.2"/><circle cx="24" cy="24" r="12"/></svg><b>OPÇÕES</b></span></button>
@@ -221,6 +227,7 @@
           <tr><td>VOADORA</td><td>Corre e chuta no alto (defenda <b>em pé</b>)</td></tr>
           <tr><td>ESTRELA</td><td>Estrela com chute que <b>derruba</b></td></tr>
           <tr><td>AGARRÃO</td><td>Colado no adversário: <b>→ (ou ←) + SOCO+</b>. Não dá para defender; quem é agarrado escapa apertando <b>SOCO+</b> na hora. Cada lutador tem o seu: Hotmonster ARREMESSO, Flash DERRUBADA, Genildo CLINCH, Anderson BAIANA, HGL CABEÇADA, Davidson VINGATIVA</td></tr>
+          <tr><td>TREINO</td><td>Botões no topo da tela, ou as teclas <b>1</b> (o que o boneco faz), <b>2</b> (super infinito) e <b>3</b> (volta às posições)</td></tr>
           <tr><td>ESQUIVA</td><td>Toque <b>duas vezes para trás</b>: abaixa e escapa, ninguém te acerta no começo</td></tr>
           <tr><td>Combos</td><td>Soco fraco várias vezes (até 4 socos) → chute/soco forte → especial</td></tr>
           <tr><td>2ª sequência</td><td>Chute forte que <b>derruba</b>: Hotmonster SOCO+ → CHUTE+ · Flash CHUTE → CHUTE+ · Genildo SOCO+ → CHUTE+ · Anderson SOCO, SOCO → CHUTE+ · HGL SOCO+ → CHUTE+ (quica) · Davidson SOCO+ → CHUTE+</td></tr>

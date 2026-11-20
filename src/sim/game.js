@@ -41,7 +41,8 @@ export function step(g, inputs) {
 
   g.phaseF++;
   if (g.phase === 'intro' && g.phaseF >= INTRO_FRAMES) setPhase(g, 'fight');
-  if (g.phase === 'fight') {
+  // Training (offline only): no clock and nobody is knocked out (see main.js).
+  if (g.phase === 'fight' && !g.training) {
     if (++g.timerF >= 60) {
       g.timerF = 0;
       g.timer--;
@@ -61,7 +62,7 @@ export function step(g, inputs) {
   updateFacing(a, b);
   updateFacing(b, a);
 
-  if (g.phase === 'fight' && (a.hp <= 0 || b.hp <= 0)) {
+  if (g.phase === 'fight' && !g.training && (a.hp <= 0 || b.hp <= 0)) {
     g.roundWinner = a.hp <= 0 && b.hp <= 0 ? 2 : a.hp <= 0 ? 1 : 0;
     setPhase(g, 'ko');
   } else if (g.phase === 'ko' && g.phaseF >= KO_FRAMES) {
@@ -99,6 +100,13 @@ function endRound(g) {
   } else {
     setPhase(g, 'roundEnd');
   }
+}
+
+// Training: both fighters back to their starting spots, ready to fight.
+export function resetPositions(g) {
+  g.proj = []; g.hitstop = 0;
+  resetFighterForRound(g.f[0], -START_X);
+  resetFighterForRound(g.f[1], START_X);
 }
 
 function nextRound(g) {

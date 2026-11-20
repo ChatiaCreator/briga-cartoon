@@ -37,7 +37,7 @@ export class Hud {
   }
 
   update(g) {
-    this.set('timer', 'text', String(Math.max(0, g.timer)));
+    this.set('timer', 'text', g.training ? '∞' : String(Math.max(0, g.timer)));
     for (let i = 0; i < 2; i++) {
       const f = g.f[i], n = i + 1;
       const hp = `${(100 * f.hp) / f.maxHp}%`;

@@ -209,6 +209,15 @@ kbd { display: inline-block; min-width: 24px; padding: 2px 6px; margin: 0 2px; b
 }
 #hud .banner[data-kind="round"] span { background-image: linear-gradient(#ffffff, #e2e4f2 45%, #9497b4 56%, #f1f2fb); }
 .netinfo { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + clamp(66px, 12.6vw, 200px)); left: 50%; transform: translateX(-50%); text-shadow: 1px 1px 2px #000; background: rgba(14, 6, 30, 0.55); padding: 2px 10px; border-radius: 8px; font-family: system-ui, sans-serif; font-size: 11px; font-weight: 700; opacity: 0.8; white-space: nowrap; }
+/* Training mode panel: the last combo's numbers and the dummy's settings. */
+.trainpanel { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + clamp(66px, 12.6vw, 200px)); left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: auto; font-family: system-ui, sans-serif; max-width: 94vw; }
+.trainpanel .tstats { background: rgba(14, 6, 30, 0.7); color: #fff; padding: 3px 12px; border-radius: 8px; font-size: clamp(11px, 1.3vw, 15px); font-weight: 800; white-space: pre; text-shadow: 1px 1px 2px #000; }
+.trainpanel .tbtns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.trainpanel button { font: 800 clamp(10px, 1.1vw, 13px) system-ui, sans-serif; color: #fff; background: rgba(18, 140, 64, 0.85); border: 2px solid #0b2a16; border-radius: 8px; padding: 3px 9px; cursor: pointer; box-shadow: 2px 2px 0 #0b2a16; }
+.trainpanel button:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 #0b2a16; }
+.trainpanel .tkeys { color: #fff; opacity: 0.7; font-size: 10px; text-shadow: 1px 1px 2px #000; }
+@media (pointer: coarse) { .trainpanel .tkeys { display: none; } }
 .netinfo.warn { color: #ffb4a8; opacity: 1; font-size: 14px; }
 
 @media (max-width: 600px) {
@@ -336,6 +345,7 @@ button.mbtn {
 .mbtn:nth-child(2) { animation-delay: 0.06s; }
 .mbtn:nth-child(3) { animation-delay: 0.12s; }
 .mbtn:nth-child(4) { animation-delay: 0.18s; }
+.mbtn:nth-child(5) { animation-delay: 0.24s; }
 @keyframes btnIn { from { transform: skewX(-14deg) translateX(-60px); opacity: 0; } }
 .mbtn > * { position: relative; z-index: 1; transform: skewX(14deg); }
 /* Shine on top and a halftone dot texture, like the comic art. */
@@ -351,6 +361,7 @@ button.mbtn {
 .m-blue { background: linear-gradient(90deg, #1453d8, #3b9bff 55%, #1d63e6); }
 .m-red { background: linear-gradient(90deg, #c40d18, #ff3a3a 55%, #d8141f); }
 .m-purple { background: linear-gradient(90deg, #5413c0, #9d4dff 55%, #6a1fe0); }
+.m-green { background: linear-gradient(90deg, #0f8a3c, #36d46a 55%, #12a047); }
 .mi { flex: none; display: grid; place-items: center; }
 .mi svg, .iconbtn svg, .pillbtn svg { fill: none; stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
 .mi svg { width: clamp(30px, min(7.5vh, 9vw), 72px); height: clamp(30px, min(7.5vh, 9vw), 72px); filter: drop-shadow(2px 2px 0 var(--ink2)) drop-shadow(-1px -1px 0 var(--ink2)); }
@@ -395,9 +406,9 @@ button.pillbtn {
 /* Phones held sideways: everything a bit smaller so it fits the short screen. */
 @media (max-height: 520px) and (orientation: landscape) {
   .artmenu { padding-top: 6px; padding-bottom: 8px; gap: 6px; }
-  .artlogo img { max-height: 30vh; }
-  .mbtns { width: min(520px, 58vw); gap: 7px; }
-  button.mbtn { height: 13vh; }
+  .artlogo img { max-height: 25vh; }
+  .mbtns { width: min(520px, 58vw); gap: 5px; }
+  button.mbtn { height: 11.5vh; }
   .mt b { font-size: 5.6vh; }
   .mt small { font-size: 2.8vh; }
   .artmenu .loading { bottom: 4px; }
