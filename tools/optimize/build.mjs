@@ -36,6 +36,7 @@ for (const name of FIGHTERS) {
 }
 
 // ---- Animations ----
+// flash_anims.glb: the first Flash model, kept for its own clips (the current flash.glb has none).
 // Base: Hotmonster's bare node tree (also the reference rig for retargeting).
 const base = await io.read(path.join(SRC, 'hotmonster.glb'));
 const root = base.getRoot();
@@ -77,7 +78,7 @@ for (const a of root.listAnimations()) {
   for (const ch of a.listChannels()) if (!keepChannel(ch.getTargetNode(), ch.getTargetPath())) ch.dispose();
 }
 
-const sources = [['flash', 'flash'], ['anderon', 'anderon'], ['hgl', 'hgl'], ['davidson', 'davidson'], ['extra_anims', 'mixamo'], ['mixamo_anims', 'mixamo']];
+const sources = [['flash_anims', 'flash'], ['anderon', 'anderon'], ['hgl', 'hgl'], ['davidson', 'davidson'], ['extra_anims', 'mixamo'], ['mixamo_anims', 'mixamo']];
 // Licensed pack clips (not in git): included when the file is present.
 if (fs.existsSync(path.join(SRC, 'motifect_anims.glb'))) sources.push(['motifect_anims', 'mixamo']);
 for (const [file, prefix] of sources) {
@@ -117,5 +118,5 @@ for (const a of root.listAnimations()) {
 await base.transform(prune({ keepLeaves: true }), dedup(), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
 const animOut = path.join(OUT, 'anims.glb');
 await io.write(animOut, base);
-const srcAnim = ['hotmonster', 'flash', 'anderon', 'hgl', 'extra_anims', 'mixamo_anims'];
+const srcAnim = ['hotmonster', 'flash_anims', 'anderon', 'hgl', 'extra_anims', 'mixamo_anims'];
 console.log('anims'.padEnd(12), root.listAnimations().length, 'clips ->', kb(animOut));
