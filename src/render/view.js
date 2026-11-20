@@ -10,6 +10,7 @@ import { CHARACTERS } from '../sim/moves.js';
 const FACE_ANGLE = 1.15; // radians: side-on, turned a little towards the camera
 const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e, hgl: 0xff9a2e, davidson: 0x5fd35f };
 const LIMBS = ['LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'];
+const FLIP_FRAMES = 30; // frames the forward-jump somersault takes
 
 // The K.O. that ends the match: played in slow motion with the camera zoomed in.
 export function isFinalKO(g) {
@@ -173,7 +174,7 @@ export class GameView {
       else if (this.wasLow[i] && (f.st === 'idle' || f.st === 'walk')) this.standT[i] = 0;
       else if (this.standT[i] != null) this.standT[i] = f.st === 'idle' || f.st === 'walk' ? this.standT[i] + dt : null;
       this.wasLow[i] = low;
-      const view = { ...f, x: x * 1000, sf: f.sf + sub, standT: this.standT[i] };
+      const view = { ...f, x: x * 1000, sf: f.sf + sub, standT: this.standT[i], flip: this.somersault(i, f, g, dt) };
       const P = poseFor(view, g, this.T + i * 0.37);
       poses.push(P);
       c.root.updateMatrixWorld(true);
@@ -195,6 +196,21 @@ export class GameView {
     this.arena.update(dt, this.T);
     this.arena.updateCamera(this.posX[0], this.posX[1], dt, this.focusFor(g));
     renderer.render(this.scene, this.arena.camera);
+  }
+
+  // Forward jumps do a cartoon somersault (render only). Decided at take-off: not when jumping
+  // after a launched opponent (f.chase). It turns in FLIP_FRAMES; an air attack thrown halfway
+  // speeds it up to finish the turn instead of snapping upright.
+  somersault(i, f, g, dt) {
+    const S = (this.flips ||= [null, null]);
+    const airborne = f.y > 0 && (f.st === 'air' || (f.st === 'attack' && CHARACTERS[f.char].moves[f.mv]?.air));
+    if (!airborne) { S[i] = null; return 0; }
+    if (!S[i]) S[i] = { on: f.vx !== 0 && Math.sign(f.vx) === f.facing && !f.chase, k: 0 };
+    const s = S[i];
+    if (!s.on || s.k >= 1) return 0;
+    if (g.hitstop === 0) s.k = Math.min(1, s.k + (dt * 60 * (f.st === 'attack' ? 3 : 1)) / FLIP_FRAMES);
+    const e = s.k * s.k * (3 - 2 * s.k);
+    return e >= 1 ? 0 : e * Math.PI * 2;
   }
 
   // Strong attacks leave a ribbon behind the limb that is reaching out the most.

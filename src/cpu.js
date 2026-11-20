@@ -47,6 +47,8 @@ export class Cpu {
     const lv = this.level;
     const react = Math.round(14 - lv * 10); // frames of "thinking"
     const char = CHARACTERS[me.char];
+    // Air combo (after a launcher or jumping in): CHUTE, then CHUTE+ while the first one connects.
+    const AIR = [LK, 0, 0, 0, 0, 0, 0, 0, 0, 0, HK];
 
     // Defend against attacks and incoming bags.
     const threatened = (o.st === 'attack' && dist < 1500) || g.proj.some((p) => p.owner !== this.i && Math.abs(p.x - me.x) < 1800);
@@ -72,7 +74,7 @@ export class Cpu {
       return;
     }
     if (dist > 950) {
-      if (r < 0.15) { this.plan([UP | fwd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, HK], 0, 25); return; }
+      if (r < 0.15) { this.plan([UP | fwd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...AIR], 0, 25); return; }
       if (r < 0.25 && char.moves.special.projectile) { this.plan([DOWN, DOWN | fwd, fwd, fwd | HP, 0], 0, 20); return; }
       // VOADORA and ESTRELA travel forward, so they reach from mid range.
       if (me.char === 'davidson' && dist < 1500 && r < 0.3) { this.plan([LP | HP, 0], 0, 35); return; } // CHAPA
@@ -96,11 +98,11 @@ export class Cpu {
     const z = (n, v = 0) => new Array(n).fill(v);
     const own = {
       hotmonster: [LP, ...z(7), LP, ...z(7), HP, ...z(14), LP | HP],
-      flash: [HP, ...z(18), HP, ...z(8), ...z(22, UP | fwd), 0, HK],
+      flash: [HP, ...z(18), HP, ...z(8), ...z(22, UP | fwd), 0, ...AIR],
       genildo: [LK, ...z(8), LK, ...z(8), HP, ...z(24), LP | HP],
-      anderon: [HP, ...z(16), HK, ...z(14), ...z(16, UP | fwd), 0, HK],
-      hgl: [LK, ...z(8), HP, ...z(16), ...z(16, UP | fwd), 0, HK],
-      davidson: [LK, ...z(10), HK, ...z(16), ...z(16, UP | fwd), 0, HK],
+      anderon: [HP, ...z(16), HK, ...z(14), ...z(16, UP | fwd), 0, ...AIR],
+      hgl: [LK, ...z(8), HP, ...z(16), ...z(16, UP | fwd), 0, ...AIR],
+      davidson: [LK, ...z(10), HK, ...z(16), ...z(16, UP | fwd), 0, ...AIR],
     }[me.char];
     if (own) combos.push(own, own);
     // Second string: the heavy kick finisher (see CHARACTERS[*].targets).
@@ -114,7 +116,7 @@ export class Cpu {
     combos.push([DOWN | LP, ...z(8, DOWN), DOWN | HK, ...z(6, DOWN)]);
     // AGARRÃO when right next to the opponent (and they are not jumping).
     if (RULES.throws && dist < 700 && o.y === 0) combos.push([fwd | HP], [fwd | HP]);
-    combos.push([LP, ...z(14), DOWN | HP, ...z(20, DOWN), ...z(16, UP | fwd), 0, HK]);
+    combos.push([LP, ...z(14), DOWN | HP, ...z(20, DOWN), ...z(16, UP | fwd), 0, ...AIR]);
     if (r < 0.25 + lv * 0.5) {
       const c = combos[Math.floor(this.rnd() * combos.length)];
       this.plan(c, 0, 18 - Math.round(lv * 8));

@@ -67,6 +67,20 @@ const ATTACKS = {
 
 // Clip-driven attacks: [clip, startupFrom, activeAt, activeTo, recoveryTo], per character.
 const AIRCLIP = { lockXZ: true, clampUp: true };
+// Air punches: the legs stay in the jump (Mixamo "Jumping", same timing as the 'air' pose so
+// nothing jumps) and the upper body throws a real punch from a punch clip (layered).
+const AIR_UPPER = { airUpper: true };
+const SOMERSAULT = Math.PI * 2;
+// Legs of the jump at this point of the arc (0.55-1.05 s of "Jumping").
+function jumpTime(f) {
+  const c = CHARACTERS[f.char];
+  return 0.55 + clamp01((c.jumpVy - f.vy) / (2 * c.jumpVy)) * 0.5;
+}
+// Body pitch of the forward-jump somersault (render-side angle, see view.js), with the pivot
+// at the waist.
+function flipBody(f) {
+  return [f.flip || 0, 0, 0, 0, 0.9];
+}
 // [clip, startupFrom, activeAt, activeTo, recoveryTo, yaw, rampYaw, opts]: the clip time at
 // the start of the move, at the hit, at the end of the hit and at the end of the recovery.
 // Both fighters use the Mixamo moves (converted with tools/mixamo/convert.cjs).
@@ -102,6 +116,9 @@ const MIXAMO_ATTACKS = {
   // Air kicks: only the airborne part, with the clip's own travel and height taken out.
   jlk: ['Kicking', 0.95, 1.2, 1.32, 1.42, 0, false, AIRCLIP],
   jhk: ['Inside_Crescent_Kick', 1.12, 1.32, 1.45, 1.58, 0, false, AIRCLIP],
+  // Air punches: a jab and a long straight thrown from the jump.
+  jlp: ['Punching', 0.2, 0.4, 0.46, 0.7, 0, false, AIR_UPPER],
+  jhp: ['Boxing', 0.2, 0.6, 0.72, 1.0, 0, false, AIR_UPPER],
 };
 // Each fighter swaps a few moves for their own (Mixamo clips the player picked).
 const PEC = 'Punch_To_Elbow_Combo';
@@ -186,6 +203,41 @@ const CLIP_ATTACKS = {
   },
 };
 
+// Clip time for sim frame x of a move: passes exactly through the move's keys (clip at the
+// start, at the first and last active frame, at the end of the recovery), so the hit lands on
+// the frame the clip shows it. Between the keys it follows a monotone cubic curve
+// (Fritsch-Carlson) instead of straight lines: a start-up played 5x faster than authored used
+// to drop to 1x on the impact frame, a visible jolt. Now the speed changes gradually.
+function clipTimeAt(xs, ys, x) {
+  // Drop empty segments (moves with no active frames).
+  const X = [xs[0]], Y = [ys[0]];
+  for (let i = 1; i < xs.length; i++) {
+    if (xs[i] - X[X.length - 1] < 1e-6) { Y[Y.length - 1] = ys[i]; continue; }
+    X.push(xs[i]); Y.push(ys[i]);
+  }
+  const n = X.length;
+  if (n < 2) return Y[0];
+  if (x <= X[0]) return Y[0];
+  if (x >= X[n - 1]) return Y[n - 1];
+  const h = [], d = [];
+  for (let i = 0; i < n - 1; i++) { h.push(X[i + 1] - X[i]); d.push((Y[i + 1] - Y[i]) / h[i]); }
+  if (d.some((v) => v < 0)) { // not monotone: straight lines, as before
+    let i = 0; while (x > X[i + 1]) i++;
+    return lerp(Y[i], Y[i + 1], (x - X[i]) / h[i]);
+  }
+  const tan = new Array(n);
+  tan[0] = d[0]; tan[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) {
+    if (d[i - 1] <= 0 || d[i] <= 0) { tan[i] = 0; continue; }
+    const w1 = 2 * h[i] + h[i - 1], w2 = h[i] + 2 * h[i - 1];
+    tan[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i]);
+  }
+  let i = 0; while (x > X[i + 1]) i++;
+  const s = (x - X[i]) / h[i], s2 = s * s, s3 = s2 * s;
+  return (2 * s3 - 3 * s2 + 1) * Y[i] + (s3 - 2 * s2 + s) * h[i] * tan[i]
+    + (-2 * s3 + 3 * s2) * Y[i + 1] + (s3 - s2) * h[i] * tan[i + 1];
+}
+
 function attackPose(f, m, t) {
   const set = CLIP_ATTACKS[f.char] || CLIP_ATTACKS.flash;
   // Chained repeats of the same move cycle through its variants (lp, lp2, lp3…).
@@ -193,16 +245,18 @@ function attackPose(f, m, t) {
   const ca = variants[f.chain % Math.max(1, variants.length)];
   if (ca) {
     const [clip, s0, a0, a1, r1, yaw = 0, ramp = false, opts = null] = ca;
-    let time, k = 1;
-    if (f.sf < m.startup) { time = lerp(s0, a0, f.sf / m.startup); k = ease(f.sf / m.startup); }
-    else if (f.sf < m.startup + m.active) time = lerp(a0, a1, (f.sf - m.startup) / Math.max(1, m.active));
-    else {
-      const r = clamp01((f.sf - m.startup - m.active) / Math.max(1, m.recovery));
-      time = lerp(a1, r1, r); k = 1 - ease(r);
-    }
+    const S = m.startup, A = m.active, R = Math.max(1, m.recovery);
+    const time = clipTimeAt([0, S, S + A, S + A + R], [s0, a0, a1, r1], f.sf);
+    let k = 1;
+    if (f.sf < S) k = ease(f.sf / S);
+    else if (f.sf >= S + A) k = 1 - ease(clamp01((f.sf - S - A) / R));
     if (opts?.crouchUpper) {
       // Legs in the crouch, upper body from the punch clip; head kept up on the opponent.
       return { ...CLIP, clip: 'Crouch_Idle', clipTime: 0.5, upper: [clip, time], spine: [0.16 * k, 0, 0], head: [-0.25, 0, 0], blend: 0.05 };
+    }
+    if (opts?.airUpper) {
+      return { ...CLIP, clip: 'Jumping', clipTime: jumpTime(f), ...AIRCLIP, upper: [clip, time], spine: [0.1 * k, 0, 0],
+        body: flipBody(f), blend: 0.06 };
     }
     if (opts?.crouchKick) {
       const ck = opts.crouchKick;
@@ -215,7 +269,10 @@ function attackPose(f, m, t) {
       }
       return P;
     }
-    return { ...CLIP, clip, clipTime: time, clipYaw: ramp ? yaw * k : yaw, ...opts };
+    const P = { ...CLIP, clip, clipTime: time, clipYaw: ramp ? yaw * k : yaw, ...opts };
+    // An air kick thrown mid-somersault finishes the turn instead of snapping upright.
+    if (m.air && f.flip) P.body = flipBody(f);
+    return P;
   }
   const def = ATTACKS[f.mv];
   if (!def) return STANCE;
@@ -375,6 +432,7 @@ function idleTime(T) {
 }
 
 // How long (seconds) the previous pose takes to blend into each state.
+const CANCEL_BLEND = 0.085;
 const BLEND = {
   idle: 0.16, walk: 0.12, crouch: 0.09, jumpsquat: 0.05, air: 0.09, land: 0.06, attack: 0.05,
   block: 0.05, hit: 0.035, fall: 0.07, down: 0.15, rise: 0.1, ko: 0.06, win: 0.3, lose: 0.3, thrown: 0.06,
@@ -389,7 +447,10 @@ export function poseFor(f, g, T) {
   else if (f.st === 'idle' && g && g.phase === 'intro') key = 'intro';
   // Getting up from the intro push-ups takes a moment longer.
   const blend = f.st === 'idle' && g && g.phase === 'fight' && g.phaseF < 30 ? 0.35 : BLEND[f.st];
-  return { ...p, key: p.key || key, blend: p.blend ?? blend ?? 0.1, t: f.sf };
+  // One attack cancelled into another (combos): a slightly longer blend, so the limb that
+  // was striking (a kicking leg up in the air) comes back instead of teleporting.
+  const cancelBlend = f.st === 'attack' ? CANCEL_BLEND : 0;
+  return { ...p, key: p.key || key, blend: p.blend ?? blend ?? 0.1, cancelBlend, t: f.sf };
 }
 
 function rawPose(f, g, T) {
@@ -397,7 +458,9 @@ function rawPose(f, g, T) {
   switch (f.st) {
     case 'idle': case 'jumpsquat': case 'land': {
       // Mixamo "Jumping": knees bend before take-off (0.25-0.5 s) and on landing (1.1-1.5 s).
-      if (f.st === 'jumpsquat') return { ...CLIP, clip: 'Jumping', clipTime: 0.25 + clamp01(t / 3) * 0.25 };
+      // Only the end of the knee bend fits in the 3 frames of the jump start (the whole bend
+      // played 5x too fast and flung the arms).
+      if (f.st === 'jumpsquat') return { ...CLIP, clip: 'Jumping', clipTime: 0.4 + clamp01(t / 3) * 0.12, blend: 0.07 };
       if (f.st === 'land') return { ...CLIP, clip: 'Jumping', clipTime: 1.1 + clamp01(t / 8) * 0.45 };
       // Before the fight starts each character shows off.
       if (g && g.phase === 'intro') {
@@ -431,13 +494,9 @@ function rawPose(f, g, T) {
       return { ...(f.guard ? KNEEL_GUARD : KNEEL), clipTime: kneelTime(T) };
     case 'air': {
       // Mixamo "Jumping" airborne part (0.55-1.05 s) following the real jump arc, with the
-      // clip's own height taken out. Forward jumps add a cartoon somersault.
-      const c = CHARACTERS[f.char];
-      const prog = clamp01((c.jumpVy - f.vy) / (2 * c.jumpVy));
-      const flip = f.vx !== 0 && Math.sign(f.vx) === f.facing && !f.airAtk;
-      const k = ease(clamp01(t / 32));
-      return { ...CLIP, clip: 'Jumping', clipTime: 0.55 + prog * 0.5, ...AIRCLIP,
-        body: [flip ? k * Math.PI * 2 : 0, 0, 0, 0, 0.9] };
+      // clip's own height taken out. Forward jumps add a cartoon somersault (angle from
+      // view.js, so it carries on smoothly into an air attack).
+      return { ...CLIP, clip: 'Jumping', clipTime: jumpTime(f), ...AIRCLIP, body: flipBody(f) };
     }
     case 'thrown': {
       const o = g?.f[1 - f.id];

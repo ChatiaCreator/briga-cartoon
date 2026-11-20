@@ -66,8 +66,8 @@ export const CHARACTERS = {
       tc: { rank: 2, startup: 9, active: 4, recovery: 18, dmg: 110, hitstun: 0, blockstun: 16, push: 260, height: 'mid', box: [120, 1000, 900, 1550], travel: [0, 10, 30], kd: true, bounce: true },
       tc2: tc2({ dmg: 105 }), // spinning heel kick
       // Special: throws a bag of dog food in an arc.
-      special: { rank: 3, startup: 16, active: 0, recovery: 26, dmg: 100, hitstun: 22, blockstun: 16, push: 220, height: 'mid', chip: 10,
-        projectile: { at: 16, dx: 350, y: 1350, vx: 75, vy: 70, g: 5, kind: 'racao' } },
+      special: { rank: 3, startup: 14, active: 0, recovery: 28, dmg: 100, hitstun: 22, blockstun: 16, push: 220, height: 'mid', chip: 10,
+        projectile: { at: 14, dx: 350, y: 1350, vx: 75, vy: 70, g: 5, kind: 'racao' } },
       // Super: a rain of dog food bags falls on the opponent.
       super: { rank: 4, startup: 20, active: 0, recovery: 50, dmg: 85, hitstun: 24, blockstun: 14, push: 120, height: 'mid', chip: 10,
         invuln: 30, rain: { frames: [20, 30, 40, 50, 60], offsets: [-450, 0, 450, -220, 220], y: 4200, g: 7, kind: 'racao' } },
@@ -129,7 +129,7 @@ CHARACTERS.anderon = {
     ...normals,
     // Finisher of SOCO+, CHUTE+ (elbow, then a spinning "armada" kick that launches).
     tc: { rank: 2, startup: 10, active: 5, recovery: 20, dmg: 95, hitstun: 0, blockstun: 16, push: 160, height: 'mid', box: [100, 950, 900, 1750], launch: 160, jc: true },
-    tc2: tc2({ startup: 14, dmg: 110 }), // muay thai roundhouse
+    tc2: tc2({ startup: 12, dmg: 110 }), // muay thai roundhouse (fast enough to follow two jabs)
     // Special "ARMADA": a capoeira spinning kick that travels forward and knocks down.
     special: { rank: 3, startup: 14, active: 5, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 220, height: 'mid', chip: 10,
       box: [100, 900, 900, 1700], travel: [0, 14, 40], kd: true },

@@ -7,7 +7,10 @@ import { qcf, doubleBack, HIST } from './motion.js';
 export const WALL = 4200;          // stage half-width (mm)
 export const MAX_DIST = 5600;      // farthest the two fighters may be apart
 export const BODY_W = 520;         // push-box width
-export const BUFFER = 5;           // frames a button press stays buffered
+export const BUFFER = 8;           // frames a button press stays buffered (lenient: combos come out easily)
+export const JAB_CHAIN = 4;        // most light attacks in a row (the jab string has four punches)
+const REACH_SLACK = 60;            // combo step-in aims this far inside the move's reach (mm)
+const MAX_STEP = 380;              // longest combo step-in (mm)
 export const METER_MAX = 1000;
 // AGARRÃO is off until it has better animations (all its code stays; tests switch it on).
 export const RULES = { throws: false };
@@ -23,6 +26,7 @@ export function createFighter(id, char, x) {
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
     combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, hitKind: 'head', hitRank: 1, chain: 0,
     jug: 0, bounce: 0, grab: 0, // juggle hits left while falling; ground bounce pending; throw connected
+    step: 0, stepPer: 0, chase: 0, // combo step-in left (mm) and per frame; jumped after a launched opponent
     hist: new Array(HIST).fill(5), prev: 0, press: [99, 99, 99, 99, 99, 99, 99],
   };
 }
@@ -33,6 +37,7 @@ export function resetFighterForRound(f, x) {
     x, y: 0, vx: 0, vy: 0, pv: 0, facing: f.id === 0 ? 1 : -1, hp: c.hp,
     st: 'idle', sf: 0, mv: '', hit: false, stun: 0, inv: 0, buff: 0,
     combo: 0, guard: false, airAtk: false, ko: false, jumpDir: 0, jug: 0, bounce: 0, chain: 0, grab: 0,
+    step: 0, stepPer: 0, chase: 0,
   });
 }
 
@@ -107,10 +112,27 @@ function chooseMove(f, dir, air, minRank) {
   return '';
 }
 
-function startMove(f, id, g) {
+// Combo step-in: a move cancelled out of a hit closes the gap the pushback opened, so a
+// combo that connects keeps connecting (otherwise short finishers like the uppercuts whiff
+// after a jab or two). Only for strikes that don't already move or shoot.
+function stepIn(f, m, o) {
+  f.step = 0; f.stepPer = 0;
+  if (!o || !m.box || m.air || m.travel || m.dash || m.projectile || m.startup < 2) return;
+  if (o.st !== 'hit' && !(o.st === 'fall' && o.jug > 0)) return;
+  // Where the opponent will be once their pushback slide ends (it shrinks by 1/5 a frame).
+  const ahead = Math.abs(o.x - f.x) + Math.abs(o.pv) * 4;
+  const gap = ahead - (m.box[2] + 260 - REACH_SLACK);
+  if (gap <= 0) return;
+  f.step = Math.min(gap, MAX_STEP);
+  f.stepPer = Math.ceil(f.step / m.startup);
+}
+
+function startMove(f, id, g, o = null) {
   const m = CHARACTERS[f.char].moves[id];
   // How many times in a row this same move was chained (the animation alternates).
   f.chain = f.st === 'attack' && f.mv === id ? f.chain + 1 : 0;
+  // `o` is given only for cancels out of a hit (see stepAttack).
+  stepIn(f, m, o);
   f.st = 'attack'; f.mv = id; f.sf = 0; f.hit = false; f.guard = false;
   if (m.invuln) f.inv = m.invuln;
   if (m.rank === 4) { f.meter = 0; g.hitstop = SUPER_FREEZE; }
@@ -121,6 +143,7 @@ function startMove(f, id, g) {
 
 function toNeutral(f) {
   f.st = 'idle'; f.sf = 0; f.mv = ''; f.vx = 0; f.combo = 0; f.guard = false; f.jug = 0; f.bounce = 0;
+  f.step = 0; f.stepPer = 0;
 }
 
 const GRABBABLE = new Set(['idle', 'walk', 'crouch', 'land', 'jumpsquat', 'attack']);
@@ -187,9 +210,10 @@ function stepThrow(f, m, o, g) {
   if (f.sf >= total) { f.grab = 0; toNeutral(f); }
 }
 
-function startJump(f, dir) {
-  f.st = 'jumpsquat'; f.sf = 0; f.mv = ''; f.guard = false;
+function startJump(f, dir, chase = false) {
+  f.st = 'jumpsquat'; f.sf = 0; f.mv = ''; f.guard = false; f.step = 0; f.stepPer = 0;
   f.jumpDir = dir === 7 ? -f.facing : dir === 9 ? f.facing : 0;
+  f.chase = chase ? 1 : 0; // after a launcher: straight up after them (no somersault)
 }
 
 const BTN = { LP, HP, LK, HK };
@@ -315,7 +339,7 @@ export function stepFighter(f, input, o, g) {
 
 function land(f, g) {
   f.y = 0; f.vy = 0; f.vx = 0;
-  f.st = 'land'; f.sf = 0; f.mv = ''; f.airAtk = false;
+  f.st = 'land'; f.sf = 0; f.mv = ''; f.airAtk = false; f.chase = 0;
   g.events.push({ t: 'land', f: f.id });
 }
 
@@ -331,11 +355,23 @@ function stepAttack(f, dir, o, g) {
   if (m.air) {
     applyGravity(f);
     if (f.y <= 0) { land(f, g); return; }
+    // Air combo: an air attack that connected can be cancelled into another one (a light
+    // into anything, a heavy into nothing), e.g. jump after a launcher, CHUTE, CHUTE+.
+    if (f.hit && f.sf >= m.startup) {
+      const next = chooseMove(f, dir, true, m.rank === 1 ? 1 : m.rank + 1);
+      if (next) { startMove(f, next, g); return; }
+    }
     if (f.sf >= m.startup + m.active) {
       // Air move finished but still airborne: keep falling in the air state.
       f.st = 'air'; f.mv = '';
     }
     return;
+  }
+  // Combo step-in (see stepIn): glide forward during the start-up.
+  if (f.step > 0 && f.sf <= m.startup) {
+    const d = Math.min(f.step, f.stepPer);
+    f.x += d * f.facing;
+    f.step -= d;
   }
   // Flash's dash moves him forward while active, until it connects.
   if (m.dash) {
@@ -387,23 +423,30 @@ function stepAttack(f, dir, o, g) {
     g.events.push({ t: 'buff', f: f.id });
   }
   if (f.hit && f.sf >= m.startup && f.sf < m.startup + m.active + 12) {
+    // Special or super asked for (motion or shortcut): it wins over the fighter's own
+    // sequence, whose button may be part of the same input (LP+HP has SOCO+ in it).
+    if (m.rank < 4) {
+      const sp = chooseMove(f, dir, false, Math.max(3, m.rank + 1));
+      if (sp) { startMove(f, sp, g, o); return; }
+    }
     // The fighter's own sequence (target combo): goes straight into its finisher.
     for (const t of CHARACTERS[f.char].targets || []) {
       if (t.from === f.mv && f.chain >= t.minChain && buffered(f, BTN[t.btn])) {
         consume(f, BTN[t.btn]);
-        startMove(f, t.to, g);
+        startMove(f, t.to, g, o);
         g.events.push({ t: 'target', f: f.id });
         return;
       }
     }
     // Launcher connected: hold up to jump after the opponent.
-    if (m.jc && dir >= 7 && o.st === 'fall' && o.jug > 0) { startJump(f, dir); return; }
+    if (m.jc && dir >= 7 && o.st === 'fall' && o.jug > 0) { startJump(f, dir, true); return; }
   }
-  // Combo cancel: once a move connected, a stronger move can interrupt it.
+  // Combo cancel: once a move connected, a stronger move can interrupt it. Light attacks
+  // chain into each other up to JAB_CHAIN hits in a row.
   if (f.hit && f.sf >= m.startup && f.sf < m.startup + m.active + 8) {
-    const minRank = m.rank === 1 ? 1 : m.rank + 1;
+    const minRank = m.rank === 1 ? (o.combo >= JAB_CHAIN ? 2 : 1) : m.rank + 1;
     const next = chooseMove(f, dir, false, minRank);
-    if (next) { startMove(f, next, g); return; }
+    if (next) { startMove(f, next, g, o); return; }
   }
   if (f.sf >= moveTotal(m)) toNeutral(f);
 }

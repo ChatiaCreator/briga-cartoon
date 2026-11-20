@@ -121,6 +121,11 @@ function twoBoneIK(upper, mid, end, target, pole) {
 }
 
 const _UP = new THREE.Vector3(0, 1, 0);
+// Pose transitions keep the old motion going for a moment (see Character.applyPose).
+const IDQ = new THREE.Quaternion();
+const INERTIA_DECAY = 0.72;     // speed kept from one 1/60 s to the next
+const INERTIA_MAX_TURN = 0.3;   // radians per 1/60 s
+const INERTIA_MAX_MOVE = 0.03;  // model units per 1/60 s
 const GRIP_R = new THREE.Vector3(0, -0.12, 1).normalize();     // right hand: forward, wrist cocked a bit
 const GRIP_L = new THREE.Vector3(-0.5, -0.05, 1).normalize();  // left hand: forward and across, under the right
 // Rotation whose +Z is `f` and +Y is `t` (made orthogonal to f).
@@ -495,32 +500,67 @@ export class Character {
   // Apply a pose (see poses.js). Call after setting root position/rotation.
   // Inside one action the pose is shown exactly (crisp punches). When the action changes
   // (P.key) the old pose crossfades into the new one over P.blend seconds, so nothing pops.
+  // The old pose keeps the motion it had (each joint keeps turning the way it was turning,
+  // slowing down quickly), so a punch cancelled into a kick flows instead of stopping dead
+  // for a frame and then snapping (a simple form of "inertialization").
   applyPose(P, dt = 1 / 60) {
     this.solvePose(P);
     const objs = this.blendObjs || (this.blendObjs = [this.tilt, this.model, ...this.bones]);
     if (!this.shown) {
       this.shown = objs.map((o) => [o.quaternion.clone(), o.position.clone()]);
+      this.last = objs.map((o) => [o.quaternion.clone(), o.position.clone()]);
       this.key = P.key;
       return;
     }
     // A new action, or the same one restarting (a second hit while already reeling).
     const restarted = P.key === this.key && P.t != null && this.lastT != null && P.t + 0.5 < this.lastT;
     if (P.key !== this.key || restarted) {
+      const cancel = P.cancelBlend && typeof this.key === 'string' && this.key.startsWith('attack:');
       this.key = P.key;
       this.from = this.shown.map(([q, p]) => [q.clone(), p.clone()]);
+      // Motion of each joint over the last displayed frame (per 1/60 s), capped so a hit-stop
+      // shake or a somersault doesn't get flung around.
+      // Not into a hit reaction or a block: an impact should snap, not coast.
+      const snap = typeof P.key === 'string' && (P.key.startsWith('hit') || P.key.startsWith('block') || P.key === 'fall');
+      const per = this.lastDt > 0 && !snap ? (1 / 60) / this.lastDt : 0;
+      this.fromVel = this.shown.map(([q, p], i) => {
+        const [lq, lp] = this.last[i];
+        const dq = _q1.copy(lq).invert().premultiply(q); // dq * last = shown
+        if (dq.w < 0) { dq.x = -dq.x; dq.y = -dq.y; dq.z = -dq.z; dq.w = -dq.w; }
+        const ang = 2 * Math.acos(Math.min(1, dq.w)) * per;
+        const vq = ang > 1e-5 ? new THREE.Quaternion().slerpQuaternions(IDQ, dq, Math.min(per, INERTIA_MAX_TURN / (ang / per)))
+          : new THREE.Quaternion();
+        const vp = new THREE.Vector3().subVectors(p, lp).multiplyScalar(per);
+        if (vp.length() > INERTIA_MAX_MOVE) vp.setLength(INERTIA_MAX_MOVE);
+        return [vq, vp];
+      });
       this.fadeT = 0;
-      this.fadeDur = P.blend ?? 0.1;
+      this.fadeDur = Math.max(P.blend ?? 0.1, cancel ? P.cancelBlend : 0);
     }
     this.lastT = P.t;
+    this.lastDt = dt;
     let w = 1;
     if (this.from) {
       this.fadeT += dt;
       const k = this.fadeT / this.fadeDur;
-      if (k >= 1) this.from = null;
-      else w = k * k * (3 - 2 * k);
+      if (k >= 1) { this.from = null; this.fromVel = null; }
+      else {
+        w = k * k * (3 - 2 * k);
+        // Let the old pose coast on, its speed dying away (INERTIA_DECAY per 1/60 s).
+        const s = Math.pow(INERTIA_DECAY, this.fadeT * 60) * dt * 60;
+        if (s > 1e-3) {
+          for (let i = 0; i < this.from.length; i++) {
+            const [vq, vp] = this.fromVel[i];
+            const [fq, fp] = this.from[i];
+            fq.premultiply(_q2.copy(IDQ).slerp(vq, s));
+            fp.addScaledVector(vp, s);
+          }
+        }
+      }
     }
     for (let i = 0; i < objs.length; i++) {
       const o = objs[i], [sq, sp] = this.shown[i];
+      this.last[i][0].copy(sq); this.last[i][1].copy(sp);
       if (this.from) {
         const [fq, fp] = this.from[i];
         sq.copy(fq).slerp(o.quaternion, w);

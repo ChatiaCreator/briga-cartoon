@@ -286,6 +286,7 @@ export function checksum(g) {
     mix(f.x); mix(f.y); mix(f.vx); mix(f.vy); mix(f.pv); mix(f.facing); mix(f.hp); mix(f.meter);
     mix(ST.indexOf(f.st)); mix(f.sf); mix(f.mv.length ? f.mv.charCodeAt(0) * 256 + f.mv.charCodeAt(f.mv.length - 1) : 0);
     mix(f.stun); mix(f.inv); mix(f.buff); mix(f.combo); mix(f.jug); mix(f.bounce); mix(f.grab);
+    mix(f.step); mix(f.chase);
   }
   for (const p of g.proj) { mix(p.x); mix(p.y); mix(p.vx); mix(p.vy); }
   return h >>> 0;

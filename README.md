@@ -37,7 +37,11 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
 - **Sequência de socos:** apertando soco fraco seguido saem até 4 socos.
 - **Defesa:** segure para trás. Agachado, você também defende os golpes baixos (rasteira e chute baixo). Golpes no ar só são defendidos em pé.
 - **Combos:** um golpe que acerta pode ser cancelado num mais forte. Exemplo: soco fraco → soco forte → especial → super.
+  - Golpes fracos emendam entre si (até 4 seguidos).
+  - No meio de um combo, o lutador dá um passinho à frente sozinho para o próximo golpe alcançar, então um combo que começou acertando continua acertando.
+  - O especial (`↓ ↘ →` + soco ou o atalho) tem prioridade sobre a sequência do lutador: soco forte → atalho do especial sai especial mesmo no Flash.
 - **Lançar:** `↓` + soco forte joga o adversário para cima. Segure `↑` para pular atrás dele e bater no ar (até 3 golpes antes de ele cair).
+  - **Combo aéreo:** no ar, um golpe fraco que acerta pode ser cancelado em outro golpe. Exemplo: `↓` + soco forte, segure `↑`, depois soco → chute → chute forte (4 acertos).
 - **Segunda sequência (chute que derruba):** Hotmonster soco forte → chute forte (giratório); Flash chute → chute forte (de costas); Genildo soco forte → chute forte; Anderson soco, soco → chute forte; HGL soco forte → chute forte (machado, quica no chão); Davidson soco forte → chute forte (giratório voador).
 - **Sequência de cada lutador:**
   - **Hotmonster, FÚRIA DO MONSTRO:** soco, soco, soco forte. O adversário quica no chão e dá para emendar o especial.

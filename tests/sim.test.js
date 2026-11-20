@@ -503,3 +503,75 @@ test('every fighter has a second signature string that knocks down', () => {
     assert.ok(down, `${id}: knocked down`);
   }
 });
+
+// Presses each button `gap` frames after the previous one (held `hold`), and reports the
+// biggest combo the opponent took and whether a signature finisher came out.
+function combo(g, presses, gap = 8, hold = 0) {
+  let best = 0, target = false;
+  const watch = (bits) => {
+    step(g, [bits | hold, 0]);
+    best = Math.max(best, g.f[1].combo);
+    if (g.events.some((e) => e.t === 'target')) target = true;
+  };
+  for (const bits of presses) { watch(bits); for (let i = 0; i < gap; i++) watch(0); }
+  for (let i = 0; i < 70; i++) watch(0);
+  return { best, target };
+}
+
+test('special wins over a signature string that shares its button (Flash: SOCO+ then LP+HP)', () => {
+  const g = createGame(['flash', 'genildo']);
+  toFight(g); approach(g, 650);
+  step(g, [HP, 0]); run(g, 12);
+  step(g, [LP | HP, 0]);
+  run(g, 8); // the cancel happens when the hit-stop ends
+  assert.equal(g.f[0].mv, 'special', 'the shortcut gives the special, not UPPER RELÂMPAGO');
+});
+
+test('combo step-in: every signature string still connects when it starts with a jab', () => {
+  const B = { LP, HP, LK, HK };
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson']) {
+    for (const t of moves.CHARACTERS[id].targets) {
+      const g = createGame([id, 'genildo']);
+      toFight(g); approach(g, 650);
+      const presses = [LP, ...Array(t.minChain + 1).fill(B[t.from.toUpperCase()]), B[t.btn]];
+      const r = combo(g, presses);
+      assert.ok(r.target, `${id} ${t.to}: the finisher came out`);
+      assert.equal(r.best, presses.length, `${id} jab > ${t.from}x${t.minChain + 1} > ${t.btn}: every hit connects`);
+    }
+  }
+});
+
+test('jab, strong punch, special connects for everyone (the README combo)', () => {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson']) {
+    const g = createGame([id, 'genildo']);
+    toFight(g); approach(g, 650);
+    const r = combo(g, [LP, HP, LP | HP]);
+    assert.equal(r.best, 3, `${id}: SOCO > SOCO+ > especial`);
+  }
+});
+
+test('air combo: launcher, jump after them, then SOCO > CHUTE > CHUTE+ in the air', () => {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson']) {
+    const g = createGame([id, 'genildo']);
+    toFight(g); approach(g, 650);
+    step(g, [DOWN | HP, 0]);
+    run(g, 6, () => [DOWN, 0]);
+    // Hold up-forward through the hit-stop: jumps after the launched opponent.
+    run(g, 20, () => [UP | RIGHT, 0]);
+    assert.equal(g.f[0].chase, 1, `${id}: chase jump`);
+    let best = 0;
+    for (const b of [LP, LK, HK]) {
+      step(g, [b, 0]);
+      for (let i = 0; i < 12; i++) { step(g, [0, 0]); best = Math.max(best, g.f[1].combo); }
+    }
+    assert.equal(best, 4, `${id}: launcher + three air hits`);
+  }
+});
+
+test('light attacks chain into each other at most four times', () => {
+  const g = createGame(['hotmonster', 'genildo']);
+  toFight(g); approach(g, 650);
+  let best = 0;
+  for (let i = 0; i < 60; i++) { step(g, [i % 3 === 0 ? LP : 0, 0]); best = Math.max(best, g.f[1].combo); }
+  assert.ok(best <= 4, `combo of ${best} jabs`);
+});
