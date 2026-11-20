@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, checksum } from '../src/sim/game.js';
 import { LP, HP, LK, HK, SUP, EX1, EX2, LEFT, RIGHT, DOWN, UP } from '../src/sim/bits.js';
+import * as moves from '../src/sim/moves.js';
 
 function run(g, frames, fn) {
   for (let i = 0; i < frames; i++) step(g, fn ? fn(g.frame, g) : [0, 0]);
@@ -430,4 +431,19 @@ test('Davidson super BASEADO GIGANTE heals; special CHAPA GIRATÓRIA knocks down
   let fell = false;
   for (let i = 0; i < 50; i++) { step(g2, [0, 0]); if (['fall', 'down'].includes(g2.f[1].st)) fell = true; }
   assert.ok(fell);
+});
+
+test('every fighter has a second signature string that knocks down', () => {
+  const B = { LP, HP, LK, HK };
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson']) {
+    const g = createGame([id, 'genildo']);
+    toFight(g); approach(g, 650);
+    const t2 = moves.CHARACTERS[id].targets[1];
+    let saw = false, down = false;
+    const press = (bits, n) => { step(g, [bits, 0]); for (let i = 0; i < n; i++) { step(g, [0, 0]); if (g.events.some((e) => e.t === 'target')) saw = true; if (['fall', 'down'].includes(g.f[1].st)) down = true; } };
+    for (let k = 0; k <= t2.minChain; k++) press(B[t2.from.toUpperCase()], 8);
+    press(B[t2.btn], 60);
+    assert.ok(saw, `${id}: the finisher came out`);
+    assert.ok(down, `${id}: knocked down`);
+  }
 });

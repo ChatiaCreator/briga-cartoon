@@ -349,6 +349,8 @@ export class Character {
         }
       }
       if (opts?.clampUp) this.b.Hips.position.y = Math.min(v[1], rest.y);
+      // opts.minHip: never lower than this fraction of the standing hips height (low kicks).
+      if (opts?.minHip) this.b.Hips.position.y = Math.max(this.b.Hips.position.y, rest.y * opts.minHip);
     }
     this.limitArmTwist();
     return true;
@@ -371,6 +373,34 @@ export class Character {
       arm.quaternion.copy(restQ).multiply(swing).multiply(_q2.setFromAxisAngle(u, keep));
       fore.quaternion.premultiply(_q3.setFromAxisAngle(u, ang - keep));
     }
+  }
+
+  playUpper(name, time) {
+    const clip = this.clips[name];
+    if (!clip) return;
+    if (!this.upperSet) {
+      this.upperSet = new Set();
+      this.b.Spine1.traverse((o) => { if (o.isBone) this.upperSet.add(o); });
+    }
+    const t = Math.min(Math.max(time, 0), clip.duration);
+    const sample = (bone) => {
+      const s = clip.samplers.find((x) => x.bone === bone);
+      if (!s) return null;
+      const q = new THREE.Quaternion().fromArray(s.interp.evaluate(t));
+      const r = this.retarget?.get(bone);
+      if (r) q.premultiply(r.ip).multiply(r.o);
+      return q;
+    };
+    for (const { bone, interp } of clip.samplers) {
+      if (!this.upperSet.has(bone)) continue;
+      bone.quaternion.fromArray(interp.evaluate(t));
+      const r = this.retarget?.get(bone);
+      if (r) bone.quaternion.premultiply(r.ip).multiply(r.o);
+    }
+    // The torso keeps the orientation it has in the upper clip (not turned with these hips):
+    // Spine = inv(hips now) * hips in the upper clip * Spine in the upper clip.
+    const hq = sample(this.b.Hips), sq = sample(this.b.Spine);
+    if (hq && sq) this.b.Spine.quaternion.copy(this.b.Hips.quaternion.clone().invert().multiply(hq).multiply(sq));
   }
 
   hasClip(name) { return !!this.clips[name]; }
@@ -513,6 +543,9 @@ export class Character {
     this.tilt.position.set(0, pivot + (P.body[3] || 0), 0);
     this.model.position.set(0, -pivot, 0);
     if (P.clip) this.playClipAt(P.clip, P.clipTime, P);
+    // Layered clip: the upper body (spine, arms, head) from another clip on top of the legs of
+    // the main one (e.g. a punch thrown from a crouch). P.upper = [clip, time].
+    if (P.clip && P.upper) this.playUpper(P.upper[0], P.upper[1]);
     this.root.updateMatrixWorld(true);
     // Play the clip turned around (P.clipYaw): the hips turn and their sway is mirrored.
     // Done on the hips bone (not the whole model) so blending in and out stays smooth.

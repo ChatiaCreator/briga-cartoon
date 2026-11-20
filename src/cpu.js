@@ -102,6 +102,15 @@ export class Cpu {
       davidson: [LK, ...z(10), HK, ...z(16), ...z(16, UP | fwd), 0, HK],
     }[me.char];
     if (own) combos.push(own, own);
+    // Second string: the heavy kick finisher (see CHARACTERS[*].targets).
+    const t2 = (CHARACTERS[me.char].targets || [])[1];
+    if (t2) {
+      const B = { LP, HP, LK, HK };
+      const first = Array(Math.max(1, t2.minChain + 1)).fill(0).flatMap(() => [B[t2.from.toUpperCase()], ...z(8)]);
+      combos.push([...first, B[t2.btn]]);
+    }
+    // Low game: crouching jab into the sweep.
+    combos.push([DOWN | LP, ...z(8, DOWN), DOWN | HK, ...z(6, DOWN)]);
     // AGARRÃO when right next to the opponent (and they are not jumping).
     if (dist < 700 && o.y === 0) combos.push([fwd | HP], [fwd | HP]);
     combos.push([LP, ...z(14), DOWN | HP, ...z(20, DOWN), ...z(16, UP | fwd), 0, HK]);

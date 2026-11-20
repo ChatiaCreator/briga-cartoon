@@ -8,7 +8,17 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const clean = (n) => n.replace(/^mixamorig[:_]?/, '');
-const bonesOf = (root) => { const m = new Map(); root.traverse((o) => { if (o.isBone || /mixamorig/.test(o.name)) m.set(clean(o.name), o); }); return m; };
+// Other rigs: source bone name -> Mixamo bone name (bones not listed keep their name).
+const MAPS = {
+  // Motifect packs (Hips, Spine1, Spine2, Chest, Neck1, LeftLeg = thigh, LeftShin = shin…)
+  motifect: { Spine1: 'Spine', Spine2: 'Spine1', Chest: 'Spine2', Neck1: 'Neck', Neck2: '-', HeadEnd: '-', Jaw: '-',
+    LeftEye: '-', RightEye: '-', LeftLeg: 'LeftUpLeg', LeftShin: 'LeftLeg', RightLeg: 'RightUpLeg', RightShin: 'RightLeg',
+    LeftHandIndex4: '-', LeftHandMiddle4: '-', LeftHandRing4: '-', LeftHandPinky4: '-',
+    RightHandIndex4: '-', RightHandMiddle4: '-', RightHandRing4: '-', RightHandPinky4: '-' },
+};
+let MAP = null;
+const rename = (n) => { const c = clean(n); return MAP && MAP[c] ? MAP[c] : c; };
+const bonesOf = (root, map = false) => { const m = new Map(); root.traverse((o) => { if (o.isBone || /mixamorig/.test(o.name)) { const k = map ? rename(o.name) : clean(o.name); if (k !== '-' && !m.has(k)) m.set(k, o); } }); return m; };
 
 // Rest pose of the target (the fighters share the same skeleton).
 const target = await new GLTFLoader().loadAsync('../models_src/hotmonster.glb');
@@ -30,10 +40,11 @@ window.inspect = async (url) => {
 // Retarget a Mixamo clip onto the fighters' skeleton. The two rigs share bone names but not
 // bone axes, so each bone copies the source's change of WORLD rotation from its rest pose,
 // plus a fixed correction that lines up the rest-pose bone directions (T-pose vs A-pose).
-window.convert = async (url, fps = 30) => {
+window.convert = async (url, fps = 30, map = null) => {
+  MAP = map ? MAPS[map] : null;
   const fbx = await new FBXLoader().loadAsync(url);
   const clip = fbx.animations[0];
-  const sBones = bonesOf(fbx);
+  const sBones = bonesOf(fbx, true);
   const names = [...tBones.keys()].filter((n) => sBones.has(n));
   const restQ = (map) => { const r = new Map(); for (const [n, b] of map) r.set(n, b.getWorldQuaternion(new THREE.Quaternion())); return r; };
   const restP = (b) => b.getWorldPosition(new THREE.Vector3());
@@ -48,17 +59,30 @@ window.convert = async (url, fps = 30) => {
     const tc = tb.children.find((c) => sBones.has(clean(c.name)) && tBones.has(clean(c.name)));
     if (!tc) { corr.set(n, new THREE.Quaternion()); continue; }
     const sc = sBones.get(clean(tc.name));
+    if (!sc) { corr.set(n, new THREE.Quaternion()); continue; }
     const dT = restP(tc).sub(restP(tb)).normalize(), dS = restP(sc).sub(restP(sb)).normalize();
     corr.set(n, new THREE.Quaternion().setFromUnitVectors(dT, dS));
   }
   // Hips height ratio for the root motion.
   const hipsT = tBones.get('Hips'), hipsS = sBones.get('Hips');
-  const scale = restP(hipsT).y / restP(hipsS).y;
+  let scale = restP(hipsT).y / restP(hipsS).y;
   const hipsRestS = restP(hipsS), hipsRestT = restP(hipsT);
+  // Rigs whose rest hips sit at the origin (Motifect): measure heights from the feet instead,
+  // so the clip's standing hips land on the fighter's standing hips.
+  if (map) {
+    const footY = (m) => Math.min(restP(m.get('LeftFoot')).y, restP(m.get('RightFoot')).y);
+    const gS = footY(sBones), gT = footY(tBones);
+    scale = (hipsRestT.y - gT) / (hipsRestS.y - gS);
+    hipsRestS.y = gS + (hipsRestT.y - gT) / scale; // the source's standing hips height
+    // Rest hips sit at the origin: take the clip's first frame as the standing spot.
+    const hp = clip.tracks.find((t) => /Hips\.position$/.test(t.name));
+    if (hp) { hipsRestS.x = hp.values[0]; hipsRestS.z = hp.values[2]; hipsRestS.y = hp.values[1]; }
+  }
 
   const interps = clip.tracks.map((tr) => {
     const { nodeName, propertyName } = THREE.PropertyBinding.parseTrackName(tr.name);
-    return { bone: sBones.get(clean(nodeName)), prop: propertyName, it: tr.createInterpolant() };
+    const k = rename(nodeName);
+    return { bone: k === '-' ? null : sBones.get(k), prop: propertyName, it: tr.createInterpolant() };
   }).filter((x) => x.bone && (x.prop === 'quaternion' || x.prop === 'position'));
 
   // Visit target bones parents-first.

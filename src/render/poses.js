@@ -71,6 +71,11 @@ const AIRCLIP = { lockXZ: true, clampUp: true };
 // the start of the move, at the hit, at the end of the hit and at the end of the recovery.
 // Both fighters use the Mixamo moves (converted with tools/mixamo/convert.cjs).
 const TRAVEL = { lockXZ: true };   // the game moves the fighter; the clip's own travel is removed
+const CROUCH_UPPER = { crouchUpper: true };
+// Crouching kick and sweep: the crouch's own legs, the front foot shot out along the floor by
+// leg IK (reach, model units); the sweep also turns the body a full circle on the floor.
+const LOW = { crouchKick: { reach: 0.27, lean: -0.04 } };
+const SWEEP = { crouchKick: { reach: 0.3, lean: -0.08, spin: Math.PI * 2 } };
 const MIXAMO_ATTACKS = {
   // Jab string from "Quad Punch": pressing LP again chains to the next of its four punches.
   lp: ['Quad_Punch', 0.36, 0.5, 0.56, 0.66],
@@ -84,6 +89,13 @@ const MIXAMO_ATTACKS = {
   cw: ['Martelo_Do_Chau_Sem_Mao', 0.3, 1.12, 1.3, 2.1, 0, false, TRAVEL], // ESTRELA
   // Rising punch out of the crouch.
   chp: ['box_02', 1.0, 1.75, 1.95, 2.35],
+  // Crouching moves. Punches: the legs stay in the crouch (Mixamo "Crouch Idle") and the upper
+  // body plays a real punch (layered). Kick and sweep: the low slide of "Running Slide", held in
+  // place; the sweep also spins the body a full turn on the floor.
+  clp: ['Punching', 0.2, 0.4, 0.46, 0.7, 0, false, CROUCH_UPPER],
+  clp2: ['Quad_Punch', 0.58, 0.7, 0.75, 0.86, 0, false, CROUCH_UPPER],
+  clk: ['Crouch_Idle', 0.5, 0.5, 0.5, 0.5, 0, false, LOW],
+  chk: ['Crouch_Idle', 0.5, 0.5, 0.5, 0.5, 0, false, SWEEP],
   // ESQUIVA: the deep duck from Mixamo "Dodging" (the game slides the fighter back).
   dodge: ['Dodging', 0.05, 0.55, 0.55, 0.75, 0, false, TRAVEL],
   // Air kicks: only the airborne part, with the clip's own travel and height taken out.
@@ -92,6 +104,20 @@ const MIXAMO_ATTACKS = {
 };
 // Each fighter swaps a few moves for their own (Mixamo clips the player picked).
 const PEC = 'Punch_To_Elbow_Combo';
+// Kicks from the Motifect martial arts pack: [clip, startupFrom, activeAt, activeTo, recoveryTo].
+const MA = {
+  sideKick: ['MA_Tkd_Side_Kick', 0.5, 0.82, 0.92, 1.4, 0, false, TRAVEL],
+  roundHigh: ['MA_Tkd_Roundhouse_High', 0.7, 1.0, 1.08, 1.6, 0, false, TRAVEL],
+  backKick: ['MA_Tkd_Back_Kick', 0.8, 1.18, 1.26, 1.7, 0, false, TRAVEL],
+  axeKick: ['MA_Tkd_Axe_Kick', 0.9, 1.3, 1.42, 1.65, 0, false, TRAVEL],
+  spinHeel: ['MA_Tkd_Spinning_Heel_Kick', 1.4, 1.95, 2.05, 2.5, 0, false, TRAVEL],
+  frontHigh: ['MA_Tkd_Front_Kick_High', 0.3, 0.6, 0.68, 1.0, 0, false, TRAVEL],
+  teep: ['MA_Muay_Thai_Teep', 0.45, 0.85, 0.95, 1.5, 0, false, TRAVEL],
+  mtRound: ['MA_Muay_Thai_Roundhouse', 2.25, 2.6, 2.7, 3.3, 0, false, TRAVEL],
+  bodyKick: ['MA_Muay_Thai_Body_Kick', 0.6, 1.0, 1.08, 1.6, 0, false, TRAVEL],
+  jumpFront: ['MA_Tkd_Jump_Front_Kick', 0.9, 1.5, 1.62, 2.1, 0, false, TRAVEL],
+  jumpSpin: ['MA_Tkd_Jump_Spinning_Kick', 1.5, 2.25, 2.35, 2.8, 0, false, TRAVEL],
+};
 const FFA = 'Fist_Fight_A', KJU = 'Knee_Jabs_To_Uppercut', UJ = 'Uppercut_Jab', EUC = 'Elbow_Uppercut_Combo';
 // Uppercut out of the crouch, from Mixamo "Uppercut Jab".
 const UPPERCUT = [UJ, 0.5, 0.86, 0.95, 1.3, 0, false, TRAVEL];
@@ -106,6 +132,7 @@ const CLIP_ATTACKS = {
     hp: [UJ, 1.7, 1.98, 2.06, 2.45, 0, false, TRAVEL],    // long straight from "Uppercut Jab"
     chp: UPPERCUT,
     tc: ['Boxing', 0.2, 0.6, 0.72, 1.5, 0, false, TRAVEL],  // FÚRIA DO MONSTRO: lunging haymaker
+    tc2: MA.spinHeel,
   },
   flash: {
     ...MIXAMO_ATTACKS,
@@ -114,11 +141,13 @@ const CLIP_ATTACKS = {
     hp: [EUC, 0.35, 0.7, 0.8, 1.05, 0, false, TRAVEL],
     chp: [EUC, 1.0, 1.33, 1.43, 1.9, 0, false, TRAVEL],
     tc: [EUC, 0.95, 1.33, 1.43, 1.9, 0, false, TRAVEL],   // UPPER RELÂMPAGO: the uppercut after the elbow
+    lk: MA.sideKick, hk: MA.roundHigh, tc2: MA.backKick,
   },
   hgl: {
     ...MIXAMO_ATTACKS,
     hp: ['Illegal_Headbutt', 0.4, 0.84, 0.92, 1.4, 0, false, TRAVEL],    // headbutt
     tc: ['Illegal_Headbutt', 0.2, 0.84, 0.92, 1.45, 0, false, TRAVEL],
+    lk: MA.frontHigh, hk: MA.mtRound, tc2: MA.axeKick,
     jhk: ['Flying_Bicycle_Kick', 0.0, 0.3, 0.45, 0.66, 0, false, AIRCLIP], // bicycle kick in the air
     special: ['Running_Slide', 0.05, 0.3, 0.75, 1.3, 0, false, TRAVEL],   // CARRINHO
     dodge: ['Long_Right_Side_Step', 0.05, 0.4, 0.4, 0.8, 0, false, TRAVEL],
@@ -128,6 +157,7 @@ const CLIP_ATTACKS = {
     lk: ['Pontera', 0.2, 0.52, 0.68, 1.05, 0, false, TRAVEL],           // ponteira (front kick)
     hk: ['Chapa_Giratoria', 1.2, 1.76, 1.92, 2.3, 0, false, TRAVEL],    // chapa giratória
     tc: ['Chapa_Giratoria', 1.0, 1.76, 1.92, 2.3, 0, false, TRAVEL],
+    tc2: MA.jumpSpin,
     special: ['Chapa_Giratoria', 0.9, 1.76, 1.92, 2.3, 0, false, TRAVEL],
   },
   anderon: {
@@ -141,6 +171,7 @@ const CLIP_ATTACKS = {
     hk: ['Armada', 0.55, 1.22, 1.32, 1.63, 0, false, TRAVEL], // capoeira "armada"
     tc: ['Armada', 0.3, 1.22, 1.32, 1.63, 0, false, TRAVEL],
     special: ['Armada', 0.25, 1.22, 1.32, 1.63, 0, false, TRAVEL],
+    tc2: MA.mtRound,
   },
   genildo: {
     ...MIXAMO_ATTACKS,
@@ -150,6 +181,7 @@ const CLIP_ATTACKS = {
     hp: [KJU, 3.15, 3.55, 3.66, 4.25, 0, false, TRAVEL],
     chp: UPPERCUT,
     tc: [KJU, 3.1, 3.55, 3.66, 4.25, 0, false, TRAVEL],   // ENQUADRO: the uppercut after the knees
+    hk: MA.teep, tc2: MA.bodyKick, fk: MA.jumpFront,
   },
 };
 
@@ -166,6 +198,21 @@ function attackPose(f, m, t) {
     else {
       const r = clamp01((f.sf - m.startup - m.active) / Math.max(1, m.recovery));
       time = lerp(a1, r1, r); k = 1 - ease(r);
+    }
+    if (opts?.crouchUpper) {
+      // Legs in the crouch, upper body from the punch clip; head kept up on the opponent.
+      return { ...CLIP, clip: 'Crouch_Idle', clipTime: 0.5, upper: [clip, time], spine: [0.16 * k, 0, 0], head: [-0.25, 0, 0], blend: 0.05 };
+    }
+    if (opts?.crouchKick) {
+      const ck = opts.crouchKick;
+      const P = { ...KNEEL, clipTime: 0.5, legsIK: true, lf: [0, 0.02 * k, ck.reach * k], rf: [0, 0, 0], toe: [0.5 * k, 0],
+        hip: [0, -0.01 * k, ck.lean * k], spine: [-0.14 + 0.12 * k, 0.25 * k, 0], blend: 0.05 };
+      if (ck.spin) {
+        const p = clamp01((f.sf - m.startup * 0.3) / (m.startup * 0.7 + m.active));
+        P.clipYaw = ck.spin * ease(p);
+        P.lh = [-0.02, -0.18, 0.1]; // a hand down to the floor while spinning
+      }
+      return P;
     }
     return { ...CLIP, clip, clipTime: time, clipYaw: ramp ? yaw * k : yaw, ...opts };
   }
@@ -259,6 +306,7 @@ const IDLES = {
   flash: ['Bouncing_Fight_Idle', 2.95],
   hgl: ['Bouncing_Fight_Idle', 2.95, 0.9],
   anderon: ['Idle', 3.55, 0.9],
+  genildo: ['MA_Muay_Thai_Guard_Stance', 9.9, 1, true],
   davidson: ['Capoeira', 3.4, 1, true], // the ginga sways sideways: keep the body on its spot
 };
 

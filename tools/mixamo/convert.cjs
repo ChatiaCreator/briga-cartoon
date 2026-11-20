@@ -14,16 +14,19 @@ function readGlbJson(file) {
 }
 
 (async () => {
-  const files = fs.readdirSync(IN).filter((f) => f.toLowerCase().endsWith('.fbx')).sort();
+  // in/ holds Mixamo clips; in_motifect/ holds clips with the Motifect rig (bone names mapped).
+  const files = fs.readdirSync(IN).filter((f) => f.toLowerCase().endsWith('.fbx')).sort().map((f) => ['in/' + f, null]);
+  const IN2 = path.join(__dirname, 'in_motifect');
+  if (fs.existsSync(IN2)) for (const f of fs.readdirSync(IN2).filter((x) => x.toLowerCase().endsWith('.fbx')).sort()) files.push(['in_motifect/' + f, 'motifect']);
   const b = await chromium.launch();
   const p = await b.newPage();
   p.on('pageerror', (e) => console.log('pageerror:', e.message));
   await p.goto('http://127.0.0.1:8765/tools/mixamo/convert.html');
   await p.waitForFunction('window.ready===true', null, { timeout: 60000 });
   const clips = [];
-  for (const f of files) {
-    const r = await p.evaluate((u) => window.convert(u), 'in/' + f);
-    clips.push({ name: f.replace(/\.fbx$/i, ''), ...r });
+  for (const [f, map] of files) {
+    const r = await p.evaluate(([u, m]) => window.convert(u, 30, m), [f, map]);
+    clips.push({ name: path.basename(f).replace(/\.fbx$/i, ''), ...r });
     console.log(f, r.duration.toFixed(2) + 's', Object.keys(r.rot).length, 'bones');
   }
   await b.close();

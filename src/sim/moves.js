@@ -35,18 +35,24 @@ const normals = {
   dodge: { rank: 0, startup: 22, active: 0, recovery: 6, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid', invuln: 14, travel: [1, 15, -46] },
 };
 
+// Second signature string of each fighter: a heavy kick (from the Motifect martial arts pack)
+// that knocks down. Tuned per fighter below.
+const tc2 = (extra = {}) => ({ rank: 2, startup: 12, active: 4, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 240,
+  height: 'mid', box: [100, 700, 950, 1600], kd: true, ...extra });
+
 export const CHARACTERS = {
   hotmonster: {
     name: 'Hotmonster',
     hp: 1000, walk: 38, back: 30, jumpVy: 200, jumpVx: 40, gravity: 11,
     model: 'assets/models/hotmonster.glb',
     combo: 'FÚRIA DO MONSTRO',
-    targets: [{ from: 'lp', minChain: 1, btn: 'HP', to: 'tc' }],
+    targets: [{ from: 'lp', minChain: 1, btn: 'HP', to: 'tc' }, { from: 'hp', minChain: 0, btn: 'HK', to: 'tc2' }],
     moves: {
       ...normals,
       // Finisher of SOCO, SOCO, SOCO+: a lunging haymaker that smashes the opponent into the
       // ground; they bounce back up (bounce) and can be hit again.
       tc: { rank: 2, startup: 9, active: 4, recovery: 18, dmg: 110, hitstun: 0, blockstun: 16, push: 260, height: 'mid', box: [120, 1000, 900, 1550], travel: [0, 10, 30], kd: true, bounce: true },
+      tc2: tc2({ dmg: 105 }), // spinning heel kick
       // Special: throws a bag of dog food in an arc.
       special: { rank: 3, startup: 16, active: 0, recovery: 26, dmg: 100, hitstun: 22, blockstun: 16, push: 220, height: 'mid', chip: 10,
         projectile: { at: 16, dx: 350, y: 1350, vx: 75, vy: 70, g: 5, kind: 'racao' } },
@@ -60,11 +66,12 @@ export const CHARACTERS = {
     hp: 950, walk: 48, back: 38, jumpVy: 210, jumpVx: 46, gravity: 11,
     model: 'assets/models/flash.glb',
     combo: 'UPPER RELÂMPAGO',
-    targets: [{ from: 'hp', minChain: 0, btn: 'HP', to: 'tc' }],
+    targets: [{ from: 'hp', minChain: 0, btn: 'HP', to: 'tc' }, { from: 'lk', minChain: 0, btn: 'HK', to: 'tc2' }],
     moves: {
       ...normals,
       // Finisher of SOCO+, SOCO+ (elbow, then this): uppercut that launches.
       tc: { rank: 2, startup: 7, active: 4, recovery: 20, dmg: 90, hitstun: 0, blockstun: 15, push: 120, height: 'mid', box: [80, 900, 650, 1850], launch: 175, jc: true },
+      tc2: tc2({ startup: 11 }), // back kick
       // Special: a fast shoulder dash.
       special: { rank: 3, startup: 8, active: 14, recovery: 16, dmg: 100, hitstun: 22, blockstun: 18, push: 250, height: 'mid', chip: 10,
         dash: 120, box: [60, 700, 620, 1550] },
@@ -80,11 +87,12 @@ CHARACTERS.genildo = {
   hp: 1050, walk: 34, back: 28, jumpVy: 195, jumpVx: 38, gravity: 11,
   model: 'assets/models/genildo.glb',
   combo: 'ENQUADRO',
-  targets: [{ from: 'lk', minChain: 1, btn: 'HP', to: 'tc' }],
+  targets: [{ from: 'lk', minChain: 1, btn: 'HP', to: 'tc' }, { from: 'hp', minChain: 0, btn: 'HK', to: 'tc2' }],
   moves: {
     ...normals,
     // Finisher of CHUTE, CHUTE, SOCO+ (two knees, then this): uppercut that launches.
     tc: { rank: 2, startup: 8, active: 4, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 140, height: 'mid', box: [80, 900, 650, 1800], launch: 130, jc: true },
+    tc2: tc2({ push: 300 }), // body kick
     // Special: draws the pistol and fires one fast, straight shot.
     special: { rank: 3, startup: 16, active: 0, recovery: 24, dmg: 80, hitstun: 20, blockstun: 14, push: 180, height: 'mid', chip: 8,
       projectile: { at: 16, dx: 520, y: 1330, vx: 160, vy: 0, g: 0, kind: 'bullet' } },
@@ -100,11 +108,12 @@ CHARACTERS.anderon = {
   hp: 1000, walk: 40, back: 32, jumpVy: 200, jumpVx: 42, gravity: 11,
   model: 'assets/models/anderon.glb',
   combo: 'ARMADA DO ANDERSON',
-  targets: [{ from: 'hp', minChain: 0, btn: 'HK', to: 'tc' }],
+  targets: [{ from: 'hp', minChain: 0, btn: 'HK', to: 'tc' }, { from: 'lp', minChain: 1, btn: 'HK', to: 'tc2' }],
   moves: {
     ...normals,
     // Finisher of SOCO+, CHUTE+ (elbow, then a spinning "armada" kick that launches).
     tc: { rank: 2, startup: 10, active: 5, recovery: 20, dmg: 95, hitstun: 0, blockstun: 16, push: 160, height: 'mid', box: [100, 950, 900, 1750], launch: 160, jc: true },
+    tc2: tc2({ startup: 14, dmg: 110 }), // muay thai roundhouse
     // Special "ARMADA": a capoeira spinning kick that travels forward and knocks down.
     special: { rank: 3, startup: 14, active: 5, recovery: 22, dmg: 100, hitstun: 0, blockstun: 16, push: 220, height: 'mid', chip: 10,
       box: [100, 900, 900, 1700], travel: [0, 14, 40], kd: true },
@@ -121,11 +130,12 @@ CHARACTERS.hgl = {
   hp: 1000, walk: 40, back: 32, jumpVy: 200, jumpVx: 42, gravity: 11,
   model: 'assets/models/hgl.glb',
   combo: 'CABEÇADA ILEGAL',
-  targets: [{ from: 'lk', minChain: 0, btn: 'HP', to: 'tc' }],
+  targets: [{ from: 'lk', minChain: 0, btn: 'HP', to: 'tc' }, { from: 'hp', minChain: 0, btn: 'HK', to: 'tc2' }],
   moves: {
     ...normals,
     // Finisher of CHUTE, SOCO+: a big headbutt that launches.
     tc: { rank: 2, startup: 10, active: 4, recovery: 22, dmg: 95, hitstun: 0, blockstun: 16, push: 140, height: 'mid', box: [80, 1150, 650, 1750], launch: 150, jc: true, travel: [0, 10, 20] },
+    tc2: tc2({ startup: 13, bounce: true, box: [100, 300, 900, 1700] }), // axe kick: smashes down, bounces
     // Special "CARRINHO": a long low slide that knocks down. His body is low while sliding,
     // so high attacks and bullets pass over him. Block it crouching.
     special: { rank: 3, startup: 10, active: 16, recovery: 18, dmg: 95, hitstun: 0, blockstun: 16, push: 200, height: 'low', chip: 10,
@@ -142,11 +152,12 @@ CHARACTERS.davidson = {
   hp: 1000, walk: 40, back: 32, jumpVy: 205, jumpVx: 44, gravity: 11,
   model: 'assets/models/davidson.glb',
   combo: 'GINGA DO DAVIDSON',
-  targets: [{ from: 'lk', minChain: 0, btn: 'HK', to: 'tc' }],
+  targets: [{ from: 'lk', minChain: 0, btn: 'HK', to: 'tc' }, { from: 'hp', minChain: 0, btn: 'HK', to: 'tc2' }],
   moves: {
     ...normals,
     // Finisher of CHUTE, CHUTE+ (ponteira, then a spinning "chapa" that launches).
     tc: { rank: 2, startup: 11, active: 5, recovery: 20, dmg: 95, hitstun: 0, blockstun: 16, push: 150, height: 'mid', box: [100, 900, 900, 1700], launch: 155, jc: true },
+    tc2: tc2({ startup: 16, dmg: 110, travel: [0, 14, 30] }), // jumping spinning kick
     // Special "CHAPA GIRATÓRIA": a spinning capoeira kick that travels and knocks down.
     special: { rank: 3, startup: 15, active: 5, recovery: 22, dmg: 105, hitstun: 0, blockstun: 16, push: 230, height: 'mid', chip: 10,
       box: [100, 800, 950, 1700], travel: [0, 15, 42], kd: true },

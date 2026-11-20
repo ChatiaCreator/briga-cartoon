@@ -38,6 +38,7 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
 - **Defesa:** segure para trás. Agachado, você também defende os golpes baixos (rasteira e chute baixo). Golpes no ar só são defendidos em pé.
 - **Combos:** um golpe que acerta pode ser cancelado num mais forte. Exemplo: soco fraco → soco forte → especial → super.
 - **Lançar:** `↓` + soco forte joga o adversário para cima. Segure `↑` para pular atrás dele e bater no ar (até 3 golpes antes de ele cair).
+- **Segunda sequência (chute que derruba):** Hotmonster soco forte → chute forte (giratório); Flash chute → chute forte (de costas); Genildo soco forte → chute forte; Anderson soco, soco → chute forte; HGL soco forte → chute forte (machado, quica no chão); Davidson soco forte → chute forte (giratório voador).
 - **Sequência de cada lutador:**
   - **Hotmonster, FÚRIA DO MONSTRO:** soco, soco, soco forte. O adversário quica no chão e dá para emendar o especial.
   - **Flash, UPPER RELÂMPAGO:** soco forte, soco forte (cotovelada e uppercut que lança). Depois, pule e chute no ar, ou use o especial.
@@ -121,5 +122,6 @@ Um lutador novo segue o mesmo caminho: o `.glb` vai para `tools/models_src/`, en
 ## Créditos
 
 - **Personagens:** Hotmonster, Flash, Genildo, Anderson Silva, HGL e Davidson, do autor do jogo.
+- **Animações:** Mixamo (Adobe) e o pacote *Martial Arts* da Motifect (usado no jogo conforme a licença; os arquivos originais não estão no repositório).
 - **GARRA Energy:** marca fictícia criada para o jogo.
 - **Bibliotecas:** three.js (MIT), PeerJS (MIT) e o decodificador do meshoptimizer (MIT). As licenças estão em `vendor/`.
