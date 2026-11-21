@@ -71,6 +71,8 @@ const AIRCLIP = { lockXZ: true, clampUp: true };
 // nothing jumps) and the upper body throws a real punch from a punch clip (layered).
 const AIR_UPPER = { airUpper: true };
 const SOMERSAULT = Math.PI * 2;
+// Parts of Trump's own clips the game plays: [from, to] seconds.
+const TRUMP_LAUGH = [0.3, 5.4], TRUMP_FOLD = [1.0, 16.5];
 // Legs of the jump at this point of the arc (0.55-1.05 s of "Jumping").
 function jumpTime(f) {
   const c = CHARACTERS[f.char];
@@ -200,6 +202,14 @@ const CLIP_ATTACKS = {
     chp: UPPERCUT,
     tc: [KJU, 3.1, 3.55, 3.66, 4.25, 0, false, TRAVEL],   // ENQUADRO: the uppercut after the knees
     hk: MA.teep, tc2: MA.bodyKick, fk: MA.jumpFront,
+  },
+  trump: {
+    ...MIXAMO_ATTACKS,
+    hp: [FFA, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL],          // hook from "Fist Fight A"
+    tc: ['Boxing', 0.2, 0.6, 0.72, 1.5, 0, false, TRAVEL],      // ACORDO FECHADO: lunging haymaker
+    tc2: MA.mtRound,
+    special: [UJ, 1.5, 1.98, 2.06, 2.45, 0, false, TRAVEL],   // TARIFAÇO: long lunging straight
+    super: ['laugh_01', 1.6, 2.33, 2.45, 4.0, 0, false, TRAVEL], // laughs, points (arm out at 2.33 s), laughs
   },
 };
 
@@ -346,6 +356,10 @@ function specialPose(f, m) {
     // Shoulder dash: the run clip at double speed, leaning in.
     return { ...CLIP, clip: 'run', clipTime: ((t / 60) * 2) % 1.25, spine: [0.3, -0.3, 0], alpha: 0.6 };
   }
+  if (f.char === 'trump' && f.mv === 'special') return attackPose(f, m, 0); // TARIFAÇO
+  // VOCÊ ESTÁ DEMITIDO!: his own laugh clip, where he points straight at the opponent (the blast
+  // leaves on the first active frame), then keeps laughing at them.
+  if (f.char === 'trump' && f.mv === 'super') return attackPose(f, m, 0);
   if (f.char === 'flash' && f.mv === 'super') {
     // Drink the GARRA can: lift to mouth, head back, gulp, then crush and flex.
     const LIFT = withP(STANCE, { rh: [-0.08, 0.17, 0.08], head: [-0.2, 0, 0] });
@@ -359,14 +373,29 @@ function specialPose(f, m) {
 }
 
 // Fighting stance of each fighter: [clip, loop length (s), speed, keep hips on the spot]. Others use box_01.
+// Or { clip, from, to, period }: sways back and forth inside one part of a clip (a guard clip that
+// also throws a punch somewhere: only its guard part is used), one round trip every `period` s.
 const IDLES = {
-  hotmonster: ['Boxing_2', 2.18],
+  hotmonster: { clip: 'Boxing_Guard_A', from: 0.85, to: 1.65, period: 1.9 }, // Mixamo "Boxing", guard part
   flash: ['Bouncing_Fight_Idle', 2.95],
+  hgl: ['Fight_Idle_2', 7.43], // Mixamo "Fight Idle" (wide stance, arms circling)
+  anderon: { clip: 'Boxing_Guard_B', from: 0.85, to: 2.0, period: 2.4 }, // Mixamo "Boxing", guard part
+  genildo: ['Fight_Idle', 2.36], // Mixamo "Fight Idle": a firm guard
+  davidson: ['Capoeira', 3.4, 1, true], // the ginga sways sideways: keep the body on its spot
+  trump: ['Fight_Idle', 2.36],
+};
+// The stances used before (kept in the game files so switching back is one line).
+export const PREVIOUS_IDLES = {
+  hotmonster: ['Boxing_2', 2.18],
   hgl: ['Bouncing_Fight_Idle', 2.95, 0.9],
   anderon: ['Idle', 3.55, 0.9],
   genildo: ['MA_Muay_Thai_Guard_Stance', 9.9, 1, true],
-  davidson: ['Capoeira', 3.4, 1, true], // the ginga sways sideways: keep the body on its spot
 };
+function idlePose(idle, T) {
+  if (Array.isArray(idle)) return { ...CLIP, clip: idle[0], clipTime: (T * (idle[2] || 1)) % idle[1], lockXZ: !!idle[3] };
+  const k = 0.5 - 0.5 * Math.cos((2 * Math.PI * T) / idle.period); // eases at both ends
+  return { ...CLIP, clip: idle.clip, clipTime: idle.from + (idle.to - idle.from) * k, lockXZ: true };
+}
 
 export const STAND_TIME = 0.28; // seconds the stand-up from a crouch takes
 function standPose(t) {
@@ -425,6 +454,19 @@ function grabbedPose(f, o) {
   return { ...CLIP, clip, clipTime: lerp(a, b, clamp01(k / t.land)), blend: 0.08 };
 }
 
+// The knock-out blow (Mixamo "Knocked Out"): the head snaps back at KO_IMPACT, the body staggers,
+// tips over backwards and hits the floor at KO_FLOOR, then lies still until KO_LIE_END. While the
+// game throws the body through the air, the clip runs so its fall lands on the frame the body
+// touches the ground.
+const KO_IMPACT = 1.2, KO_FLOOR = 2.2, KO_LIE_END = 4.85;
+function koFallPose(f) {
+  const g = CHARACTERS[f.char].gravity;
+  const vy = f.vy, y = Math.max(0, f.y);
+  const left = (vy + Math.sqrt(Math.max(0, vy * vy + 2 * g * y))) / g; // frames until landing
+  const k = clamp01(f.sf / Math.max(1, f.sf + left));
+  return { ...CLIP, clip: 'Knocked_Out', clipTime: lerp(KO_IMPACT, KO_FLOOR, k), lockXZ: true, key: 'kofall', blend: 0.06 };
+}
+
 function idleTime(T) {
   // Sway through the boxing stance part of box_01 (no punches between 1.0 and 2.2 s),
   // easing at both ends instead of bouncing.
@@ -472,6 +514,8 @@ function rawPose(f, g, T) {
         if (f.char === 'davidson') return { ...CLIP, clip: 'Capoeira', clipTime: (secs * 1.1) % 3.4, lockXZ: true };
         // HGL shows off his screwdriver.
         if (f.char === 'hgl') return { ...CLIP, clip: 'box_01', clipTime: idleTime(T), hand: 'screwdriver' };
+        // Trump waits with his arms folded (his model's own "fold_arms").
+        if (f.char === 'trump') return { ...CLIP, clip: 'fold_arms', clipTime: TRUMP_FOLD[0] + (secs % (TRUMP_FOLD[1] - TRUMP_FOLD[0])), lockXZ: true };
         // Anderson makes the "on the phone" gesture (no phone in his hand).
         if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 6.4 + 1.6 * (1 - Math.abs(((secs / 1.2) % 2) - 1)) };
         // Flash shows off with push-ups, then springs up into his stance.
@@ -480,7 +524,7 @@ function rawPose(f, g, T) {
       // Getting up from a crouch: Mixamo "Crouch To Stand" (the rising part), guard kept up.
       if (f.standT != null && f.standT < STAND_TIME) return standPose(f.standT);
       const idle = IDLES[f.char];
-      if (idle) return { ...CLIP, clip: idle[0], clipTime: (T * (idle[2] || 1)) % idle[1], lockXZ: !!idle[3] };
+      if (idle) return idlePose(idle, T);
       return { ...CLIP, clip: 'box_01', clipTime: idleTime(T) };
     }
     case 'walk': {
@@ -538,11 +582,13 @@ function rawPose(f, g, T) {
       return { ...CLIP, clip: 'hit_to_side', clipTime: 0.1 + k * 0.95 };
     }
     case 'fall':
+      if (f.ko) return koFallPose(f);
       return { ...CLIP, clip: 'fall', clipTime: 1.05 + clamp01(t / 26) * 0.65, alpha: 0.5 };
     case 'down':
       return { ...CLIP, clip: 'fall', clipTime: 1.7 + clamp01(t / 40) * 1.3 };
     case 'ko':
-      return { ...CLIP, clip: 'fall', clipTime: Math.min(3, 1.7 + t / 40), alpha: 0.4 };
+      // Knocked out: lies flat on the back (Mixamo "Knocked Out", after the fall).
+      return { ...CLIP, clip: 'Knocked_Out', clipTime: Math.min(KO_LIE_END, KO_FLOOR + t / 60), lockXZ: true, key: 'ko' };
     case 'rise':
       // Mixamo "Getting Up", sped up: rolls onto the hands and springs back to the stance.
       return { ...CLIP, clip: 'Getting_Up', clipTime: 4.2 + clamp01(t / 18) * 1.7 };
@@ -557,6 +603,8 @@ function rawPose(f, g, T) {
       }
       // HGL sings his victory (animation from his model).
       if (f.char === 'hgl') return { ...CLIP, clip: 'sing_02', clipTime: (t / 60) % 15, blend: 0.3 };
+      // Trump laughs at the loser (his model's own "laugh_01").
+      if (f.char === 'trump') return { ...CLIP, clip: 'laugh_01', clipTime: TRUMP_LAUGH[0] + ((t / 60) % (TRUMP_LAUGH[1] - TRUMP_LAUGH[0])), lockXZ: true, blend: 0.3 };
       // Anderson calls home to tell about the win.
       if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 3.6 + Math.min(11, t / 60), blend: 0.3 };
       return { ...CLIP, clip: 'dance_03', clipTime: (t / 60) % 12.7 };

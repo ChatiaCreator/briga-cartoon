@@ -22,7 +22,7 @@ const renderer = createRenderer($('stage'));
 const hud = new Hud();
 attachKeyboard();
 const touch = initTouch({ onPause: () => openPause() });
-const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'LIGANDO PRA CASADA!', hgl: 'CHAVE DE FENDA!', davidson: 'BASEADO GIGANTE!' };
+const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'LIGANDO PRA CASADA!', hgl: 'CHAVE DE FENDA!', davidson: 'BASEADO GIGANTE!', trump: 'VOCÊ ESTÁ DEMITIDO!' };
 const canFull = !!document.documentElement.requestFullscreen;
 if (canFull) {
   $('fullBtn').classList.remove('hidden');
@@ -37,10 +37,15 @@ document.addEventListener('fullscreenchange', () => renderOptions());
 let match = null;        // the running fight
 let session = null;      // online session
 const sel = { mode: 'local', chars: ['hotmonster', 'flash'], stage: 'street' };
-export const STAGES = ['street', 'beach', 'petshop', 'marcozero', 'brasilia'];
+export const STAGES = ['street', 'beach', 'petshop', 'marcozero', 'brasilia', 'whitehouse'];
+// The boss stage: drawn by "random" only when Trump is in the fight (and always then).
+const BOSS_STAGE = 'whitehouse';
 // "random" is picked when the match starts (by the host, online).
-function resolveStage(s) {
-  return STAGES.includes(s) ? s : STAGES[Math.floor(Math.random() * STAGES.length)];
+function resolveStage(s, chars = []) {
+  if (STAGES.includes(s)) return s;
+  if (chars.some((c) => CHARACTERS[c]?.boss)) return BOSS_STAGE;
+  const pool = STAGES.filter((x) => x !== BOSS_STAGE);
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 const DESCR = {
@@ -50,6 +55,7 @@ const DESCR = {
   hgl: 'Mecânico. Especial: CARRINHO, desliza por baixo dos golpes altos e derruba. Super: CHAVE DE FENDA, arremessa a chave no inimigo! Combo: CHUTE, SOCO+.',
   davidson: 'Capoeirista. Especial: CHAPA GIRATÓRIA, chute giratório que avança e derruba. Super: BASEADO GIGANTE, fuma e recupera vida (se não apanhar). Combo: CHUTE, CHUTE+.',
   anderon: 'Capoeira e boxe. Especial: ARMADA, chute giratório que avança e derruba. Super: LIGANDO PRA CASADA, recupera vida (se não apanhar). Combo: SOCO+, CHUTE+.',
+  trump: 'BOSS. Mais vida, mais lento e pesado. Especial: TARIFAÇO, um direto longo que avança e derruba. Super: VOCÊ ESTÁ DEMITIDO!, aponta o dedo e arremessa o adversário longe, mesmo de média distância. Combo: SOCO, SOCO, SOCO+.',
 };
 
 // ---------- Screens ----------
@@ -86,7 +92,7 @@ function renderCards() {
       const b = document.createElement('button');
       b.className = 'card' + (sel.chars[p] === id ? ' on' : '');
       b.setAttribute('aria-label', c.name);
-      b.innerHTML = `<img alt="" src="${portraits[id] || ''}"><span class="cn">${c.name}</span>`;
+      b.innerHTML = `<img alt="" src="${portraits[id] || ''}"><span class="cn">${c.name}</span>${c.boss ? '<span class="boss-tag">BOSS</span>' : ''}`;
       b.onclick = () => { sel.chars[p] = id; prefetch(CHARACTERS[id].model); sfx('block'); renderCards(); };
       box.appendChild(b);
     }
@@ -163,7 +169,7 @@ renderOptions();
 
 $('fightBtn').onclick = () => {
   if (sel.mode === 'online') { openOnline(); return; }
-  startMatch(sel.mode, sel.chars.slice(), { cpuLevel: Number($('cpuLevel').value), stage: resolveStage(sel.stage) });
+  startMatch(sel.mode, sel.chars.slice(), { cpuLevel: Number($('cpuLevel').value), stage: resolveStage(sel.stage, sel.chars) });
 };
 
 // ---------- Online lobby ----------
@@ -442,6 +448,7 @@ function handleEvents(events) {
         if (f.char === 'flash' && ev.mv === 'super') { announce('Garra Energy!', 'super-flash'); setTimeout(() => sfx('glug'), 900); }
         else if (f.char === 'anderon' && ev.mv === 'super') { sfx('ring'); announce('Ligando pra casada!', 'super-anderon'); }
         else if (f.char === 'davidson' && ev.mv === 'super') { sfx('power'); announce('Baseado gigante!', 'super-davidson'); }
+        else if (f.char === 'trump' && ev.mv === 'super') { sfx('power'); announce('Você está demitido!', 'super-trump'); }
         else if (f.char === 'hgl' && ev.mv === 'super') { sfx('power'); setTimeout(() => sfx('spin'), 500); announce('Chave de fenda!', 'super-hgl'); }
         else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!', `super-${f.char}`); }
         else if (f.char === 'hotmonster' && ev.mv === 'special') setTimeout(() => sfx('throw'), 200);

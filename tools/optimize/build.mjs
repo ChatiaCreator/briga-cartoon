@@ -15,14 +15,18 @@ import sharp from 'sharp';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const SRC = path.join(ROOT, 'tools/models_src');
 const OUT = path.join(ROOT, 'assets/models');
-const FIGHTERS = ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson'];
+const FIGHTERS = ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump'];
 
 await MeshoptEncoder.ready; await MeshoptDecoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
 const kb = (f) => `${(fs.statSync(f).size / 1024).toFixed(0)} KB`;
 
 // ---- Fighters ----
-for (const name of FIGHTERS) {
+// --anims-only: rebuild just assets/models/anims.glb (the fighters' meshes stay as they are).
+// --only=<fighter>: rebuild just that fighter's mesh (and the animations).
+const ANIMS_ONLY = process.argv.includes('--anims-only');
+const ONLY = process.argv.find((a) => a.startsWith('--only='))?.slice(7);
+for (const name of ANIMS_ONLY ? [] : ONLY ? [ONLY] : FIGHTERS) {
   const doc = await io.read(path.join(SRC, `${name}.glb`));
   for (const a of doc.getRoot().listAnimations()) a.dispose();
   await doc.transform(
@@ -78,9 +82,46 @@ for (const a of root.listAnimations()) {
   for (const ch of a.listChannels()) if (!keepChannel(ch.getTargetNode(), ch.getTargetPath())) ch.dispose();
 }
 
-const sources = [['flash_anims', 'flash'], ['anderon', 'anderon'], ['hgl', 'hgl'], ['davidson', 'davidson'], ['extra_anims', 'mixamo'], ['mixamo_anims', 'mixamo']];
+const sources = [['flash_anims', 'flash'], ['anderon', 'anderon'], ['hgl', 'hgl'], ['davidson', 'davidson'], ['trump', 'trump'], ['extra_anims', 'mixamo'], ['mixamo_anims', 'mixamo']];
 // Licensed pack clips (not in git): included when the file is present.
-if (fs.existsSync(path.join(SRC, 'motifect_anims.glb'))) sources.push(['motifect_anims', 'mixamo']);
+const hasMotifect = fs.existsSync(path.join(SRC, 'motifect_anims.glb'));
+if (hasMotifect) sources.push(['motifect_anims', 'mixamo']);
+// Without that file (a fresh clone), the clips no source here provides are carried over from the
+// current assets/models/anims.glb, so the licensed clips the game uses are not lost.
+const keptNames = new Set();
+if (!hasMotifect) {
+  const provided = new Set(root.listAnimations().map((a) => a.getName()));
+  for (const [file, prefix] of sources) {
+    for (const a of (await io.read(path.join(SRC, `${file}.glb`))).getRoot().listAnimations()) provided.add(`${prefix}:${a.getName()}`);
+  }
+  const current = await io.read(path.join(OUT, 'anims.glb'));
+  for (const a of current.getRoot().listAnimations()) {
+    if (provided.has(a.getName()) || !used(a.getName().replace(/^[a-z_]+:/, ''))) continue;
+    keptNames.add(a.getName());
+    const na = base.createAnimation(a.getName());
+    const samplers = new Map();
+    for (const ch of a.listChannels()) {
+      const target = ch.getTargetNode() && nodeByName.get(ch.getTargetNode().getName());
+      if (!target || !keepChannel(target, ch.getTargetPath())) continue;
+      const s = ch.getSampler();
+      if (!samplers.has(s)) {
+        // Back to floats (the built file stores rotations as normalized 16-bit numbers).
+        const toFloat = (acc) => {
+          const arr = acc.getArray();
+          if (!acc.getNormalized()) return new Float32Array(arr);
+          const max = arr instanceof Int16Array ? 32767 : arr instanceof Int8Array ? 127 : arr instanceof Uint16Array ? 65535 : 255;
+          return Float32Array.from(arr, (v) => Math.max(-1, v / max));
+        };
+        const out = base.createAccessor().setType(s.getOutput().getType()).setArray(toFloat(s.getOutput())).setBuffer(buffer);
+        samplers.set(s, base.createAnimationSampler().setInterpolation(s.getInterpolation())
+          .setInput(base.createAccessor().setType('SCALAR').setArray(toFloat(s.getInput())).setBuffer(buffer)).setOutput(out));
+        na.addSampler(samplers.get(s));
+      }
+      na.addChannel(base.createAnimationChannel().setTargetNode(target).setTargetPath(ch.getTargetPath()).setSampler(samplers.get(s)));
+    }
+  }
+  console.log(`motifect_anims.glb not found: kept ${keptNames.size} clips from the current anims.glb`);
+}
 for (const [file, prefix] of sources) {
   const doc = await io.read(path.join(SRC, `${file}.glb`));
   for (const a of doc.getRoot().listAnimations()) {

@@ -70,6 +70,11 @@ select { padding: 8px 10px; font-size: 15px; }
 .card .cn { font-size: 18px; }
 .card .cd { font-family: system-ui, sans-serif; font-weight: 600; font-size: 12px; line-height: 1.3; }
 .card.on { background: var(--yellow); outline: 4px solid var(--red); }
+.card { position: relative; }
+.card .boss-tag {
+  position: absolute; top: 4px; right: 4px; padding: 1px 6px; border-radius: 6px; font-size: 12px;
+  background: var(--red); color: #fff; border: 2px solid var(--ink); transform: rotate(6deg);
+}
 .row { display: flex; gap: 12px; align-items: center; }
 .stages { flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
 .stages .lbl { font-size: 18px; color: var(--paper); }

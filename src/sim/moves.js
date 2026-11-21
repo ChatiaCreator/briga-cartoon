@@ -190,6 +190,32 @@ CHARACTERS.davidson = {
   },
 };
 
+// First BOSS. Heavier and slower than everyone, with more health. Brawls with big haymakers.
+CHARACTERS.trump = {
+  name: 'Trump',
+  boss: true,
+  hp: 1250, walk: 32, back: 26, jumpVy: 190, jumpVx: 36, gravity: 12,
+  model: 'assets/models/trump.glb',
+  combo: 'ACORDO FECHADO',
+  targets: [{ from: 'lp', minChain: 1, btn: 'HP', to: 'tc' }, { from: 'hp', minChain: 0, btn: 'HK', to: 'tc2' }],
+  moves: {
+    ...normals,
+    // Heavier strong punch: slower, hits harder.
+    hp: { ...normals.hp, startup: 8, recovery: 16, dmg: 95, push: 230 },
+    // Finisher of SOCO, SOCO, SOCO+ ("ACORDO FECHADO"): a lunging haymaker that knocks down.
+    tc: { rank: 2, startup: 10, active: 4, recovery: 20, dmg: 115, hitstun: 0, blockstun: 16, push: 260, height: 'mid',
+      box: [120, 1000, 900, 1550], travel: [0, 10, 26], kd: true },
+    tc2: tc2({ startup: 12, dmg: 110 }), // roundhouse
+    // Special "TARIFAÇO": a slow, long lunging straight that knocks down.
+    special: { rank: 3, startup: 16, active: 5, recovery: 24, dmg: 110, hitstun: 0, blockstun: 18, push: 260, height: 'mid', chip: 10,
+      box: [120, 1050, 950, 1550], travel: [0, 16, 44], kd: true },
+    // Super "VOCÊ ESTÁ DEMITIDO!": points at the opponent and blasts them away from mid range
+    // (fly: they are thrown far, high and long). Untouchable while pointing; laughs afterwards.
+    super: { rank: 4, startup: 26, active: 4, recovery: 60, dmg: 240, hitstun: 0, blockstun: 22, push: 300, height: 'mid', chip: 20,
+      box: [150, 700, 2600, 1700], kd: true, fly: [150, 70], invuln: 30, blast: true },
+  },
+};
+
 export const BUFF_DMG = 150;   // percent
 export const BUFF_SPEED = 120; // percent
 

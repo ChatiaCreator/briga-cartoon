@@ -17,4 +17,6 @@ aparelho (escolhida em Opções → LOCUTOR) para o resto.
 | `super-genildo.mp3` | "Tolerância zero!" |
 | `super-anderon.mp3` | "Ligando pra casada!" |
 | `super-hgl.mp3` | "Chave de fenda!" |
+| `super-trump.mp3` | "Você está demitido!" (voz do Trump) |
+| `venceu-trump.mp3` | a vitória do Trump (voz de locutor) |
 | `vs-<lutador1>-<lutador2>.mp3` | "<lutador 1> contra <lutador 2>!" (opcional) |

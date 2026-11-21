@@ -384,6 +384,8 @@ function stepAttack(f, dir, o, g) {
     const [a, b, v] = m.travel;
     if (f.sf >= a && f.sf < b && !f.hit) f.x += Math.trunc((v * sp) / 100) * f.facing;
   }
+  // A blast from the hand (Trump's super): muzzle flash on the first active frame (render only).
+  if (m.blast && f.sf === m.startup) g.events.push({ t: 'shot', f: f.id, x: f.x, y: 1400, dir: f.facing });
   if (m.projectile && f.sf === m.projectile.at) {
     const p = m.projectile;
     g.spawn(f.id, {

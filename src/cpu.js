@@ -62,7 +62,7 @@ export class Cpu {
       this.plan([], back | (low ? DOWN : 0), react + 6);
       return;
     }
-    if (me.meter >= 1000 && (me.char === 'anderon' || me.char === 'davidson' ? me.hp < me.maxHp * 0.75 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
+    if (me.meter >= 1000 && (me.char === 'anderon' || me.char === 'davidson' ? me.hp < me.maxHp * 0.75 : me.char === 'trump' ? dist < 2300 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
       this.plan([SUP, 0], 0, 20);
       return;
     }

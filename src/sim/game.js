@@ -223,6 +223,8 @@ function applyHit(g, { att, def, move, proj, x, y }) {
     def.jug--; def.vy = 95; def.vx = 20 * away;
   } else if (def.ko || move.kd || def.y > 0 || juggled) {
     def.st = 'fall'; def.vy = def.ko ? 130 : 110; def.vx = 35 * away; def.y = Math.max(1, def.y); def.jug = 0;
+    // Moves that throw the opponent far (fly = [up, away]), e.g. Trump's super.
+    if (move.fly) { def.vy = Math.max(def.vy, move.fly[0]); def.vx = move.fly[1] * away; }
     // Smash: flies back low and bounces off the ground (see stepFighter, 'fall').
     if (move.bounce && !def.ko) { def.vx = 30 * away; def.vy = 80; def.bounce = 1; big = true; }
   } else {

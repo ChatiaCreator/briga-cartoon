@@ -8,7 +8,7 @@ import { shadowTexture, loadImage } from './textures.js';
 import { CHARACTERS } from '../sim/moves.js';
 
 const FACE_ANGLE = 1.15; // radians: side-on, turned a little towards the camera
-const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e, hgl: 0xff9a2e, davidson: 0x5fd35f };
+const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e, hgl: 0xff9a2e, davidson: 0x5fd35f, trump: 0xff3b3b };
 const LIMBS = ['LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'];
 const FLIP_FRAMES = 30; // frames the forward-jump somersault takes
 
@@ -29,7 +29,7 @@ export function canImage() {
 // skeleton, so a clip made on one plays on the others. Its bare node tree is Hotmonster's
 // skeleton, the reference rig the clips were made for.
 export const ANIMS_URL = 'assets/models/anims.glb';
-const ORDER = ['hotmonster', 'flash', 'anderon', 'hgl', 'davidson', 'mixamo']; // first one wins for shared clips
+const ORDER = ['hotmonster', 'flash', 'anderon', 'hgl', 'davidson', 'trump', 'mixamo']; // first one wins for shared clips
 let sharedPromise = null;
 export function sharedClips() {
   if (!sharedPromise) sharedPromise = loadShared();

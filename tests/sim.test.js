@@ -491,7 +491,7 @@ test('Davidson super BASEADO GIGANTE heals; special CHAPA GIRATÓRIA knocks down
 
 test('every fighter has a second signature string that knocks down', () => {
   const B = { LP, HP, LK, HK };
-  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson']) {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump']) {
     const g = createGame([id, 'genildo']);
     toFight(g); approach(g, 650);
     const t2 = moves.CHARACTERS[id].targets[1];
@@ -529,7 +529,7 @@ test('special wins over a signature string that shares its button (Flash: SOCO+ 
 
 test('combo step-in: every signature string still connects when it starts with a jab', () => {
   const B = { LP, HP, LK, HK };
-  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson']) {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump']) {
     for (const t of moves.CHARACTERS[id].targets) {
       const g = createGame([id, 'genildo']);
       toFight(g); approach(g, 650);
@@ -542,7 +542,7 @@ test('combo step-in: every signature string still connects when it starts with a
 });
 
 test('jab, strong punch, special connects for everyone (the README combo)', () => {
-  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson']) {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump']) {
     const g = createGame([id, 'genildo']);
     toFight(g); approach(g, 650);
     const r = combo(g, [LP, HP, LP | HP]);
@@ -551,7 +551,7 @@ test('jab, strong punch, special connects for everyone (the README combo)', () =
 });
 
 test('air combo: launcher, jump after them, then SOCO > CHUTE > CHUTE+ in the air', () => {
-  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson']) {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump']) {
     const g = createGame([id, 'genildo']);
     toFight(g); approach(g, 650);
     step(g, [DOWN | HP, 0]);
@@ -564,7 +564,9 @@ test('air combo: launcher, jump after them, then SOCO > CHUTE > CHUTE+ in the ai
       step(g, [b, 0]);
       for (let i = 0; i < 12; i++) { step(g, [0, 0]); best = Math.max(best, g.f[1].combo); }
     }
-    assert.equal(best, 4, `${id}: launcher + three air hits`);
+    // Trump (the BOSS) is heavy and falls faster: he fits two air hits, not three.
+    if (id === 'trump') assert.ok(best >= 3, `${id}: launcher + two air hits (got ${best})`);
+    else assert.equal(best, 4, `${id}: launcher + three air hits`);
   }
 });
 
@@ -574,4 +576,24 @@ test('light attacks chain into each other at most four times', () => {
   let best = 0;
   for (let i = 0; i < 60; i++) { step(g, [i % 3 === 0 ? LP : 0, 0]); best = Math.max(best, g.f[1].combo); }
   assert.ok(best <= 4, `combo of ${best} jabs`);
+});
+
+test('Trump (BOSS) super VOCÊ ESTÁ DEMITIDO! blasts the opponent away from mid range', () => {
+  const at = (dist, hold = 0) => {
+    const g = createGame(['trump', 'genildo']);
+    toFight(g);
+    g.f[0].x = -dist / 2; g.f[1].x = dist / 2; g.f[0].meter = 1000;
+    const hp = g.f[1].hp;
+    step(g, [SUP, hold]);
+    let far = g.f[1].x, shot = false;
+    for (let i = 0; i < 150; i++) { step(g, [0, hold]); far = Math.max(far, g.f[1].x); if (g.events.some((e) => e.t === 'shot')) shot = true; }
+    return { dmg: hp - g.f[1].hp, far, shot };
+  };
+  const mid = at(1800);
+  assert.equal(mid.dmg, 240, 'full damage at 1.8 m');
+  assert.ok(mid.shot, 'muzzle flash at the finger');
+  assert.ok(mid.far > 2800, `thrown far (x ${mid.far})`);
+  assert.equal(at(3600).dmg, 0, 'out of reach at 3.6 m');
+  assert.ok(at(1800, RIGHT).dmg < 60, 'blocking takes only chip damage');
+  assert.ok(moves.CHARACTERS.trump.hp > 1100, 'the boss has more health');
 });

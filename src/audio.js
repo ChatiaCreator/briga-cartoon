@@ -74,6 +74,8 @@ export function sfx(name, k = 0) {
     case 'ring': for (let i = 0; i < 4; i++) tone(c, 'square', i % 2 ? 1320 : 1480, i % 2 ? 1320 : 1480, 0.08, 0.12, i * 0.1); break;
     case 'heal': tone(c, 'sine', 660, 990, 0.18, 0.18); tone(c, 'sine', 990, 1320, 0.14, 0.1, 0.06); break;
     case 'jump': tone(c, 'sine', 300, 600, 0.12, 0.12); break;
+    // Distant thunder (the White House storm): a low rumble with a crack at the start.
+    case 'thunder': burst(c, 0.25, 0.25, 2200); burst(c, 2.4, 0.35, 220); tone(c, 'sine', 60, 32, 1.8, 0.25, 0.05); break;
     default: break;
   }
 }
