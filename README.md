@@ -125,9 +125,25 @@ Os ossos do Mixamo têm os mesmos nomes dos ossos dos modelos, mas ficam virados
 
 Um lutador novo segue o mesmo caminho: o `.glb` vai para `tools/models_src/`, entra na lista `FIGHTERS` de `tools/optimize/build.mjs` e em `src/sim/moves.js`.
 
+## Blender
+
+Os scripts em `tools/blender/` rodam no Blender sem abrir a janela (testado no Blender 5.3):
+
+```bash
+blender -b --factory-startup -P tools/blender/props.py              # objetos de mão -> assets/models/props.glb
+blender -b --factory-startup -P tools/blender/whitehouse_props.py   # pilastras da Casa Branca -> assets/models/whitehouse_props.glb
+blender -b --factory-startup -P tools/blender/mirror_anim.py -- tools/mixamo/in/X.fbx tools/mixamo/in/X_Mirror.fbx  # golpe espelhado
+```
+
+- **props.py:** a lata GARRA, o saco de ração, o baseado, a chave de fenda e a pistola. O jogo aplica o material cartoon e o contorno preto; sem o arquivo, volta para as formas simples.
+- **whitehouse_props.py:** as pilastras com lanterna em 3D na praça da Casa Branca, que se mexem com a câmera na frente da pintura.
+- **mirror_anim.py:** espelha um golpe do Mixamo (a outra perna ou o outro braço). O resultado passa pelo conversor normal.
+
+O conversor (`tools/mixamo/convert.html`) também aceita o esqueleto padrão da Unreal: as animações da *Universal Animation Library* da Quaternius ficam em `tools/mixamo/in_ual/` (fora do git) e as escolhidas em `UAL_CLIPS` (`convert.cjs`) vão para `tools/models_src/ual_anims.glb`.
+
 ## Créditos
 
 - **Personagens:** Hotmonster, Flash, Genildo, Anderson Silva, HGL e Davidson, do autor do jogo.
-- **Animações:** Mixamo (Adobe) e o pacote *Martial Arts* da Motifect (usado no jogo conforme a licença; os arquivos originais não estão no repositório).
+- **Animações:** Mixamo (Adobe), o pacote *Martial Arts* da Motifect (usado no jogo conforme a licença; os arquivos originais não estão no repositório) e a *Universal Animation Library* da Quaternius (CC0, domínio público).
 - **GARRA Energy:** marca fictícia criada para o jogo.
 - **Bibliotecas:** three.js (MIT), PeerJS (MIT) e o decodificador do meshoptimizer (MIT). As licenças estão em `vendor/`.

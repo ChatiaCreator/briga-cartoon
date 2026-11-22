@@ -18,15 +18,20 @@ function readGlbJson(file) {
   const files = fs.readdirSync(IN).filter((f) => f.toLowerCase().endsWith('.fbx')).sort().map((f) => ['in/' + f, null]);
   const IN2 = path.join(__dirname, 'in_motifect');
   if (fs.existsSync(IN2)) for (const f of fs.readdirSync(IN2).filter((x) => x.toLowerCase().endsWith('.fbx')).sort()) files.push(['in_motifect/' + f, 'motifect']);
+  // in_ual/ holds Quaternius' "Universal Animation Library" (CC0, Unreal-style rig, one file with
+  // 43 clips, kept out of git): only UAL_CLIPS are converted, to ual_anims.glb as "UAL_<clip>".
+  const UAL = path.join(__dirname, 'in_ual', 'UAL1_Standard.fbx');
+  const UAL_CLIPS = ['Punch_Cross', 'Roll'];
+  if (fs.existsSync(UAL)) for (const c of UAL_CLIPS) files.push(['in_ual/UAL1_Standard.fbx', 'ual', c]);
   const b = await chromium.launch();
   const p = await b.newPage();
   p.on('pageerror', (e) => console.log('pageerror:', e.message));
   await p.goto('http://127.0.0.1:8765/tools/mixamo/convert.html');
   await p.waitForFunction('window.ready===true', null, { timeout: 60000 });
   const clips = [];
-  for (const [f, map] of files) {
-    const r = await p.evaluate(([u, m]) => window.convert(u, 30, m), [f, map]);
-    clips.push({ name: path.basename(f).replace(/\.fbx$/i, ''), map, ...r });
+  for (const [f, map, clip = null] of files) {
+    const r = await p.evaluate(([u, m, c]) => window.convert(u, 30, m, c), [f, map, clip]);
+    clips.push({ name: clip ? 'UAL_' + clip : path.basename(f).replace(/\.fbx$/i, ''), map, ...r });
     console.log(f, r.duration.toFixed(2) + 's', Object.keys(r.rot).length, 'bones');
   }
   await b.close();
@@ -36,6 +41,8 @@ function readGlbJson(file) {
   writeGlb(OUT, clips.filter((c) => !c.map));
   const lic = clips.filter((c) => c.map === 'motifect');
   if (lic.length) writeGlb(path.join(ROOT, 'tools/models_src/motifect_anims.glb'), lic);
+  const ual = clips.filter((c) => c.map === 'ual');
+  if (ual.length) writeGlb(path.join(ROOT, 'tools/models_src/ual_anims.glb'), ual);
 })();
 
 function writeGlb(out, list) {

@@ -60,28 +60,37 @@ export async function fighterClips(char) {
   return [...mine, ...shared.filter((a) => !names.has(a.name))];
 }
 
+// The props the fighters hold (modelled in Blender: tools/blender/props.py). Optional: without
+// the file the game draws simple shapes instead.
+export const PROPS_URL = 'assets/models/props.glb';
+let propsPromise = null;
+export function propModels() {
+  if (!propsPromise) propsPromise = loadGLTF(PROPS_URL).then((g) => g.scene).catch(() => null);
+  return propsPromise;
+}
+
 // Files a match needs (for the loading bar).
 export function matchFiles(chars) {
-  return [ANIMS_URL, ...new Set(chars.map((c) => CHARACTERS[c].model))];
+  return [ANIMS_URL, PROPS_URL, ...new Set(chars.map((c) => CHARACTERS[c].model))];
 }
 
 export class GameView {
   static async create(chars, stage = 'street') {
-    const canImg = await canImage();
+    const [canImg, props] = await Promise.all([canImage(), propModels()]);
     const [g0, g1] = await Promise.all(chars.map((c) => loadGLTF(CHARACTERS[c].model)));
     const fighters = [];
     for (let i = 0; i < 2; i++) {
       const tint = i === 1 && chars[0] === chars[1] ? 0x9fc6ff : null; // mirror match: tint P2
       fighters.push(new Character(i ? g1 : g0, { tint, extraClips: await fighterClips(chars[i]) }));
     }
-    return new GameView(fighters, canImg, stage);
+    return new GameView(fighters, canImg, stage, props);
   }
 
-  constructor(fighters, canImg, stage) {
+  constructor(fighters, canImg, stage, props = null) {
     this.arena = new Arena(canImg, stage);
     this.scene = this.arena.scene;
     this.chars = fighters;
-    this.fx = new Effects(this.scene, canImg);
+    this.fx = new Effects(this.scene, canImg, props);
     const shadowTex = shadowTexture();
     this.shadows = fighters.map((c) => {
       this.scene.add(c.root);

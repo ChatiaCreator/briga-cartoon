@@ -8,3 +8,6 @@ tools/optimize/node_modules/
 # Motifect pack: licensed for use in the game, raw files may not be redistributed
 tools/mixamo/in_motifect/
 tools/models_src/motifect_anims.glb
+
+# Quaternius Universal Animation Library (CC0, 23 MB): only the converted clips are kept (tools/models_src/ual_anims.glb)
+tools/mixamo/in_ual/

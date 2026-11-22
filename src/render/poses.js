@@ -139,6 +139,9 @@ const MA = {
   jumpSpin: ['MA_Tkd_Jump_Spinning_Kick', 1.5, 2.25, 2.35, 2.8, 0, false, TRAVEL],
 };
 const FFA = 'Fist_Fight_A', KJU = 'Knee_Jabs_To_Uppercut', UJ = 'Uppercut_Jab', EUC = 'Elbow_Uppercut_Combo';
+// Front kick: guard, knee up, leg straight out (foot highest at 1.15-1.25 s), back down.
+const FRONT_KICK = ['Front_Kick', 0.9, 1.2, 1.28, 1.6, 0, false, TRAVEL];
+const FRONT_KICK_MIRROR = ['Front_Kick_Mirror', 0.9, 1.2, 1.28, 1.6, 0, false, TRAVEL];
 // Uppercut out of the crouch, from Mixamo "Uppercut Jab".
 const UPPERCUT = [UJ, 0.5, 0.86, 0.95, 1.3, 0, false, TRAVEL];
 const CLIP_ATTACKS = {
@@ -167,7 +170,10 @@ const CLIP_ATTACKS = {
     ...MIXAMO_ATTACKS,
     hp: ['Illegal_Headbutt', 0.4, 0.84, 0.92, 1.4, 0, false, TRAVEL],    // headbutt
     tc: ['Illegal_Headbutt', 0.2, 0.84, 0.92, 1.45, 0, false, TRAVEL],
-    lk: MA.frontHigh, hk: MA.mtRound, tc2: MA.axeKick,
+    // Front kick (Mixamo "Kicking"); kicking again throws it with the other leg (the same clip
+    // mirrored in Blender: tools/blender/mirror_anim.py).
+    lk: FRONT_KICK, lk2: FRONT_KICK_MIRROR,
+    hk: MA.mtRound, tc2: MA.axeKick,
     jhk: ['Flying_Bicycle_Kick', 0.0, 0.3, 0.45, 0.66, 0, false, AIRCLIP], // bicycle kick in the air
     special: ['Running_Slide', 0.05, 0.3, 0.75, 1.3, 0, false, TRAVEL],   // CARRINHO
     dodge: ['Long_Right_Side_Step', 0.05, 0.4, 0.4, 0.8, 0, false, TRAVEL],
@@ -205,7 +211,9 @@ const CLIP_ATTACKS = {
   },
   trump: {
     ...MIXAMO_ATTACKS,
-    hp: [FFA, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL],          // hook from "Fist Fight A"
+    // Straight cross from Quaternius' "Universal Animation Library" (CC0, converted from its
+    // Unreal-style rig: tools/mixamo/convert.html, map "ual"); arm out 0.27-0.53 s.
+    hp: ['UAL_Punch_Cross', 0.1, 0.27, 0.36, 0.85, 0, false, TRAVEL],
     tc: ['Boxing', 0.2, 0.6, 0.72, 1.5, 0, false, TRAVEL],      // ACORDO FECHADO: lunging haymaker
     tc2: MA.mtRound,
     special: [UJ, 1.5, 1.98, 2.06, 2.45, 0, false, TRAVEL],   // TARIFAÇO: long lunging straight

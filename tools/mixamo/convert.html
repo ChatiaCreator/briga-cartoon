@@ -15,7 +15,26 @@ const MAPS = {
     LeftEye: '-', RightEye: '-', LeftLeg: 'LeftUpLeg', LeftShin: 'LeftLeg', RightLeg: 'RightUpLeg', RightShin: 'RightLeg',
     LeftHandIndex4: '-', LeftHandMiddle4: '-', LeftHandRing4: '-', LeftHandPinky4: '-',
     RightHandIndex4: '-', RightHandMiddle4: '-', RightHandRing4: '-', RightHandPinky4: '-' },
+  // Unreal-style skeleton (Quaternius "Universal Animation Library", CC0): pelvis, spine_01-03,
+  // upperarm_l, lowerarm_l, thigh_l, calf_l, ball_l, index_01_l…
+  ual: (() => {
+    const m = { root: '-', pelvis: 'Hips', spine_01: 'Spine', spine_02: 'Spine1', spine_03: 'Spine2', neck_01: 'Neck', Head: 'Head' };
+    for (const [s, S] of [['l', 'Left'], ['r', 'Right']]) {
+      Object.assign(m, { [`clavicle_${s}`]: `${S}Shoulder`, [`upperarm_${s}`]: `${S}Arm`, [`lowerarm_${s}`]: `${S}ForeArm`,
+        [`hand_${s}`]: `${S}Hand`, [`thigh_${s}`]: `${S}UpLeg`, [`calf_${s}`]: `${S}Leg`, [`foot_${s}`]: `${S}Foot`,
+        [`ball_${s}`]: `${S}ToeBase`, [`ball_leaf_${s}`]: `${S}Toe_End` });
+      for (const f of ['thumb', 'index', 'middle', 'ring', 'pinky']) {
+        const F = f[0].toUpperCase() + f.slice(1);
+        for (let k = 1; k <= 3; k++) m[`${f}_0${k}_${s}`] = `${S}Hand${F}${k}`;
+        m[`${f}_04_leaf_${s}`] = `${S}Hand${F}4`;
+      }
+    }
+    return m;
+  })(),
 };
+// Files with many clips (the UAL has 43) are loaded once.
+const fbxCache = new Map();
+const loadFbx = (url) => { if (!fbxCache.has(url)) fbxCache.set(url, new FBXLoader().loadAsync(url)); return fbxCache.get(url); };
 let MAP = null;
 const rename = (n) => { const c = clean(n); return MAP && MAP[c] ? MAP[c] : c; };
 const bonesOf = (root, map = false) => { const m = new Map(); root.traverse((o) => { if (o.isBone || /mixamorig/.test(o.name)) { const k = map ? rename(o.name) : clean(o.name); if (k !== '-' && !m.has(k)) m.set(k, o); } }); return m; };
@@ -40,10 +59,12 @@ window.inspect = async (url) => {
 // Retarget a Mixamo clip onto the fighters' skeleton. The two rigs share bone names but not
 // bone axes, so each bone copies the source's change of WORLD rotation from its rest pose,
 // plus a fixed correction that lines up the rest-pose bone directions (T-pose vs A-pose).
-window.convert = async (url, fps = 30, map = null) => {
+// clipName picks one clip of a file that holds several (default: the first).
+window.convert = async (url, fps = 30, map = null, clipName = null) => {
   MAP = map ? MAPS[map] : null;
-  const fbx = await new FBXLoader().loadAsync(url);
-  const clip = fbx.animations[0];
+  const fbx = await loadFbx(url);
+  const clip = clipName ? fbx.animations.find((a) => a.name === clipName || a.name.endsWith('|' + clipName)) : fbx.animations[0];
+  if (!clip) throw new Error(`clip ${clipName} not in ${url}: ${fbx.animations.map((a) => a.name).join(', ')}`);
   const sBones = bonesOf(fbx, true);
   const names = [...tBones.keys()].filter((n) => sBones.has(n));
   const restQ = (map) => { const r = new Map(); for (const [n, b] of map) r.set(n, b.getWorldQuaternion(new THREE.Quaternion())); return r; };
@@ -52,6 +73,16 @@ window.convert = async (url, fps = 30, map = null) => {
   const tRestLocal = new Map([...tBones].map(([n, b]) => [n, [b.quaternion.clone(), b.position.clone()]]));
   const sRestLocal = new Map([...sBones].map(([n, b]) => [n, [b.quaternion.clone(), b.position.clone()]]));
   const sRest = restQ(sBones), tRest = restQ(tBones);
+  // Rigs built with another "up" (Unreal's Z-up UAL lies on its back in this Y-up world): M tilts
+  // the source's world so its up (hips to head, at rest) matches the target's. Only the tilt: a rig
+  // saved standing sideways in its guard (as Blender exports do) is not turned around. Mixamo and
+  // Motifect rigs already stand up straight (M stays exactly identity).
+  const upOf = (bones) => restP(bones.get('Head')).sub(restP(bones.get('Hips'))).normalize();
+  let M = new THREE.Quaternion().setFromUnitVectors(upOf(sBones), upOf(tBones));
+  const turned = 2 * Math.acos(Math.min(1, Math.abs(M.w))) > 0.35;
+  if (!turned) M = new THREE.Quaternion();
+  const Mi = M.clone().invert();
+  const restPS = (b) => (turned ? restP(b).applyQuaternion(M) : restP(b)); // source positions, target's frame
   // Correction per bone: rotate the target's rest bone direction onto the source's.
   const corr = new Map();
   for (const n of names) {
@@ -60,23 +91,32 @@ window.convert = async (url, fps = 30, map = null) => {
     if (!tc) { corr.set(n, new THREE.Quaternion()); continue; }
     const sc = sBones.get(clean(tc.name));
     if (!sc) { corr.set(n, new THREE.Quaternion()); continue; }
-    const dT = restP(tc).sub(restP(tb)).normalize(), dS = restP(sc).sub(restP(sb)).normalize();
+    const dT = restP(tc).sub(restP(tb)).normalize(), dS = restPS(sc).sub(restPS(sb)).normalize();
     corr.set(n, new THREE.Quaternion().setFromUnitVectors(dT, dS));
   }
   // Hips height ratio for the root motion.
   const hipsT = tBones.get('Hips'), hipsS = sBones.get('Hips');
-  let scale = restP(hipsT).y / restP(hipsS).y;
-  const hipsRestS = restP(hipsS), hipsRestT = restP(hipsT);
+  let scale = restP(hipsT).y / restPS(hipsS).y;
+  const hipsRestS = restPS(hipsS), hipsRestT = restP(hipsT);
   // Rigs whose rest hips sit at the origin (Motifect): measure heights from the feet instead,
   // so the clip's standing hips land on the fighter's standing hips.
   if (map) {
-    const footY = (m) => Math.min(restP(m.get('LeftFoot')).y, restP(m.get('RightFoot')).y);
-    const gS = footY(sBones), gT = footY(tBones);
+    const footY = (m, P) => Math.min(P(m.get('LeftFoot')).y, P(m.get('RightFoot')).y);
+    const gS = footY(sBones, restPS), gT = footY(tBones, restP);
     scale = (hipsRestT.y - gT) / (hipsRestS.y - gS);
     hipsRestS.y = gS + (hipsRestT.y - gT) / scale; // the source's standing hips height
     // Rest hips sit at the origin: take the clip's first frame as the standing spot.
-    const hp = clip.tracks.find((t) => /Hips\.position$/.test(t.name));
-    if (hp) { hipsRestS.x = hp.values[0]; hipsRestS.z = hp.values[2]; hipsRestS.y = hp.values[1]; }
+    const hp = clip.tracks.find((t) => {
+      const { nodeName, propertyName } = THREE.PropertyBinding.parseTrackName(t.name);
+      return propertyName === 'position' && rename(nodeName) === 'Hips';
+    });
+    if (hp && !turned) { hipsRestS.x = hp.values[0]; hipsRestS.z = hp.values[2]; hipsRestS.y = hp.values[1]; }
+    if (hp && turned) {
+      // The hips track is in its parent's space there: measure the first frame in world space.
+      hipsS.position.fromArray(hp.createInterpolant().evaluate(0)); fbx.updateMatrixWorld(true);
+      const p0 = restPS(hipsS); hipsRestS.x = p0.x; hipsRestS.z = p0.z; hipsRestS.y = p0.y;
+      const [, rp] = sRestLocal.get('Hips'); hipsS.position.copy(rp); fbx.updateMatrixWorld(true);
+    }
   }
 
   const interps = clip.tracks.map((tr) => {
@@ -104,7 +144,7 @@ window.convert = async (url, fps = 30, map = null) => {
     fbx.updateMatrixWorld(true);
     for (const [k, [rq, rp]] of tRestLocal) { const b = tBones.get(k); b.quaternion.copy(rq); b.position.copy(rp); }
     // Hips position: the source's displacement from rest, scaled, in the target's parent space.
-    const dp = restP(hipsS).sub(hipsRestS).multiplyScalar(scale);
+    const dp = restPS(hipsS).sub(hipsRestS).multiplyScalar(scale);
     const wp = hipsRestT.clone().add(dp);
     hipsT.position.copy(hipsT.parent.worldToLocal(wp));
     target.scene.updateMatrixWorld(true);
@@ -112,7 +152,8 @@ window.convert = async (url, fps = 30, map = null) => {
       const tb = tBones.get(k);
       const Gs = sBones.get(k).getWorldQuaternion(new THREE.Quaternion());
       // Gt = Gs * inv(GsRest) * C * GtRest
-      q.copy(Gs).multiply(sRest.get(k).clone().invert()).multiply(corr.get(k)).multiply(tRest.get(k));
+      if (turned) q.copy(M).multiply(Gs).multiply(sRest.get(k).clone().invert()).multiply(Mi).multiply(corr.get(k)).multiply(tRest.get(k));
+      else q.copy(Gs).multiply(sRest.get(k).clone().invert()).multiply(corr.get(k)).multiply(tRest.get(k));
       tb.parent.getWorldQuaternion(pq);
       tb.quaternion.copy(pq.invert().multiply(q));
       tb.updateMatrixWorld(true);
@@ -121,6 +162,9 @@ window.convert = async (url, fps = 30, map = null) => {
     hipsPos.push(...hipsT.position.toArray());
   }
   for (const [k, [rq, rp]] of tRestLocal) { const b = tBones.get(k); b.quaternion.copy(rq); b.position.copy(rp); }
+  // Back to rest, so the next clip of a cached file starts from the right pose.
+  for (const [k, [rq, rp]] of sRestLocal) { const b = sBones.get(k); b.quaternion.copy(rq); b.position.copy(rp); }
+  fbx.updateMatrixWorld(true);
   return { duration: clip.duration, times, rot: Object.fromEntries(rot), hipsPos };
 };
 window.ready = true;

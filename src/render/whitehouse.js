@@ -6,6 +6,43 @@
 // fighters. Metres; the fight line at z = 0.
 import * as THREE from 'three';
 import { sfx } from '../audio.js';
+import { loadGLTF } from './character.js';
+import { toonProp } from './effects.js';
+import { glowTexture } from './textures.js';
+
+// The fence's stone pillars with their lanterns, in 3D on the plaza at both sides (modelled in
+// Blender: tools/blender/whitehouse_props.py). Standing between the fighters and the painting,
+// they slide against it as the camera pans, which gives the stage depth.
+const PILLARS_URL = 'assets/models/whitehouse_props.glb';
+const PILLAR_SPOTS = [[-5.9, -4.2], [5.9, -4.2]];
+const LANTERN_Y = 2.33;
+
+function addPillars(arena) {
+  loadGLTF(PILLARS_URL).then((gltf) => {
+    if (!arena.wh) return; // the match ended while loading
+    const src = gltf.scene.getObjectByName('Pillar');
+    const glow = glowTexture('rgba(255,190,90,0.9)');
+    for (const [x, z] of PILLAR_SPOTS) {
+      const p = toonProp(src);
+      p.position.set(x, 0, z);
+      p.traverse((o) => {
+        if (!o.isMesh) return;
+        o.receiveShadow = true;
+        // The lantern glass glows (unlit, warm).
+        if (o.name === 'LanternGlass') { o.material = new THREE.MeshBasicMaterial({ color: 0xffd28a }); o.children.forEach((c) => { c.visible = false; }); }
+      });
+      arena.scene.add(p);
+      const light = new THREE.PointLight(0xffb45a, 5, 7, 1.6);
+      light.position.set(x, LANTERN_Y, z + 0.3);
+      arena.scene.add(light);
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      halo.position.set(x, LANTERN_Y, z + 0.05);
+      halo.scale.setScalar(1.1);
+      arena.scene.add(halo);
+      arena.wh.lanterns.push({ light, halo });
+    }
+  }).catch(() => {}); // optional: without the file the painting alone stays
+}
 
 // Drawn further and smaller than the floor's scale so the whole house, the flag and the lightning
 // fit the camera; its sides are mirrored copies of the painting's edges.
@@ -71,7 +108,8 @@ export function buildWhitehouse(arena) {
   rain.frustumCulled = false;
   s.add(rain);
 
-  arena.wh = { hemi, red, blue, flash, backMat, floorMat, drops, pos, geo, next: 3 + Math.random() * 4, bolt: -1 };
+  arena.wh = { hemi, red, blue, flash, drops, pos, geo, next: 3 + Math.random() * 4, bolt: -1, lanterns: [] };
+  addPillars(arena);
 }
 
 export function updateWhitehouse(a, dt, T) {
@@ -91,6 +129,12 @@ export function updateWhitehouse(a, dt, T) {
   w.flash.material.opacity = 0.32 * k;
   w.hemi.intensity = 1.35 + 2.2 * k;
   a.sun.intensity = 1.9 + 2.5 * k;
+  // Lantern flames flicker a little.
+  for (const [i, l] of w.lanterns.entries()) {
+    const f = 1 + Math.sin(T * 13 + i * 2) * 0.06 + Math.sin(T * 29 + i) * 0.04;
+    l.light.intensity = 5 * f;
+    l.halo.scale.setScalar(1.1 * f);
+  }
   // The spotlights sway a little, like the painting's beams.
   w.red.intensity = 14 + Math.sin(T * 1.3) * 2;
   w.blue.intensity = 14 + Math.sin(T * 1.1 + 2) * 2;

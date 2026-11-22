@@ -4,9 +4,40 @@ import { bagTexture, burstTexture, glowTexture } from './textures.js';
 
 const HIT_WORDS = ['POW!', 'BAM!', 'TUM!', 'PAF!', 'CRÁ!'];
 
+// Black outline around a prop, like the fighters' (the back faces pushed out along the normals).
+const PROP_OUTLINE = (() => {
+  const m = new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.BackSide });
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n transformed += normalize(normal) * 0.0035;');
+  };
+  return m;
+})();
+
+// A modelled prop (assets/models/props.glb, made in Blender by tools/blender/props.py) in the
+// game's cartoon look: toon materials with the model's colours and textures, and an outline.
+export function toonProp(src) {
+  const o = src.clone(true);
+  const meshes = [];
+  o.traverse((m) => { if (m.isMesh) meshes.push(m); });
+  const toon = new Map();
+  const conv = (mt) => {
+    if (!toon.has(mt)) toon.set(mt, new THREE.MeshToonMaterial({ color: mt.color.clone(), map: mt.map || null }));
+    return toon.get(mt);
+  };
+  for (const m of meshes) {
+    m.material = Array.isArray(m.material) ? m.material.map(conv) : conv(m.material);
+    m.castShadow = true;
+    m.add(new THREE.Mesh(m.geometry, PROP_OUTLINE));
+  }
+  return o;
+}
+
 export class Effects {
-  constructor(scene, canImg) {
+  // props: the scene of assets/models/props.glb, or null (then simple shapes stand in).
+  constructor(scene, canImg, props = null) {
     this.scene = scene;
+    const model = (name) => { const n = props?.getObjectByName(name); return n ? toonProp(n) : null; };
     this.items = [];
     this.bursts = {
       light: burstTexture('', '#fff59d', '#ff9800'),
@@ -23,6 +54,7 @@ export class Effects {
     const front = new THREE.MeshToonMaterial({ map: bagTex });
     this.bagGeo = new THREE.BoxGeometry(0.34, 0.44, 0.14);
     this.bagMats = [side, side, side, side, front, front];
+    this.bagModel = model('Bag');
     this.handBag = this.makeBag();
     this.handBag.visible = false;
     scene.add(this.handBag);
@@ -39,7 +71,7 @@ export class Effects {
     }
     const top = new THREE.MeshToonMaterial({ color: 0xbbbbbb });
     const body = new THREE.MeshToonMaterial({ map: canTex, color: canTex ? 0xffffff : 0x111111 });
-    this.can = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.24, 20), [body, top, top]);
+    this.can = model('Can') || new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.24, 20), [body, top, top]);
     this.can.visible = false;
     scene.add(this.can);
 
@@ -54,6 +86,15 @@ export class Effects {
     tip.position.y = 0.275; tip.scale.y = 0.5;
     this.joint.add(paper, filter, tip);
     this.joint.userData.tip = tip;
+    const jointModel = model('Joint');
+    if (jointModel) {
+      // The lit end glows (unlit, recoloured during a drag).
+      const t = jointModel.getObjectByName('Tip');
+      t.material = new THREE.MeshBasicMaterial({ color: 0xff6a1a });
+      t.children.forEach((c) => { c.visible = false; });
+      jointModel.userData.tip = t;
+      this.joint = jointModel;
+    }
     this.joint.visible = false;
     scene.add(this.joint);
     this.smokeTex = glowTexture('rgba(225,236,222,0.5)');
@@ -66,7 +107,9 @@ export class Effects {
     scene.add(this.lighter);
 
     // HGL's screwdriver (along +Y: red and yellow handle, steel shaft and tip).
+    const screwdriverModel = model('Screwdriver');
     this.makeScrewdriver = () => {
+      if (screwdriverModel) return screwdriverModel.clone();
       const g = new THREE.Group();
       const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.13, 10), new THREE.MeshToonMaterial({ color: 0xe8402e }));
       const band = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.03, 10), new THREE.MeshToonMaterial({ color: 0xffd23f }));
@@ -90,6 +133,7 @@ export class Effects {
     const grip = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.11, 0.05), gunMat);
     grip.position.set(0, -0.04, -0.01); grip.rotation.x = -0.25;
     this.gun.add(slide, grip);
+    this.gun = model('Pistol') || this.gun;
     this.gun.visible = false;
     scene.add(this.gun);
     this.bulletGeo = new THREE.CapsuleGeometry(0.03, 0.1, 3, 8).rotateZ(Math.PI / 2);
@@ -139,6 +183,7 @@ export class Effects {
   }
 
   makeBag() {
+    if (this.bagModel) return this.bagModel.clone();
     const m = new THREE.Mesh(this.bagGeo, this.bagMats);
     m.castShadow = true;
     return m;
