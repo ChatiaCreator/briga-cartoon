@@ -633,6 +633,7 @@ const PORTRAIT_FILES = {
   anderon: 'assets/portraits/anderon.webp',
   hgl: 'assets/portraits/hgl.webp',
   davidson: 'assets/portraits/davidson.webp',
+  trump: 'assets/portraits/trump.webp', // made by tools/optimize/portrait_cutout.mjs
 };
 
 async function makePortraits() {

@@ -3,7 +3,7 @@
 import { delayFor } from './rollback.js';
 
 const PREFIX = 'briga-cartoon-v1-';
-export const NET_VERSION = 9; // 9: AGARRÃO and the spinning sweep off
+export const NET_VERSION = 10; // 10: combo step-in, air combos, BOSS Trump, Casa Branca (9: AGARRÃO and the spinning sweep off)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function makeCode() {
