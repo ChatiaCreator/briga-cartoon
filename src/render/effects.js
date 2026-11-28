@@ -1,6 +1,6 @@
 // Visual effects: impact bursts, dog food bags and kibble, the GARRA can, buff aura, dust.
 import * as THREE from 'three';
-import { bagTexture, burstTexture, glowTexture } from './textures.js';
+import { bagTexture, burstTexture, glowTexture, ringTexture } from './textures.js';
 
 const HIT_WORDS = ['POW!', 'BAM!', 'TUM!', 'PAF!', 'CRÁ!'];
 
@@ -149,6 +149,23 @@ export class Effects {
     this.kibbleGeo = new THREE.DodecahedronGeometry(0.05, 0);
     this.kibbleMat = new THREE.MeshToonMaterial({ color: 0x7a4419 });
     this.kibble = [];
+  }
+
+  // "FAZ O L!": green and yellow shock-wave rings bursting out of the fighter, one standing up
+  // facing the camera and one flat on the floor, with dust.
+  wave(x) {
+    if (!this.waveTex) this.waveTex = [ringTexture('rgba(40,220,90,0.95)'), ringTexture('rgba(255,220,40,0.95)')];
+    const at = new THREE.Vector3(x / 1000, 1.0, 0.4);
+    this.sprite(this.waveTex[0], at, 2.2, 0.55, { grow: 6, additive: true, depthTest: true });
+    this.sprite(this.waveTex[1], at.clone(), 1.6, 0.7, { grow: 7.5, additive: true, depthTest: true });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: this.waveTex[1], transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(x / 1000, 0.03, 0);
+    this.scene.add(floor);
+    this.floorWaves = this.floorWaves || [];
+    this.floorWaves.push({ obj: floor, age: 0 });
+    this.dust(x);
   }
 
   // Phone call heal: a green "+18" rising from the head and sparkles.
@@ -359,6 +376,17 @@ export class Effects {
   }
 
   update(dt) {
+    // Floor rings of the "FAZ O L!" wave: spread out and fade.
+    if (this.floorWaves?.length) {
+      this.floorWaves = this.floorWaves.filter((w) => {
+        w.age += dt;
+        const k = w.age / 0.7;
+        if (k >= 1) { this.scene.remove(w.obj); w.obj.material.dispose(); w.obj.geometry.dispose(); return false; }
+        w.obj.scale.setScalar(0.6 + 7 * k);
+        w.obj.material.opacity = 1 - k;
+        return true;
+      });
+    }
     const keep = [];
     for (const it of this.items) {
       it.age += dt;

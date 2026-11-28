@@ -50,6 +50,10 @@ export class Cpu {
     // Air combo (after a launcher or jumping in): CHUTE, then CHUTE+ while the first one connects.
     const AIR = [LK, 0, 0, 0, 0, 0, 0, 0, 0, 0, HK];
 
+    // Anti-air: an opponent jumping in close gets the UPPER (back + SOCO+).
+    if (o.y > 250 && (o.st === 'air' || o.st === 'attack')) {
+      if (dist < 1500 && r < 0.08 + lv * 0.27) { this.plan([back | HP, 0], 0, 20); return; }
+    }
     // Defend against attacks and incoming bags.
     const threatened = (o.st === 'attack' && dist < 1500) || g.proj.some((p) => p.owner !== this.i && Math.abs(p.x - me.x) < 1800);
     // Sometimes slip a close attack with the ESQUIVA (double tap back) instead of blocking.
@@ -62,7 +66,7 @@ export class Cpu {
       this.plan([], back | (low ? DOWN : 0), react + 6);
       return;
     }
-    if (me.meter >= 1000 && (me.char === 'anderon' || me.char === 'davidson' ? me.hp < me.maxHp * 0.75 : me.char === 'trump' ? dist < 2300 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
+    if (me.meter >= 1000 && (me.char === 'anderon' || me.char === 'davidson' ? me.hp < me.maxHp * 0.75 : me.char === 'trump' ? dist < 2300 : me.char === 'lula' ? dist < 1500 : me.char !== 'hotmonster' || dist < 3000) && r < 0.5) {
       this.plan([SUP, 0], 0, 20);
       return;
     }
@@ -93,6 +97,8 @@ export class Cpu {
       [DOWN | LK, DOWN, DOWN, DOWN, DOWN, DOWN, DOWN | HK],
       [LP, DOWN, DOWN | fwd, fwd, fwd | LP],
       [HP], [HK], [DOWN | HP], [DOWN | HK], [LP], [LK],
+      // CRUZADO into the special; the overhead kick against a crouching opponent.
+      [fwd | HP, ...new Array(13).fill(0), LP | HP], [fwd | LK],
     ];
     // Each fighter's own sequence, and the crouching uppercut launcher with an air kick.
     const z = (n, v = 0) => new Array(n).fill(v);

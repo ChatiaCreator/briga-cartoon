@@ -22,7 +22,7 @@ const renderer = createRenderer($('stage'));
 const hud = new Hud();
 attachKeyboard();
 const touch = initTouch({ onPause: () => openPause() });
-const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'LIGANDO PRA CASADA!', hgl: 'CHAVE DE FENDA!', davidson: 'BASEADO GIGANTE!', trump: 'VOCÊ ESTÁ DEMITIDO!' };
+const SUPER_NAMES = { hotmonster: 'CHUVA DE RAÇÃO!', flash: 'GARRA ENERGY!', genildo: 'TOLERÂNCIA ZERO!', anderon: 'LIGANDO PRA CASADA!', hgl: 'CHAVE DE FENDA!', davidson: 'BASEADO GIGANTE!', trump: 'VOCÊ ESTÁ DEMITIDO!', lula: 'FAZ O L!' };
 const canFull = !!document.documentElement.requestFullscreen;
 if (canFull) {
   $('fullBtn').classList.remove('hidden');
@@ -38,13 +38,15 @@ let match = null;        // the running fight
 let session = null;      // online session
 const sel = { mode: 'local', chars: ['hotmonster', 'flash'], stage: 'street' };
 export const STAGES = ['street', 'beach', 'petshop', 'marcozero', 'brasilia', 'whitehouse'];
-// The boss stage: drawn by "random" only when Trump is in the fight (and always then).
-const BOSS_STAGE = 'whitehouse';
+// Boss stages: "random" gives the boss's own stage when a boss fights (Trump: the White House,
+// only drawn then; Lula: Brasília). Two bosses: one of their stages.
+const BOSS_ONLY = ['whitehouse'];
 // "random" is picked when the match starts (by the host, online).
 function resolveStage(s, chars = []) {
   if (STAGES.includes(s)) return s;
-  if (chars.some((c) => CHARACTERS[c]?.boss)) return BOSS_STAGE;
-  const pool = STAGES.filter((x) => x !== BOSS_STAGE);
+  const own = chars.map((c) => CHARACTERS[c]?.boss && CHARACTERS[c].stage).filter(Boolean);
+  if (own.length) return own[Math.floor(Math.random() * own.length)];
+  const pool = STAGES.filter((x) => !BOSS_ONLY.includes(x));
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -56,6 +58,7 @@ const DESCR = {
   davidson: 'Capoeirista. Especial: CHAPA GIRATÓRIA, chute giratório que avança e derruba. Super: BASEADO GIGANTE, fuma e recupera vida (se não apanhar). Combo: CHUTE, CHUTE+.',
   anderon: 'Capoeira e boxe. Especial: ARMADA, chute giratório que avança e derruba. Super: LIGANDO PRA CASADA, recupera vida (se não apanhar). Combo: SOCO+, CHUTE+.',
   trump: 'BOSS. Mais vida, mais lento e pesado. Especial: TARIFAÇO, um direto longo que avança e derruba. Super: VOCÊ ESTÁ DEMITIDO!, aponta o dedo e arremessa o adversário longe, mesmo de média distância. Combo: SOCO, SOCO, SOCO+.',
+  lula: 'BOSS. Mais vida, pesado e forte. Especial: PICANHA, uma investida de ombro que atravessa a arena e derruba. Super: FAZ O L!, ergue a mão e solta uma onda verde e amarela em volta dele, arremessando quem estiver perto (até atrás dele). Combo: SOCO, SOCO, SOCO+.',
 };
 
 // ---------- Screens ----------
@@ -448,6 +451,7 @@ function handleEvents(events) {
         if (f.char === 'flash' && ev.mv === 'super') { announce('Garra Energy!', 'super-flash'); setTimeout(() => sfx('glug'), 900); }
         else if (f.char === 'anderon' && ev.mv === 'super') { sfx('ring'); announce('Ligando pra casada!', 'super-anderon'); }
         else if (f.char === 'davidson' && ev.mv === 'super') { sfx('power'); announce('Baseado gigante!', 'super-davidson'); }
+        else if (f.char === 'lula' && ev.mv === 'super') { sfx('power'); announce('Faz o L!', 'super-lula'); }
         else if (f.char === 'trump' && ev.mv === 'super') { sfx('power'); announce('Você está demitido!', 'super-trump'); }
         else if (f.char === 'hgl' && ev.mv === 'super') { sfx('power'); setTimeout(() => sfx('spin'), 500); announce('Chave de fenda!', 'super-hgl'); }
         else if (ev.mv === 'super') { sfx('power'); announce(f.char === 'genildo' ? 'Tolerância zero!' : 'Chuva de ração!', `super-${f.char}`); }
@@ -634,6 +638,7 @@ const PORTRAIT_FILES = {
   hgl: 'assets/portraits/hgl.webp',
   davidson: 'assets/portraits/davidson.webp',
   trump: 'assets/portraits/trump.webp', // made by tools/optimize/portrait_cutout.mjs
+  lula: 'assets/portraits/lula.webp',
 };
 
 async function makePortraits() {

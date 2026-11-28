@@ -15,7 +15,7 @@ import sharp from 'sharp';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const SRC = path.join(ROOT, 'tools/models_src');
 const OUT = path.join(ROOT, 'assets/models');
-const FIGHTERS = ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump'];
+const FIGHTERS = ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump', 'lula'];
 
 await MeshoptEncoder.ready; await MeshoptDecoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });

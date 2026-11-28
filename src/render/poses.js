@@ -121,6 +121,11 @@ const MIXAMO_ATTACKS = {
   // Air punches: a jab and a long straight thrown from the jump.
   jlp: ['Punching', 0.2, 0.4, 0.46, 0.7, 0, false, AIR_UPPER],
   jhp: ['Boxing', 0.2, 0.6, 0.72, 1.0, 0, false, AIR_UPPER],
+  // Direction moves: CRUZADO (the punch of the boxing guard, with a step in), UPPER (out of
+  // "Elbow Uppercut Combo"), CHUTE POR CIMA (axe kick).
+  cross: ['Boxing_Guard_A', 0.15, 0.4, 0.5, 0.9, 0, false, TRAVEL],
+  upper: ['Elbow_Uppercut_Combo', 1.0, 1.33, 1.43, 1.9, 0, false, TRAVEL],
+  over: ['MA_Tkd_Axe_Kick', 0.9, 1.3, 1.42, 1.65, 0, false, TRAVEL],
 };
 // Each fighter swaps a few moves for their own (Mixamo clips the player picked).
 const PEC = 'Punch_To_Elbow_Combo';
@@ -138,7 +143,7 @@ const MA = {
   jumpFront: ['MA_Tkd_Jump_Front_Kick', 0.9, 1.5, 1.62, 2.1, 0, false, TRAVEL],
   jumpSpin: ['MA_Tkd_Jump_Spinning_Kick', 1.5, 2.25, 2.35, 2.8, 0, false, TRAVEL],
 };
-const FFA = 'Fist_Fight_A', KJU = 'Knee_Jabs_To_Uppercut', UJ = 'Uppercut_Jab', EUC = 'Elbow_Uppercut_Combo';
+const FFA = 'Fist_Fight_A', FFA_M = 'Fist_Fight_A_Mirror', KJU = 'Knee_Jabs_To_Uppercut', UJ = 'Uppercut_Jab', EUC = 'Elbow_Uppercut_Combo';
 // Front kick: guard, knee up, leg straight out (foot highest at 1.15-1.25 s), back down.
 const FRONT_KICK = ['Front_Kick', 0.9, 1.2, 1.28, 1.6, 0, false, TRAVEL];
 const FRONT_KICK_MIRROR = ['Front_Kick_Mirror', 0.9, 1.2, 1.28, 1.6, 0, false, TRAVEL];
@@ -153,6 +158,8 @@ const CLIP_ATTACKS = {
     lk: [FFA, 3.38, 3.6, 3.72, 3.95, 0, false, TRAVEL],     // snap kick from "Fist Fight A"
     hk: ['Martelo_2', 0.1, 0.45, 0.62, 1.3],
     hp: [UJ, 1.7, 1.98, 2.06, 2.45, 0, false, TRAVEL],    // long straight from "Uppercut Jab"
+    // SOCO+ again and again: straight, hook, hook with the other hand ("Fist Fight A" mirrored in Blender).
+    hp2: [FFA, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL], hp3: [FFA_M, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL],
     chp: UPPERCUT,
     tc: ['Boxing', 0.2, 0.6, 0.72, 1.5, 0, false, TRAVEL],  // FÚRIA DO MONSTRO: lunging haymaker
     tc2: MA.spinHeel,
@@ -181,6 +188,8 @@ const CLIP_ATTACKS = {
   davidson: {
     ...MIXAMO_ATTACKS,
     lk: ['Pontera', 0.2, 0.52, 0.68, 1.05, 0, false, TRAVEL],           // ponteira (front kick)
+    // SOCO+ again and again: straight, hook, hook with the other hand ("Fist Fight A" mirrored in Blender).
+    hp2: [FFA, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL], hp3: [FFA_M, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL],
     hk: ['Chapa_Giratoria', 1.2, 1.76, 1.92, 2.3, 0, false, TRAVEL],    // chapa giratória
     tc: ['Chapa_Giratoria', 1.0, 1.76, 1.92, 2.3, 0, false, TRAVEL],
     tc2: MA.jumpSpin,
@@ -209,11 +218,20 @@ const CLIP_ATTACKS = {
     tc: [KJU, 3.1, 3.55, 3.66, 4.25, 0, false, TRAVEL],   // ENQUADRO: the uppercut after the knees
     hk: MA.teep, tc2: MA.bodyKick, fk: MA.jumpFront,
   },
+  lula: {
+    ...MIXAMO_ATTACKS,
+    hp: [UJ, 1.7, 1.98, 2.06, 2.45, 0, false, TRAVEL],   // long straight, then the hooks
+    hp2: [FFA, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL], hp3: [FFA_M, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL],
+    tc: [FFA, 2.45, 2.7, 2.76, 3.05, 0, false, TRAVEL],    // COMPANHEIRADA: a big hook
+    tc2: MA.mtRound,
+  },
   trump: {
     ...MIXAMO_ATTACKS,
     // Straight cross from Quaternius' "Universal Animation Library" (CC0, converted from its
     // Unreal-style rig: tools/mixamo/convert.html, map "ual"); arm out 0.27-0.53 s.
     hp: ['UAL_Punch_Cross', 0.1, 0.27, 0.36, 0.85, 0, false, TRAVEL],
+    // SOCO+ again and again: straight, hook, hook with the other hand ("Fist Fight A" mirrored in Blender).
+    hp2: [FFA, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL], hp3: [FFA_M, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL],
     tc: ['Boxing', 0.2, 0.6, 0.72, 1.5, 0, false, TRAVEL],      // ACORDO FECHADO: lunging haymaker
     tc2: MA.mtRound,
     special: [UJ, 1.5, 1.98, 2.06, 2.45, 0, false, TRAVEL],   // TARIFAÇO: long lunging straight
@@ -260,7 +278,9 @@ function attackPose(f, m, t) {
   const set = CLIP_ATTACKS[f.char] || CLIP_ATTACKS.flash;
   // Chained repeats of the same move cycle through its variants (lp, lp2, lp3…).
   const variants = [set[f.mv], set[f.mv + '2'], set[f.mv + '3'], set[f.mv + '4']].filter(Boolean);
-  const ca = variants[f.chain % Math.max(1, variants.length)];
+  // The strong punch alternates every time it is thrown (counted by view.js), not only in chains.
+  const pick = f.mv === 'hp' && f.hpCount != null ? f.hpCount : f.chain;
+  const ca = variants[pick % Math.max(1, variants.length)];
   if (ca) {
     const [clip, s0, a0, a1, r1, yaw = 0, ramp = false, opts = null] = ca;
     const S = m.startup, A = m.active, R = Math.max(1, m.recovery);
@@ -365,6 +385,20 @@ function specialPose(f, m) {
     return { ...CLIP, clip: 'run', clipTime: ((t / 60) * 2) % 1.25, spine: [0.3, -0.3, 0], alpha: 0.6 };
   }
   if (f.char === 'trump' && f.mv === 'special') return attackPose(f, m, 0); // TARIFAÇO
+  if (f.char === 'lula' && f.mv === 'special') {
+    // PICANHA: shoulder charge, the run clip at speed, leaning in.
+    return { ...CLIP, clip: 'run', clipTime: ((t / 60) * 1.8) % 1.25, spine: [0.35, -0.35, 0], alpha: 0.6 };
+  }
+  if (f.char === 'lula' && f.mv === 'super') {
+    // FAZ O L!: winds up, then throws the hand up high (the wave bursts on the first active
+    // frame), holds it and lowers it.
+    const WIND = withP(STANCE, { rh: [0.02, -0.06, -0.05], lh: [0, -0.04, 0], spine: [0.25, -0.3, 0], hip: [0, -0.06, 0] });
+    const UPH = withP(STANCE, { rh: [-0.03, 0.4, 0.05], lh: [0.04, -0.05, 0.05], spine: [-0.22, 0.25, 0], head: [-0.3, 0, 0], hip: [0, 0.02, 0] });
+    const S = m.startup, hold = S + m.active + 24;
+    if (t < S - 6) return { ...mixPose(STANCE, WIND, ease(clamp01(t / (S - 6)))), fists: true, alpha: 0.6, blend: 0.1 };
+    if (t < hold) return { ...mixPose(WIND, UPH, ease(clamp01((t - S + 6) / 6))), fists: true, alpha: 0.8 };
+    return { ...mixPose(UPH, STANCE, ease(clamp01((t - hold) / (m.startup + m.active + m.recovery - hold)))), fists: true, alpha: 0.6 };
+  }
   // VOCÊ ESTÁ DEMITIDO!: his own laugh clip, where he points straight at the opponent (the blast
   // leaves on the first active frame), then keeps laughing at them.
   if (f.char === 'trump' && f.mv === 'super') return attackPose(f, m, 0);
@@ -391,6 +425,7 @@ const IDLES = {
   genildo: ['Fight_Idle', 2.36], // Mixamo "Fight Idle": a firm guard
   davidson: ['Capoeira', 3.4, 1, true], // the ginga sways sideways: keep the body on its spot
   trump: ['Fight_Idle', 2.36],
+  lula: { clip: 'Boxing_Guard_B', from: 0.85, to: 2.0, period: 2.6 },
 };
 // The stances used before (kept in the game files so switching back is one line).
 export const PREVIOUS_IDLES = {
@@ -523,6 +558,8 @@ function rawPose(f, g, T) {
         // HGL shows off his screwdriver.
         if (f.char === 'hgl') return { ...CLIP, clip: 'box_01', clipTime: idleTime(T), hand: 'screwdriver' };
         // Trump waits with his arms folded (his model's own "fold_arms").
+        // Lula flexes, angry, before the fight.
+        if (f.char === 'lula') return { ...CLIP, clip: 'angry_01', clipTime: Math.min(3.4, secs * 1.5) };
         if (f.char === 'trump') return { ...CLIP, clip: 'fold_arms', clipTime: TRUMP_FOLD[0] + (secs % (TRUMP_FOLD[1] - TRUMP_FOLD[0])), lockXZ: true };
         // Anderson makes the "on the phone" gesture (no phone in his hand).
         if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 6.4 + 1.6 * (1 - Math.abs(((secs / 1.2) % 2) - 1)) };
@@ -612,6 +649,8 @@ function rawPose(f, g, T) {
       // HGL sings his victory (animation from his model).
       if (f.char === 'hgl') return { ...CLIP, clip: 'sing_02', clipTime: (t / 60) % 15, blend: 0.3 };
       // Trump laughs at the loser (his model's own "laugh_01").
+      // Lula dances the win.
+      if (f.char === 'lula') return { ...CLIP, clip: 'dance_05', clipTime: (t / 60) % 2.88, alpha: 0.35 };
       if (f.char === 'trump') return { ...CLIP, clip: 'laugh_01', clipTime: TRUMP_LAUGH[0] + ((t / 60) % (TRUMP_LAUGH[1] - TRUMP_LAUGH[0])), lockXZ: true, blend: 0.3 };
       // Anderson calls home to tell about the win.
       if (f.char === 'anderon') return { ...CLIP, clip: 'make_a_call_02', clipTime: 3.6 + Math.min(11, t / 60), blend: 0.3 };

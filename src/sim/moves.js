@@ -41,6 +41,17 @@ const normals = {
     throw: { kind: 'behind', name: 'ARREMESSO', range: 760, land: 60, after: 28, back: 1300, tech: 10, inv: 70 } },
   // ESQUIVA (tap back twice): ducks and slips back, untouchable for the first 14 frames.
   // No hitbox (it never becomes active); punishable at the end.
+  // Direction moves (see chooseMove in fighter.js).
+  // CRUZADO (forward + SOCO+): steps in with a cross and shoves the opponent far; cancels into the special.
+  cross: { rank: 2, startup: 10, active: 4, recovery: 18, dmg: 90, hitstun: 22, blockstun: 16, push: 330, height: 'mid',
+    box: [120, 1100, 950, 1500], travel: [0, 10, 26] },
+  // UPPER (back + SOCO+): rising punch against jumps; untouchable for its first frames, knocks a
+  // jumping opponent down (anyone hit in the air falls).
+  upper: { rank: 2, startup: 7, active: 6, recovery: 22, dmg: 85, hitstun: 20, blockstun: 14, push: 160, height: 'mid',
+    box: [60, 1000, 720, 2150], invuln: 6 },
+  // CHUTE POR CIMA (forward + CHUTE): slow axe kick that has to be blocked standing.
+  over: { rank: 2, startup: 18, active: 4, recovery: 18, dmg: 80, hitstun: 20, blockstun: 14, push: 160, height: 'high',
+    box: [120, 950, 900, 1750] },
   dodge: { rank: 0, startup: 22, active: 0, recovery: 6, dmg: 0, hitstun: 0, blockstun: 0, push: 0, height: 'mid', invuln: 14, travel: [1, 15, -46] },
 };
 
@@ -193,7 +204,7 @@ CHARACTERS.davidson = {
 // First BOSS. Heavier and slower than everyone, with more health. Brawls with big haymakers.
 CHARACTERS.trump = {
   name: 'Trump',
-  boss: true,
+  boss: true, stage: 'whitehouse', // the boss's own stage (drawn by "random" when he fights)
   hp: 1250, walk: 32, back: 26, jumpVy: 190, jumpVx: 36, gravity: 12,
   model: 'assets/models/trump.glb',
   combo: 'ACORDO FECHADO',
@@ -213,6 +224,31 @@ CHARACTERS.trump = {
     // (fly: they are thrown far, high and long). Untouchable while pointing; laughs afterwards.
     super: { rank: 4, startup: 26, active: 4, recovery: 60, dmg: 240, hitstun: 0, blockstun: 22, push: 300, height: 'mid', chip: 20,
       box: [150, 700, 2600, 1700], kd: true, fly: [150, 70], invuln: 30, blast: true },
+  },
+};
+
+// Second BOSS. Heavy like Trump, with a short-range area super.
+CHARACTERS.lula = {
+  name: 'Lula',
+  boss: true, stage: 'brasilia',
+  hp: 1250, walk: 33, back: 27, jumpVy: 190, jumpVx: 36, gravity: 12,
+  model: 'assets/models/lula.glb',
+  combo: 'COMPANHEIRADA',
+  targets: [{ from: 'lp', minChain: 1, btn: 'HP', to: 'tc' }, { from: 'hp', minChain: 0, btn: 'HK', to: 'tc2' }],
+  moves: {
+    ...normals,
+    hp: { ...normals.hp, startup: 8, recovery: 16, dmg: 95, push: 230 },
+    // Finisher of SOCO, SOCO, SOCO+ ("COMPANHEIRADA"): a lunging hook that knocks down.
+    tc: { rank: 2, startup: 10, active: 4, recovery: 20, dmg: 115, hitstun: 0, blockstun: 16, push: 260, height: 'mid',
+      box: [120, 1000, 900, 1550], travel: [0, 10, 26], kd: true },
+    tc2: tc2({ startup: 12, dmg: 110 }),
+    // Special "PICANHA": a big shoulder charge across the stage that knocks down.
+    special: { rank: 3, startup: 12, active: 14, recovery: 20, dmg: 105, hitstun: 0, blockstun: 18, push: 260, height: 'mid', chip: 10,
+      dash: 95, box: [60, 700, 650, 1600], kd: true },
+    // Super "FAZ O L!": raises the hand making the L and a green-and-yellow wave bursts out all
+    // around him (behind him too), throwing whoever is close far away. Untouchable while he raises it.
+    super: { rank: 4, startup: 28, active: 6, recovery: 46, dmg: 230, hitstun: 0, blockstun: 22, push: 300, height: 'mid', chip: 20,
+      box: [-1300, 0, 1500, 2000], kd: true, fly: [145, 65], invuln: 34, wave: true },
   },
 };
 

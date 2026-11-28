@@ -1,6 +1,6 @@
 # Fight Friends
 
-Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderson Silva**, **HGL** e **Davidson**, e o primeiro BOSS, **Trump**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em três cenários: a **rua** ao pôr do sol, a **praia**, o **Pet Shop Canaã**, o **Marco Zero**, **Brasília** e a **Casa Branca** (o cenário do BOSS: no "Sorteio", sai sempre que o Trump está na luta, e nunca sem ele).
+Jogo de luta cartoon 2.5D que roda no navegador, com **Hotmonster**, **Flash**, **Genildo**, **Anderson Silva**, **HGL** e **Davidson**, e os BOSS **Trump** e **Lula**. Dá para jogar online com um amigo, em 2 jogadores no mesmo PC ou contra o computador, em seis cenários: a **rua** ao pôr do sol, a **praia**, o **Pet Shop Canaã**, o **Marco Zero**, **Brasília** e a **Casa Branca**. No "Sorteio", cada BOSS luta no cenário dele: o Trump na Casa Branca (que só sai com ele) e o Lula em Brasília.
 
 **Jogar:** https://chatiacreator.github.io/briga-cartoon/
 
@@ -25,6 +25,7 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **Anderson Silva:** **ARMADA**, chute giratório de capoeira que avança e derruba.
   - **HGL** (mecânico): **CARRINHO**, desliza por baixo dos golpes altos e dos tiros e derruba. Só é defendido agachado.
   - **Trump** (BOSS, mais vida, mais lento e pesado): **TARIFAÇO**, um direto longo que avança e derruba.
+  - **Lula** (BOSS, mais vida, pesado): **PICANHA**, uma investida de ombro que atravessa a arena e derruba.
 - **Super:** precisa da barra cheia, que enche quando você bate e quando apanha.
   - **Hotmonster:** chuva de sacos de ração do céu.
   - **Flash:** bebe **GARRA Energy** e ganha +50% de dano e +20% de velocidade por 8 segundos.
@@ -32,6 +33,12 @@ Feito com [three.js](https://threejs.org/) (personagens 3D) e [PeerJS](https://p
   - **Anderson Silva:** **LIGANDO PRA CASADA**, faz uma ligação e recupera vida. No começo ninguém acerta ele; depois, se apanhar, a ligação cai.
   - **HGL:** **CHAVE DE FENDA**, arremessa a chave de fenda girando no inimigo e derruba.
   - **Trump:** **VOCÊ ESTÁ DEMITIDO!**, aponta o dedo rindo e arremessa o adversário para o outro lado, mesmo de média distância.
+  - **Lula:** **FAZ O L!**, ergue a mão e solta uma onda verde e amarela em volta dele, que arremessa quem estiver perto, até atrás dele.
+- **Golpes com direção** (em pé, para todos):
+  - **→ + soco forte = CRUZADO:** avança, empurra longe e emenda no especial.
+  - **← + soco forte = UPPER:** contra quem pula; no começo ninguém acerta você, e quem estiver no ar cai.
+  - **→ + chute = CHUTE POR CIMA:** mais lento, só é defendido **em pé** (pega quem fica agachado).
+  - O soco forte do Hotmonster, do Davidson e do Trump alterna entre direto, gancho e gancho com a outra mão.
 - **VOADORA:** corre e chuta voando. Acerta no alto, então só é defendida em pé.
 - **ESTRELA:** estrela com chute que derruba.
 - **AGARRÃO:** colado no adversário, para frente (ou para trás) + soco forte. Joga o adversário por cima do ombro e ele cai do outro lado. Não dá para defender: para escapar, aperte soco forte logo que for agarrado.

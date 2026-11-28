@@ -133,11 +133,11 @@ test('crouching CHUTE+ is a strong low kick (the spinning sweep is off for now)'
   assert.ok(!fell, 'it does not knock down');
 });
 
-test('AGARRÃO is off: forward + SOCO+ up close is a normal strong punch', () => {
+test('AGARRÃO is off: forward + SOCO+ up close is the CRUZADO, not a throw', () => {
   const g = createGame(['hotmonster', 'flash']);
   toFight(g); approach(g, 600);
   step(g, [RIGHT | HP, 0]);
-  assert.equal(g.f[0].mv, 'hp');
+  assert.equal(g.f[0].mv, 'cross');
   run(g, 8);
   assert.notEqual(g.f[1].st, 'thrown');
 });
@@ -491,7 +491,7 @@ test('Davidson super BASEADO GIGANTE heals; special CHAPA GIRATÓRIA knocks down
 
 test('every fighter has a second signature string that knocks down', () => {
   const B = { LP, HP, LK, HK };
-  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump']) {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump', 'lula']) {
     const g = createGame([id, 'genildo']);
     toFight(g); approach(g, 650);
     const t2 = moves.CHARACTERS[id].targets[1];
@@ -529,7 +529,7 @@ test('special wins over a signature string that shares its button (Flash: SOCO+ 
 
 test('combo step-in: every signature string still connects when it starts with a jab', () => {
   const B = { LP, HP, LK, HK };
-  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump']) {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump', 'lula']) {
     for (const t of moves.CHARACTERS[id].targets) {
       const g = createGame([id, 'genildo']);
       toFight(g); approach(g, 650);
@@ -542,7 +542,7 @@ test('combo step-in: every signature string still connects when it starts with a
 });
 
 test('jab, strong punch, special connects for everyone (the README combo)', () => {
-  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump']) {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump', 'lula']) {
     const g = createGame([id, 'genildo']);
     toFight(g); approach(g, 650);
     const r = combo(g, [LP, HP, LP | HP]);
@@ -551,7 +551,7 @@ test('jab, strong punch, special connects for everyone (the README combo)', () =
 });
 
 test('air combo: launcher, jump after them, then SOCO > CHUTE > CHUTE+ in the air', () => {
-  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump']) {
+  for (const id of ['hotmonster', 'flash', 'genildo', 'anderon', 'hgl', 'davidson', 'trump', 'lula']) {
     const g = createGame([id, 'genildo']);
     toFight(g); approach(g, 650);
     step(g, [DOWN | HP, 0]);
@@ -565,7 +565,7 @@ test('air combo: launcher, jump after them, then SOCO > CHUTE > CHUTE+ in the ai
       for (let i = 0; i < 12; i++) { step(g, [0, 0]); best = Math.max(best, g.f[1].combo); }
     }
     // Trump (the BOSS) is heavy and falls faster: he fits two air hits, not three.
-    if (id === 'trump') assert.ok(best >= 3, `${id}: launcher + two air hits (got ${best})`);
+    if (id === 'trump' || id === 'lula') assert.ok(best >= 3, `${id}: launcher + two air hits (got ${best})`);
     else assert.equal(best, 4, `${id}: launcher + three air hits`);
   }
 });
@@ -596,4 +596,78 @@ test('Trump (BOSS) super VOCÊ ESTÁ DEMITIDO! blasts the opponent away from mid
   assert.equal(at(3600).dmg, 0, 'out of reach at 3.6 m');
   assert.ok(at(1800, RIGHT).dmg < 60, 'blocking takes only chip damage');
   assert.ok(moves.CHARACTERS.trump.hp > 1100, 'the boss has more health');
+});
+
+test('direction moves: forward + SOCO+ CRUZADO, back + SOCO+ UPPER, forward + CHUTE overhead', () => {
+  for (const [held, btn, id] of [[RIGHT, HP, 'cross'], [LEFT, HP, 'upper'], [RIGHT, LK, 'over']]) {
+    const g = createGame(['davidson', 'genildo']);
+    toFight(g); approach(g, 650);
+    step(g, [held | btn, 0]);
+    assert.equal(g.f[0].mv, id, id);
+  }
+});
+
+test('CRUZADO shoves far and cancels into the special', () => {
+  const g = createGame(['hotmonster', 'genildo']);
+  toFight(g); approach(g, 650);
+  const x0 = g.f[1].x;
+  step(g, [RIGHT | HP, 0]);
+  let special = false, far = 0;
+  for (let i = 0; i < 60; i++) {
+    step(g, [i === 14 ? LP | HP : 0, 0]);
+    if (g.f[0].mv === 'special') special = true;
+    far = Math.max(far, g.f[1].x - x0);
+  }
+  assert.ok(special, 'special came out of the CRUZADO');
+  assert.ok(far > 300, `pushed back ${far} mm`);
+});
+
+test('UPPER knocks a jumping opponent out of the air', () => {
+  let fell = false;
+  for (let at = 8; at <= 24 && !fell; at += 2) {
+    const g = createGame(['genildo', 'flash']);
+    toFight(g); approach(g, 1100);
+    // P2 jumps in at P1; P1 answers with back + SOCO+.
+    for (let i = 0; i < 80; i++) {
+      step(g, [i === at ? LEFT | HP : 0, i === 0 ? UP | LEFT : 0]);
+      if (g.f[1].st === 'fall' && g.f[1].combo > 0) fell = true;
+    }
+  }
+  assert.ok(fell, 'the jumper was knocked down');
+});
+
+test('overhead kick must be blocked standing: crouching block does not stop it', () => {
+  const crouch = createGame(['hgl', 'genildo']);
+  toFight(crouch); approach(crouch, 650);
+  const hp = crouch.f[1].hp;
+  step(crouch, [RIGHT | LK, DOWN | RIGHT]);
+  run(crouch, 40, () => [0, DOWN | RIGHT]);
+  assert.ok(crouch.f[1].hp < hp, 'hits a crouching blocker');
+  const stand = createGame(['hgl', 'genildo']);
+  toFight(stand); approach(stand, 650);
+  const hp2 = stand.f[1].hp;
+  step(stand, [RIGHT | LK, RIGHT]);
+  run(stand, 40, () => [0, RIGHT]);
+  assert.equal(stand.f[1].hp, hp2, 'blocked standing');
+});
+
+test('Lula (BOSS) super FAZ O L! throws whoever is close, even behind him', () => {
+  for (const side of [1, -1]) {
+    const g = createGame(['lula', 'genildo']);
+    toFight(g);
+    g.f[0].x = 0; g.f[1].x = side * 900; g.f[0].meter = 1000;
+    if (side < 0) g.f[0].facing = 1; // opponent behind him
+    const hp = g.f[1].hp;
+    step(g, [SUP, 0]);
+    let wave = false, far = 0;
+    for (let i = 0; i < 150; i++) { step(g, [0, 0]); if (g.events.some((e) => e.t === 'wave')) wave = true; far = Math.max(far, Math.abs(g.f[1].x)); }
+    assert.ok(wave, 'wave event');
+    assert.equal(hp - g.f[1].hp, 230, `full damage (${side > 0 ? 'front' : 'behind'})`);
+    assert.ok(far > 2000, `thrown far (${far})`);
+  }
+  const g = createGame(['lula', 'genildo']);
+  toFight(g); g.f[0].x = -1300; g.f[1].x = 1300; g.f[0].meter = 1000;
+  const hp = g.f[1].hp;
+  step(g, [SUP, 0]); run(g, 150);
+  assert.equal(g.f[1].hp, hp, 'misses from 2.6 m');
 });

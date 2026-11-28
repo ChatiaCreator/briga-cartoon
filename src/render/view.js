@@ -8,7 +8,7 @@ import { shadowTexture, loadImage } from './textures.js';
 import { CHARACTERS } from '../sim/moves.js';
 
 const FACE_ANGLE = 1.15; // radians: side-on, turned a little towards the camera
-const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e, hgl: 0xff9a2e, davidson: 0x5fd35f, trump: 0xff3b3b };
+const TRAIL_COLORS = { hotmonster: 0xff7a1a, flash: 0xffe14a, genildo: 0x3da5ff, anderon: 0xff3d6e, hgl: 0xff9a2e, davidson: 0x5fd35f, trump: 0xff3b3b, lula: 0x2fd35a };
 const LIMBS = ['LeftHand', 'RightHand', 'LeftFoot', 'RightFoot'];
 const FLIP_FRAMES = 30; // frames the forward-jump somersault takes
 
@@ -119,6 +119,8 @@ export class GameView {
 
   handleEvents(events) {
     for (const ev of events) {
+      // Every strong punch thrown picks the next of its looks (straight, hook, other hook).
+      if (ev.t === 'move' && ev.mv === 'hp') (this.hpCount ||= [0, 0])[ev.f]++;
       if (ev.t === 'hit') {
         this.fx.hit(ev);
         this.flash[ev.f] = ev.big ? 0.2 : ev.heavy ? 0.14 : 0.08;
@@ -137,6 +139,7 @@ export class GameView {
         this.fx.muzzle(pos);
         this.arena.shake = Math.max(this.arena.shake, 0.05);
       } else if (ev.t === 'land') this.fx.dust(this.lastState?.f[ev.f].x ?? 0);
+      else if (ev.t === 'wave') { this.fx.wave(ev.x); this.arena.shake = Math.max(this.arena.shake, 0.3); }
       else if (ev.t === 'heal') {
         const c = this.chars[ev.f];
         this.fx.heal(c.b.Head.getWorldPosition(new THREE.Vector3()), ev.amount);
@@ -183,7 +186,8 @@ export class GameView {
       else if (this.wasLow[i] && (f.st === 'idle' || f.st === 'walk')) this.standT[i] = 0;
       else if (this.standT[i] != null) this.standT[i] = f.st === 'idle' || f.st === 'walk' ? this.standT[i] + dt : null;
       this.wasLow[i] = low;
-      const view = { ...f, x: x * 1000, sf: f.sf + sub, standT: this.standT[i], flip: this.somersault(i, f, g, dt) };
+      const view = { ...f, x: x * 1000, sf: f.sf + sub, standT: this.standT[i], flip: this.somersault(i, f, g, dt),
+        hpCount: Math.max(0, (this.hpCount?.[i] ?? 1) - 1) };
       const P = poseFor(view, g, this.T + i * 0.37);
       poses.push(P);
       c.root.updateMatrixWorld(true);

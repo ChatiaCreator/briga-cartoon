@@ -101,6 +101,13 @@ function chooseMove(f, dir, air, minRank) {
   // ESQUIVA: only from neutral (never as a combo cancel).
   if (!air && minRank === 0 && doubleBack(f.hist) && ok('dodge')) return 'dodge';
   const crouch = !air && (dir === 1 || dir === 2 || dir === 3);
+  // Direction + button moves, standing: forward + SOCO+ the CRUZADO, back + SOCO+ the UPPER
+  // (anti-air), forward + CHUTE the overhead kick (blocked standing only).
+  if (!air && !crouch) {
+    for (const [d, bit, id] of [[6, HP, 'cross'], [4, HP, 'upper'], [6, LK, 'over']]) {
+      if (dir === d && buffered(f, bit) && ok(id)) { consume(f, bit); return id; }
+    }
+  }
   const prefix = air ? 'j' : crouch ? 'c' : '';
   const order = [[HK, 'hk'], [HP, 'hp'], [LK, 'lk'], [LP, 'lp']];
   for (const [bit, id] of order) {
@@ -386,6 +393,8 @@ function stepAttack(f, dir, o, g) {
   }
   // A blast from the hand (Trump's super): muzzle flash on the first active frame (render only).
   if (m.blast && f.sf === m.startup) g.events.push({ t: 'shot', f: f.id, x: f.x, y: 1400, dir: f.facing });
+  // A wave bursting out all around (Lula's super): drawn by the view.
+  if (m.wave && f.sf === m.startup) g.events.push({ t: 'wave', f: f.id, x: f.x });
   if (m.projectile && f.sf === m.projectile.at) {
     const p = m.projectile;
     g.spawn(f.id, {

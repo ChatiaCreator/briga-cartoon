@@ -320,6 +320,19 @@ export function glowTexture(color) {
   });
 }
 
+// Shock-wave ring: clear in the middle, a bright band near the edge (Lula's "FAZ O L!").
+export function ringTexture(color) {
+  return canvas(256, 256, (g, w, h) => {
+    const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    gr.addColorStop(0, 'rgba(0,0,0,0)');
+    gr.addColorStop(0.55, 'rgba(0,0,0,0)');
+    gr.addColorStop(0.78, color);
+    gr.addColorStop(0.86, 'rgba(255,255,255,0.9)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  });
+}
+
 // Cartoon flame tongue (white-hot core, orange edge).
 export function flameTexture() {
   return canvas(128, 192, (g, w, h) => {
