@@ -81,7 +81,7 @@ export class GameView {
     const fighters = [];
     for (let i = 0; i < 2; i++) {
       const tint = i === 1 && chars[0] === chars[1] ? 0x9fc6ff : null; // mirror match: tint P2
-      fighters.push(new Character(i ? g1 : g0, { tint, extraClips: await fighterClips(chars[i]) }));
+      fighters.push(new Character(i ? g1 : g0, { tint, extraClips: await fighterClips(chars[i]), size: CHARACTERS[chars[i]].size || 1 }));
     }
     return new GameView(fighters, canImg, stage, props);
   }

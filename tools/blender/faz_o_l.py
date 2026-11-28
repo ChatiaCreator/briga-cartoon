@@ -49,6 +49,8 @@ if (rest('Head') + FWD * 0.1 - rest('Neck')).length < (rest('Head') - rest('Neck
 # The game turns him to face the camera while he makes the L (poses.js): the gesture is built
 # square to the front, hand in front of the chest and face.
 FRAME = [RIGHT, UP, FWD]
+# Hand and fingers use the body's own front (the side the game turns to the camera), not the chest.
+DR = lambda r=0.0, u=0.0, f=0.0: (RIGHT * r + UP * u + FWD * f).normalized()
 D = lambda r=0.0, u=0.0, f=0.0: (FRAME[0] * r + FRAME[1] * u + FRAME[2] * f).normalized()
 
 
@@ -115,14 +117,16 @@ def l_hand(height=1.0):
     chest_frame()
     # Elbow forward and a little down, forearm up: the hand ends in front of the face, a little
     # to his right (checked with FAZ_DEBUG=1: hand about 20 cm right, at face height, 30 cm forward).
-    aim('RightArm', D(r=0.12, u=-0.35 + 0.15 * (height - 1), f=0.9))
-    aim('RightForeArm', D(r=-0.25, u=1.0, f=0.2))
-    aim('RightHand', D(r=-0.05, u=1.0, f=0.0))
-    roll('RightHand', 'RightHandThumb1', D(r=-1.0, f=-0.2))    # thumb side towards his left: palm faces forward
-    finger('Index', [D(u=1, f=0.03)] * 3)                      # index straight up
-    finger('Thumb', [D(r=-0.7, u=0.5, f=0.2), D(r=-1, u=0.15), D(r=-1, u=0.05)])  # thumb out to the side
+    aim('RightArm', D(r=0.4, u=-0.35 + 0.15 * (height - 1), f=0.85))
+    aim('RightForeArm', D(r=-0.05, u=1.0, f=0.1))
+    aim('RightHand', DR(u=1.0))                             # wrist straight, hand upright
+    roll('RightHand', 'RightHandThumb1', DR(r=-1.0, f=0.15))  # thumb side towards his left: palm to the viewer
+    # The L like the reference picture: index straight up, thumb straight out to the side
+    # (horizontal, towards his left), palm towards the viewer.
+    finger('Index', [DR(u=1)] * 3)
+    finger('Thumb', [DR(r=-0.8, u=0.15, f=0.25), DR(r=-1, u=0.0, f=0.05), DR(r=-1, u=0.0)])
     for f in ('Middle', 'Ring', 'Pinky'):                      # closed against the palm
-        finger(f, [D(u=0.3, f=1.0), D(u=-1.0, f=0.2), D(u=-0.4, f=-1.0)])
+        finger(f, [DR(u=0.15, f=1.0), DR(u=-1.0, f=0.1), DR(u=-0.3, f=-1.0)])  # tight fist
 
 
 def key(t):

@@ -184,12 +184,13 @@ function fixStrayWeights(mesh) {
 }
 
 export class Character {
-  constructor(gltf, { tint = null, extraClips = [] } = {}) {
+  // size: drawn bigger or smaller than HEIGHT (a model that came out shorter), visual only.
+  constructor(gltf, { tint = null, extraClips = [], size = 1 } = {}) {
     this.root = new THREE.Group();
     this.tilt = new THREE.Group();
     this.root.add(this.tilt);
     this.model = gltf.scene;
-    this.model.scale.setScalar(HEIGHT);
+    this.model.scale.setScalar(HEIGHT * size);
     this.tilt.add(this.model);
 
     this.model.traverse((o) => {

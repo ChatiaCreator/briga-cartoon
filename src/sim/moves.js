@@ -231,6 +231,7 @@ CHARACTERS.trump = {
 CHARACTERS.lula = {
   name: 'Lula',
   boss: true, stage: 'brasilia',
+  size: 1.09, // drawing scale (render only): the model came out a little shorter than the others
   hp: 1250, walk: 33, back: 27, jumpVy: 190, jumpVx: 36, gravity: 12,
   model: 'assets/models/lula.glb',
   combo: 'COMPANHEIRADA',
