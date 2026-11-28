@@ -58,7 +58,7 @@ const DESCR = {
   davidson: 'Capoeirista. Especial: CHAPA GIRATÓRIA, chute giratório que avança e derruba. Super: BASEADO GIGANTE, fuma e recupera vida (se não apanhar). Combo: CHUTE, CHUTE+.',
   anderon: 'Capoeira e boxe. Especial: ARMADA, chute giratório que avança e derruba. Super: LIGANDO PRA CASADA, recupera vida (se não apanhar). Combo: SOCO+, CHUTE+.',
   trump: 'BOSS. Mais vida, mais lento e pesado. Especial: TARIFAÇO, um direto longo que avança e derruba. Super: VOCÊ ESTÁ DEMITIDO!, aponta o dedo e arremessa o adversário longe, mesmo de média distância. Combo: SOCO, SOCO, SOCO+.',
-  lula: 'BOSS. Mais vida, pesado e forte. Especial: PICANHA, uma investida de ombro que atravessa a arena e derruba. Super: FAZ O L!, ergue a mão e solta uma onda verde e amarela em volta dele, arremessando quem estiver perto (até atrás dele). Combo: SOCO, SOCO, SOCO+.',
+  lula: 'BOSS. Mais vida, pesado e forte. Especial: PICANHA, um direto pesado com um passo à frente que derruba. Super: FAZ O L!, faz o L com a mão e solta uma onda verde e amarela em volta dele, arremessando quem estiver perto (até atrás dele). Combo: SOCO, SOCO, SOCO+.',
 };
 
 // ---------- Screens ----------

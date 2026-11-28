@@ -268,6 +268,19 @@
     </div>
   </div>
 
+  <script>
+    // Always fresh game files (sw.js). The first time the worker takes over, this page was loaded
+    // from the old cache: reload once so the new version shows right away.
+    if ('serviceWorker' in navigator) {
+      const hadWorker = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        let again = false;
+        try { again = !!sessionStorage.getItem('ff-sw-reload'); sessionStorage.setItem('ff-sw-reload', '1'); } catch (e) { again = true; }
+        if (!hadWorker && !again) location.reload();
+      });
+    }
+  </script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

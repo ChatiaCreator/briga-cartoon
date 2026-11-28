@@ -224,6 +224,8 @@ const CLIP_ATTACKS = {
     hp2: [FFA, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL], hp3: [FFA_M, 1.35, 1.55, 1.62, 1.85, 0, false, TRAVEL],
     tc: [FFA, 2.45, 2.7, 2.76, 3.05, 0, false, TRAVEL],    // COMPANHEIRADA: a big hook
     tc2: MA.mtRound,
+    special: ['Boxing', 0.2, 0.6, 0.72, 1.5, 0, false, TRAVEL], // PICANHA: heavy straight with a step in
+    super: ['Faz_o_L', 0.0, 0.6, 0.7, 1.8, 0, false, TRAVEL],     // FAZ O L! (made in Blender)
   },
   trump: {
     ...MIXAMO_ATTACKS,
@@ -385,20 +387,18 @@ function specialPose(f, m) {
     return { ...CLIP, clip: 'run', clipTime: ((t / 60) * 2) % 1.25, spine: [0.3, -0.3, 0], alpha: 0.6 };
   }
   if (f.char === 'trump' && f.mv === 'special') return attackPose(f, m, 0); // TARIFAÇO
-  if (f.char === 'lula' && f.mv === 'special') {
-    // PICANHA: shoulder charge, the run clip at speed, leaning in.
-    return { ...CLIP, clip: 'run', clipTime: ((t / 60) * 1.8) % 1.25, spine: [0.35, -0.35, 0], alpha: 0.6 };
-  }
+  if (f.char === 'lula' && f.mv === 'special') return attackPose(f, m, 0); // PICANHA
   if (f.char === 'lula' && f.mv === 'super') {
-    // FAZ O L!: winds up, then throws the hand up high (the wave bursts on the first active
-    // frame), holds it and lowers it.
-    const WIND = withP(STANCE, { rh: [0.02, -0.06, -0.05], lh: [0, -0.04, 0], spine: [0.25, -0.3, 0], hip: [0, -0.06, 0] });
-    const UPH = withP(STANCE, { rh: [-0.03, 0.4, 0.05], lh: [0.04, -0.05, 0.05], spine: [-0.22, 0.25, 0], head: [-0.3, 0, 0], hip: [0, 0.02, 0] });
-    const S = m.startup, hold = S + m.active + 24;
-    if (t < S - 6) return { ...mixPose(STANCE, WIND, ease(clamp01(t / (S - 6)))), fists: true, alpha: 0.6, blend: 0.1 };
-    if (t < hold) return { ...mixPose(WIND, UPH, ease(clamp01((t - S + 6) / 6))), fists: true, alpha: 0.8 };
-    return { ...mixPose(UPH, STANCE, ease(clamp01((t - hold) / (m.startup + m.active + m.recovery - hold)))), fists: true, alpha: 0.6 };
+    // FAZ O L!: the gesture made in Blender (tools/blender/faz_o_l.py): winds up and raises the right
+    // hand making the L by the face (the wave bursts on the first active frame). He turns to the
+    // camera to show it, and back to the fight at the end.
+    const P = attackPose(f, m, 0);
+    const S = m.startup, hold = S + m.active + 30, end = S + m.active + m.recovery;
+    const e = t < S ? ease(clamp01(t / S)) : t < hold ? 1 : 1 - ease(clamp01((t - hold) / Math.max(1, end - hold)));
+    P.clipYaw = -f.facing * 0.6 * e;
+    return P;
   }
+
   // VOCÊ ESTÁ DEMITIDO!: his own laugh clip, where he points straight at the opponent (the blast
   // leaves on the first active frame), then keeps laughing at them.
   if (f.char === 'trump' && f.mv === 'super') return attackPose(f, m, 0);

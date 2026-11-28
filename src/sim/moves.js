@@ -242,9 +242,9 @@ CHARACTERS.lula = {
     tc: { rank: 2, startup: 10, active: 4, recovery: 20, dmg: 115, hitstun: 0, blockstun: 16, push: 260, height: 'mid',
       box: [120, 1000, 900, 1550], travel: [0, 10, 26], kd: true },
     tc2: tc2({ startup: 12, dmg: 110 }),
-    // Special "PICANHA": a big shoulder charge across the stage that knocks down.
-    special: { rank: 3, startup: 12, active: 14, recovery: 20, dmg: 105, hitstun: 0, blockstun: 18, push: 260, height: 'mid', chip: 10,
-      dash: 95, box: [60, 700, 650, 1600], kd: true },
+    // Special "PICANHA": a heavy straight punch with one step in (no running) that knocks down.
+    special: { rank: 3, startup: 14, active: 5, recovery: 22, dmg: 110, hitstun: 0, blockstun: 18, push: 260, height: 'mid', chip: 10,
+      box: [120, 1000, 950, 1550], travel: [0, 14, 22], kd: true },
     // Super "FAZ O L!": raises the hand making the L and a green-and-yellow wave bursts out all
     // around him (behind him too), throwing whoever is close far away. Untouchable while he raises it.
     super: { rank: 4, startup: 28, active: 6, recovery: 46, dmg: 230, hitstun: 0, blockstun: 22, push: 300, height: 'mid', chip: 20,
